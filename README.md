@@ -2,6 +2,7 @@
 
 AgilityContest plugin for for chronometers with serial port interface
 Allow connect to AgilityContest Event bus any chronometer that uses serial port and complaint with these protocol
+Copyright 2019 by Juan Antonio Martinez < jonsito at gmail dot com >
 
 Provides:
 - Command line invocation and
@@ -22,7 +23,7 @@ Where options are:<br/>
     -f file || --logfile=filename . Set log file. Defaults to "stderr"<br/>
     -b baud || --baud=baudrate .    Set baudrate for comm port. Defaults 9600<br/>
     -t || --test .  Test mode. Don't try to connect server, just check comm port<br/>
-    -f || --find .  Show available ports<br/>
+    -f || --find .  Show available , non-busy comm ports<br/>
 
 **API Command description**
 - Is up to the user select serial port baudrate. 
