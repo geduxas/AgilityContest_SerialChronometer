@@ -54,10 +54,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
+#include "getopt.h"
 #include <stdarg.h>
 #include <stdio.h>
+#ifdef __WIN32__
 #include <windows.h>
+#endif
 
 #define	REPLACE_GETOPT		/* use this getopt as the system getopt(3) */
 
@@ -118,7 +120,8 @@ static const char illoptstring[] = "unknown option -- %s";
 static void
 _vwarnx(const char *fmt,va_list ap)
 {
-  (void)fprintf(stderr,"%s: ",__progname);
+    extern char *program_name;
+  (void)fprintf(stderr,"%s: ",program_name);
   if (fmt != NULL)
     (void)vfprintf(stderr,fmt,ap);
   (void)fprintf(stderr,"\n");
