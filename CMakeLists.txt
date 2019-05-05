@@ -3,13 +3,11 @@ project (SerialChronometer)
 
 #include folder
 include_directories(include)
-include_directories(libs/libserialport/include libs/logging libs/parseini libs/wingetopt)
+include_directories(libs/libserialport/include)
 
 # source files
 file(GLOB SOURCES "src/*.c")
-file(GLOB SOURCES "libs/*/*.c")
-file(GLOB INCLUDES "include/*.h")
-file(GLOB INCLUDES "libs/*/*.h")
+file(GLOB INCLUDES "libs/libserialport/include/*.h include/*.h")
 
 # exe definition
 add_executable(SerialChronometer ${SOURCES} ${INCLUDES} src/main.c)

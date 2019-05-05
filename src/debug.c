@@ -19,11 +19,10 @@
 #include <time.h>
 
 #define PROJECT_DEBUG_C
-#include "config.h"
+#include "sc_config.h"
 #include "debug.h"
 
 /* current debug level */
-extern struct configuration *config;
 static int debug_level = 0;
 static FILE *debug_file = NULL;
 static FILE *debug_stderr = NULL;

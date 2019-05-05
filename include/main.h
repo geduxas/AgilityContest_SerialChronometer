@@ -11,5 +11,15 @@
 #define EXTERN
 #endif
 
+/* #define min(a,b) ((a)<(b)?(a):(b)) */
+
+#ifdef __WIN32__
+// mode for mkdir() has no sense in win32
+#define vmkdir(d,m) mkdir((d))
+#else
+#define vmkdir(d,m) mkdir((d),(m))
+#endif
+
+
 EXTERN char *program_name;
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_MAIN_H

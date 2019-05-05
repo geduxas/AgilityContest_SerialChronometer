@@ -42,6 +42,8 @@
 #define DEBUG_EXTERN
 #endif
 
+#include "sc_config.h"
+
 /*
  * set_debug_level() sets the current debug level.
  */
