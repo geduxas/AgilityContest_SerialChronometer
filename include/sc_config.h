@@ -10,6 +10,10 @@
 #define PATHSEP '/'
 #endif
 
+#define OPMODE_NORMAL 0
+#define OPMODE_TEST 1
+#define OPMODE_ENUM 2
+
 typedef struct {
     char *osname;
     // log file
@@ -25,7 +29,7 @@ typedef struct {
     // serial port parameters
     char *comm_port;
     int baud_rate;
-    int opmode; // 2:enum ports 1:test serial 0: normal
+    int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
 } configuration;
 
 extern configuration *default_options(configuration *config);

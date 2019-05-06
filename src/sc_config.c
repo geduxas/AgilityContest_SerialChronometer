@@ -31,7 +31,7 @@ configuration * default_options(configuration * config) {
     config->web_port = 8080;
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
-    config->opmode = 0; // 0:normal 1: test port 2: enumerate ports
+    config->opmode = OPMODE_NORMAL; // 0:normal 1: test port 2: enumerate ports
     return config;
 }
 
@@ -78,8 +78,7 @@ configuration * parse_ini_file(configuration *config, char *filename) {
         return NULL;
     }
     if (ini_parse(filename, handler, config) < 0) {
-        debug(DBG_ERROR,"Can't load 'serial_chrono.ini'");
-        return NULL;
+        debug(DBG_ERROR,"Can't load 'serial_chrono.ini'. Using in-built configuration");
     }
     return config;
 }

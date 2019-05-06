@@ -14,6 +14,10 @@
 #include "../include/sc_config.h"
 #include "../include/main.h"
 
+int sc_thread_create(sc_thread_slot *slot) {
+    return 0;
+}
+
 /**
  * Print usage
  * @return 0
@@ -22,7 +26,7 @@ static int usage() {
     fprintf(stderr,"%s command line options:\n",program_name);
 
     fprintf(stderr,"\t -d comport || --device=com_port   Communication port to attach to (required) \n");
-    fprintf(stderr,"\t -w webport || --port=web_port     Where to listen for web interface. Default 8080\n");
+    fprintf(stderr,"\t -w webport || --port=web_port     Where to listen for web interface. 0:disable . Default 8080\n");
     fprintf(stderr,"\t -s ipaddr  || --server=ip_address Location of AgilityContest server. Default \"localhost\"\n");
     fprintf(stderr,"\t -r ring    || --ring=ring_number  Tell server which ring to attach chrono. Default \"1\"\n");
     fprintf(stderr,"\t -D level   || --debuglog=level    Set debug/logging level 0:none thru 8:all. Defaults to 3:error\n");
@@ -56,9 +60,9 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
             case 'D' : config->loglevel = atoi(optarg)%9; break;
             case 'b' : config->baud_rate = atoi(optarg); break; // pending: check valid baudrate
             case 'v' : config->verbose = 1; break;
-            case 'q' : config->verbose = 0; break;
-            case 't' : config->opmode = 1; break; // test serial port
-            case 'f' : config->opmode = 2; break; // find serial ports
+            case 'q' : config->verbose = OPMODE_NORMAL; break;
+            case 't' : config->opmode = OPMODE_TEST; break; // test serial port
+            case 'f' : config->opmode = OPMODE_ENUM; break; // find serial ports
             case 'h' :
             case '?' : usage(); exit(0);
             default: return -1;
@@ -66,7 +70,6 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
     }
     return 0;
 }
-
 
 int main (int argc, char *argv[]) {
     program_name=argv[0];
@@ -87,7 +90,7 @@ int main (int argc, char *argv[]) {
 
     // parse command line options
     if ( parse_cmdline(config,argc,argv)<0) {
-        debug(DBG_ERROR,"error parsing cmd line options'");
+        debug(DBG_ERROR,"error parsing cmd line options");
         usage();
         return 1;
     }
@@ -98,4 +101,53 @@ int main (int argc, char *argv[]) {
     }
 
     print_configuration(config);
+
+    // if opmode==enumerate, do nothing but search and print available serial ports
+    if (config->opmode==OPMODE_ENUM) {
+        int nports=0;
+        char **ports= serial_ports_enumerate(config,&nports);
+        if (nports==0) {
+            fprintf(stdout,"No available COMM ports found:\n");
+        } else {
+            fprintf(stdout,"List of available COMM ports:\n");
+            for (;*ports;ports++) {
+                fprintf(stdout,"%s\n",*ports);
+            }
+        }
+        return 0;
+    }
+
+    // if comm port is not null, open it, and store handler in configuration
+    if (config->comm_port != (char*)NULL ) {
+
+    }
+
+    // start requested threads
+    sc_threads = calloc(3,sizeof(sc_thread_slot));
+    if (!sc_threads) {
+        debug(DBG_ERROR,"Error allocating thread data");
+        usage();
+        return 1;
+    }
+    // thread 0: recepcion de datos por puerto serie
+    if (config->comm_port != (char*)NULL ) {
+        sc_threads[0].tname="COMM";
+        sc_threads[0].config=config;
+        sc_threads[0].sc_thread_entry=serial_manager_thread;
+        sc_thread_create(&sc_threads[0]);
+    }
+    // thread 1: gestion de mini-servidor web
+    if (config->web_port !=0 ) {
+        sc_threads[1].tname="WEB";
+        sc_threads[1].config=config;
+        sc_threads[1].sc_thread_entry=web_manager_thread;
+        sc_thread_create(&sc_threads[1]);
+    }
+    // thread 2: comunicaciones ajax con servidor AgilityContest
+    if (config->ajax_server!= (char*)NULL) {
+        sc_threads[2].tname="AJAX";
+        sc_threads[2].config=config;
+        sc_threads[2].sc_thread_entry=ajax_manager_thread;
+        sc_thread_create(&sc_threads[2]);
+    }
 }

@@ -1,4 +1,6 @@
 /* libserialport.h.  Generated from libserialport.h.in by configure.  */
+/* https://sigrok.org/wiki/Libserialport */
+
 /*
  * This file is part of the libserialport project.
  *

@@ -5,4 +5,15 @@
 #ifndef AGILITYCONTEST_SERIALCHRONOMETER_SERIAL_MGR_H
 #define AGILITYCONTEST_SERIALCHRONOMETER_SERIAL_MGR_H
 
+
+#include "../include/sc_config.h"
+#ifdef  AGILITYCONTEST_SERIALCHRONOMETER_SERIAL_MGR_C
+#define EXTERN extern
+#else
+#define EXTERN
+#endif
+
+EXTERN int serial_manager_thread(configuration *config);
+EXTERN char ** serial_ports_enumerate(configuration *config, int *nports);
+
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_SERIAL_MGR_H
