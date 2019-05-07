@@ -14,6 +14,7 @@
 #define OPMODE_TEST 1
 #define OPMODE_ENUM 2
 
+
 typedef struct {
     char *osname;
     // log file
@@ -30,6 +31,7 @@ typedef struct {
     char *comm_port;
     int baud_rate;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
+
 } configuration;
 
 extern configuration *default_options(configuration *config);

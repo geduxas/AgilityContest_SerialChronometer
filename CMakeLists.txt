@@ -10,7 +10,7 @@ file(GLOB SOURCES "src/*.c")
 file(GLOB INCLUDES "libserialport/include/*.h include/*.h")
 
 # exe definition
-add_executable(SerialChronometer ${SOURCES} ${INCLUDES} src/main.c)
+add_executable(SerialChronometer ${SOURCES} ${INCLUDES})
 
 # add libcsoap library
 if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")

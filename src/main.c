@@ -12,6 +12,7 @@
 #include "../include/serial_mgr.h"
 #include "../include/debug.h"
 #include "../include/sc_config.h"
+#include "../include/parser.h"
 #include "../include/main.h"
 
 int sc_thread_create(sc_thread_slot *slot) {
@@ -131,6 +132,7 @@ int main (int argc, char *argv[]) {
     }
     // thread 0: recepcion de datos por puerto serie
     if (config->comm_port != (char*)NULL ) {
+        debug(DBG_TRACE,"Starting comm port receiver thread");
         sc_threads[0].tname="COMM";
         sc_threads[0].config=config;
         sc_threads[0].sc_thread_entry=serial_manager_thread;
@@ -138,6 +140,7 @@ int main (int argc, char *argv[]) {
     }
     // thread 1: gestion de mini-servidor web
     if (config->web_port !=0 ) {
+        debug(DBG_TRACE,"Starting web server thread");
         sc_threads[1].tname="WEB";
         sc_threads[1].config=config;
         sc_threads[1].sc_thread_entry=web_manager_thread;
@@ -145,9 +148,28 @@ int main (int argc, char *argv[]) {
     }
     // thread 2: comunicaciones ajax con servidor AgilityContest
     if (config->ajax_server!= (char*)NULL) {
-        sc_threads[2].tname="AJAX";
-        sc_threads[2].config=config;
-        sc_threads[2].sc_thread_entry=ajax_manager_thread;
+        debug(DBG_TRACE,"Starting ajax event listener thread");
+        sc_threads[2].tname = "AJAX";
+        sc_threads[2].config = config;
+        sc_threads[2].sc_thread_entry = ajax_manager_thread;
         sc_thread_create(&sc_threads[2]);
     }
+    // if interactive mode is enabled, enter infinite loop until exit
+    if (config->opmode==OPMODE_TEST) {
+        debug(DBG_TRACE,"Enter in interactive (test) mode");
+        char *buff=calloc(1024,sizeof(char));
+        if (!buff) {
+            debug(DBG_ERROR,"Cannot enter interactive mode:calloc()");
+        } else {
+            int res=0;
+            while(res>=0) {
+                char *p=fgets(buff,1023,stdin);
+                if (p) res=parse_cmd(config,"console",p);
+                else res=-1; // received eof from stdin
+            }
+        }
+    }
+    // arriving here means mark end of threads and wait them to die
+    debug(DBG_TRACE,"Waiting for threads to exit");
+
 }

@@ -44,7 +44,7 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"verbose %d",    config->verbose);
     debug(DBG_DEBUG,"ajax_server %s", config->ajax_server);
     debug(DBG_DEBUG,"comm_port %s",  config->comm_port);
-    debug(DBG_DEBUG,"baud_rate %s",  config->baud_rate);
+    debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
     debug(DBG_DEBUG,"web port %d",  config->web_port);
 }
 
