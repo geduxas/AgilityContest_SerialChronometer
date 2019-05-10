@@ -111,9 +111,11 @@ int main (int argc, char *argv[]) {
             fprintf(stdout,"No available COMM ports found:\n");
         } else {
             fprintf(stdout,"List of available COMM ports:\n");
-            for (;*ports;ports++) {
-                fprintf(stdout,"%s\n",*ports);
+            for (int i=0;i<nports;i++) {
+                fprintf(stdout,"%s\n",ports[i]);
+                free(ports[i]);
             }
+            free(ports);
         }
         return 0;
     }

@@ -27,22 +27,20 @@ char ** serial_ports_enumerate(configuration *config,int *nports){
     struct sp_port **ports;
 
     char **portlist=malloc(sizeof(char*));
+    *portlist=NULL;
 
     enum sp_return error = sp_list_ports(&ports);
     if (error == SP_OK) {
         for (i = 0; ports[i]; i++) {
-            char *port=strdup(sp_get_port_name(ports[i]));
-            char **tmp = realloc(portlist, (*nports+1) * sizeof(char(*)));
+            char **tmp=realloc(portlist, (i+1) * sizeof(char *));
             if (tmp) {
                 portlist=tmp;
-                portlist[*nports] = port;
-                *nports=1+*nports;
-                portlist[*nports] = NULL;
-                debug(DBG_INFO,"Found port: '%s'\n", port );
-            } else {
-                debug(DBG_ERROR,"realloc error\n");
+                portlist[i] = strdup(sp_get_port_name(ports[i]));
+                debug(DBG_INFO,"Found port: '%s'\n", portlist[i] );
+                // *(portlist+i+1)=NULL;
             }
         }
+        *nports=i;
         sp_free_port_list(ports);
         return portlist;
     } else {
