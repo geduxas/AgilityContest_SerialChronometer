@@ -17,6 +17,8 @@
 #ifndef PROJECT_DEBUG_H
 #define PROJECT_DEBUG_H
 
+#include "sc_config.h"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -36,26 +38,27 @@
 */
 #define debug(l,a, ...) debug_print(l, __FILE__, __LINE__, a, ##__VA_ARGS__ )
 
+
 #ifndef PROJECT_DEBUG_C_
-#define DEBUG_EXTERN extern
+#define EXTERN extern
 #else
-#define DEBUG_EXTERN
+#define EXTERN
 #endif
 
-#include "sc_config.h"
 
 /*
  * set_debug_level() sets the current debug level.
  */
-DEBUG_EXTERN int debug_init(configuration *config);
-DEBUG_EXTERN void set_debug_level(int level);
-DEBUG_EXTERN int get_debug_level();
+EXTERN int debug_init(configuration *config);
+EXTERN void set_debug_level(int level);
+EXTERN int get_debug_level();
 
 /*
  * debug_print() prints the given debug-message if the current debug-level 
  * is greater or equal to the defined level. The format string as well as all
  * further arguments are interpreted as by the printf() function. 
  */
-DEBUG_EXTERN void debug_print(int level, char *file, int line, char *format, ...);
+EXTERN void debug_print(int level, char *file, int line, char *format, ...);
+#undef EXTERN
 
 #endif /* PROJECT_DEBUG_H */

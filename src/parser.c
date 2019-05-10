@@ -10,10 +10,13 @@
 
 #include "debug.h"
 #include "sc_config.h"
+#include "serial_mgr.h"
 #include "parser.h"
 
 static int help( configuration *config, int argc, char *argv[]);
 static int sc_exit( configuration *config, int argc, char *argv[]);
+static int sc_print_configuration( configuration *config, int argc, char *argv[]);
+static int sc_enumerate_ports( configuration *config, int argc, char *argv[]);
 
 static command_t command_list[]= {
         { "start",  "Start of course run",      NULL,NULL,NULL,NULL },
@@ -30,6 +33,8 @@ static command_t command_list[]= {
         { "help",   "show command list",                NULL,NULL,NULL,help },
         { "exit",   "End program (from console)",       NULL,NULL,NULL,sc_exit },
         { "server", "Set server IP address",            NULL,NULL,NULL,NULL },
+        { "ports",  "Show available serial ports",      NULL,NULL,NULL,sc_enumerate_ports },
+        { "config", "List configuration parameters",    NULL,NULL,NULL,sc_print_configuration },
         { NULL,     "",                                 NULL,NULL,NULL,NULL }
 };
 
@@ -52,7 +57,7 @@ static char **tokenize(char *line, int *argc) {
             if (tmp) {
                 argv[*argc] = strdup(buff);
                 *argc = 1+ *argc;
-                argv[*argc]=NULL;
+                // argv[*argc]=NULL;
                 memset(buff, 0, 1024);
                 to = buff;
             }
@@ -95,6 +100,16 @@ static int sc_exit(configuration *config, int argc, char *argv[]) {
     return -1;
 }
 
+static int sc_enumerate_ports(configuration *config, int argc, char *argv[]) {
+    serial_print_ports(config);
+    return 0;
+}
+
+static int sc_print_configuration(configuration *config, int argc, char *argv[]) {
+    print_configuration(config);
+    return 0;
+}
+
 int parse_cmd(configuration *config, char *tname, char *line) {
     int argc=0;
     // tokenize received data
@@ -122,5 +137,5 @@ int parse_cmd(configuration *config, char *tname, char *line) {
     }
     debug(DBG_ERROR,"Command %s not found. Type 'help' to see available commands",argv[0]);
     freetokens(argc,argv);
-    return -1;
+    return 0;
 }

@@ -8,12 +8,6 @@
 #include <pthread.h>
 #include "../include/sc_config.h"
 
-#ifdef AGILITYCONTEST_SERIALCHRONOMETER_MAIN_C
-#define EXTERN extern
-#else
-#define EXTERN
-#endif
-
 /* #define min(a,b) ((a)<(b)?(a):(b)) */
 
 #ifdef __WIN32__
@@ -31,10 +25,19 @@ typedef struct {
     int (*sc_thread_entry)(configuration *config);
 } sc_thread_slot;
 
+#ifdef AGILITYCONTEST_SERIALCHRONOMETER_MAIN_C
+#define EXTERN extern
+#else
+#define EXTERN
+#endif
+
 EXTERN int sc_thread_create(sc_thread_slot *slot);
 EXTERN int launchAndWait (char *cmd, char *args);
 EXTERN void waitForThreads(int numthreads);
 
 EXTERN sc_thread_slot *sc_threads;
 EXTERN char *program_name;
+
+#undef EXTERN
+
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_MAIN_H

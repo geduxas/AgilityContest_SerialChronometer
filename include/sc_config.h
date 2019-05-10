@@ -34,8 +34,15 @@ typedef struct {
 
 } configuration;
 
-extern configuration *default_options(configuration *config);
-extern configuration *parse_ini_file(configuration *config, char *filename);
-extern void print_configuration(configuration *config);
+#ifdef SERIALCHRONOMETER_SC_CONFIG_C
+#define EXTERN extern
+#else
+#define EXTERN
+#endif
+
+EXTERN configuration *default_options(configuration *config);
+EXTERN configuration *parse_ini_file(configuration *config, char *filename);
+EXTERN void print_configuration(configuration *config);
+#undef EXTERN
 
 #endif //SERIALCHRONOMETER_SC_CONFIG_H

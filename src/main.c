@@ -105,18 +105,7 @@ int main (int argc, char *argv[]) {
 
     // if opmode==enumerate, do nothing but search and print available serial ports
     if (config->opmode==OPMODE_ENUM) {
-        int nports=0;
-        char **ports= serial_ports_enumerate(config,&nports);
-        if (nports==0) {
-            fprintf(stdout,"No available COMM ports found:\n");
-        } else {
-            fprintf(stdout,"List of available COMM ports:\n");
-            for (int i=0;i<nports;i++) {
-                fprintf(stdout,"%s\n",ports[i]);
-                free(ports[i]);
-            }
-            free(ports);
-        }
+        serial_print_ports(config);
         return 0;
     }
 
@@ -165,6 +154,7 @@ int main (int argc, char *argv[]) {
         } else {
             int res=0;
             while(res>=0) {
+                fprintf(stdout,"cmd> ");
                 char *p=fgets(buff,1023,stdin);
                 if (p) res=parse_cmd(config,"console",p);
                 else res=-1; // received eof from stdin

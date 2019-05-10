@@ -4,6 +4,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+
+#define SERIALCHRONOMETER_SC_CONFIG_C
 #include "sc_config.h"
 #include "debug.h"
 #include "ini.h"
@@ -46,6 +48,18 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"comm_port %s",  config->comm_port);
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
     debug(DBG_DEBUG,"web port %d",  config->web_port);
+    if (config->opmode==OPMODE_TEST) {
+        fprintf(stderr,"Configuration parameters:\n");
+        fprintf(stderr,"osname %s\n",   config->osname);
+        fprintf(stderr,"logfile %s\n",    config->logfile);
+        fprintf(stderr,"loglevel %d\n",    config->loglevel);
+        fprintf(stderr,"opmode %d\n",      config->opmode);
+        fprintf(stderr,"verbose %d\n",    config->verbose);
+        fprintf(stderr,"ajax_server %s\n", config->ajax_server);
+        fprintf(stderr,"comm_port %s\n",  config->comm_port);
+        fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
+        fprintf(stderr,"web port %d\n",  config->web_port);
+    }
 }
 
 /**

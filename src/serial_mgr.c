@@ -48,3 +48,18 @@ char ** serial_ports_enumerate(configuration *config,int *nports){
         return NULL;
     }
 }
+
+void serial_print_ports(configuration *config) {
+    int nports=0;
+    char **ports= serial_ports_enumerate(config,&nports);
+    if (nports==0) {
+        fprintf(stdout,"No available COMM ports found:\n");
+    } else {
+        fprintf(stdout,"List of available COMM ports:\n");
+        for (int i=0;i<nports;i++) {
+            fprintf(stdout,"%s\n",ports[i]);
+            free(ports[i]);
+        }
+        free(ports);
+    }
+}

@@ -6,6 +6,7 @@
 #define AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_H
 
 #include "../include/sc_config.h"
+
 #ifdef  AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_C
 #define EXTERN extern
 #else
@@ -13,4 +14,6 @@
 #endif
 
 EXTERN int web_manager_thread(configuration *config);
+#undef EXTERN
+
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_H

@@ -27,5 +27,6 @@ typedef struct command_st {
 } command_t;
 
 EXTERN int parse_cmd(configuration *config, char *tname, char *line);
+#undef EXTERN
 
 #endif //SERIALCHRONOMETER_PARSER_H

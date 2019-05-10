@@ -13,5 +13,6 @@
 #endif
 
 EXTERN int ajax_manager_thread(configuration *config);
+#undef EXTERN
 
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_AJAX_MGR_H
