@@ -34,6 +34,7 @@ configuration * default_options(configuration * config) {
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
     config->opmode = OPMODE_NORMAL; // 0:normal 1: test port 2: enumerate ports
+    config->serial_port = NULL;
     return config;
 }
 

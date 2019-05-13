@@ -63,3 +63,13 @@ void serial_print_ports(configuration *config) {
         free(ports);
     }
 }
+
+/**
+ * Send data to serial port
+ * @param config configuration pointer
+ * @param data data
+ * @return number of bytes sent or -1 on error
+ */
+int serial_write(configuration *config, char *data) {
+
+}

@@ -17,6 +17,8 @@ EXTERN int serial_manager_thread(configuration *config);
 EXTERN char ** serial_ports_enumerate(configuration *config, int *nports);
 EXTERN void serial_print_ports(configuration *config);
 
+EXTERN int serial_write(configuration *config,char *data);
+
 #undef EXTERN
 
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_SERIAL_MGR_H

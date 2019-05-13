@@ -7,6 +7,7 @@
 #include "getopt.h"
 #include "ini.h"
 
+#include "libserialport.h"
 #include "../include/web_mgr.h"
 #include "../include/ajax_mgr.h"
 #include "../include/serial_mgr.h"
@@ -111,7 +112,27 @@ int main (int argc, char *argv[]) {
 
     // if comm port is not null, open it, and store handler in configuration
     if (config->comm_port != (char*)NULL ) {
-
+        char *errmsg=NULL;
+        enum sp_return ret=sp_get_port_by_name(config->comm_port,&config->serial_port);
+        if (ret == SP_OK) {
+            ret = sp_open(config->serial_port,SP_MODE_READ_WRITE);
+            if (ret == SP_OK) {
+                sp_set_baudrate(config->serial_port, config->baud_rate);
+            } else {
+                errmsg="Cannot open serial port %s";
+            }
+        } else {
+            errmsg="Cannot locate serial port %s";
+        }
+        if (errmsg) {
+            // on error show message and disable comm port and associated thread handling
+            debug(DBG_ERROR,errmsg,config->comm_port);
+            if (config->serial_port) {
+                sp_free_port(config->serial_port);
+                config->serial_port=NULL;
+            }
+            config->comm_port=NULL;
+        }
     }
 
     // start requested threads

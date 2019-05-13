@@ -10,6 +10,8 @@
 #define PATHSEP '/'
 #endif
 
+#include "libserialport.h"
+
 #define OPMODE_NORMAL 0
 #define OPMODE_TEST 1
 #define OPMODE_ENUM 2
@@ -31,6 +33,7 @@ typedef struct {
     char *comm_port;
     int baud_rate;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
+    struct sp_port *serial_port; // serial port to be openend
 
 } configuration;
 
