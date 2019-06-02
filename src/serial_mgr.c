@@ -12,12 +12,20 @@
 #include "../include/debug.h"
 #include "../include/serial_mgr.h"
 #include "../include/sc_config.h"
+#include "../include/sc_sockets.h"
 
 void *serial_manager_thread(void *arg){
 
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
+
+    // create sock
+    slot->sock=connectUDP("localhost",config->local_port);
+    if (slot->sock <0) {
+        debug(DBG_ERROR,"SerialMgr: Cannot create local socket");
+        return NULL;
+    }
 
     char *errmsg=NULL;
     enum sp_return ret=sp_get_port_by_name(config->comm_port,&config->serial_port);

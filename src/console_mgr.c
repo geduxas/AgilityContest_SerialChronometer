@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "../include/main.h"
+#include "../include/sc_sockets.h"
 #include "../include/debug.h"
 #include "../include/console_mgr.h"
 #include "../include/sc_config.h"
@@ -19,11 +20,19 @@ void *console_manager_thread(void *arg){
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
 
-    char *buff=calloc(1024,sizeof(char));
-    if (!buff) {
-        debug(DBG_ERROR,"Cannot enter interactive mode:calloc()");
+    // create sock
+    slot->sock=connectUDP("localhost",config->local_port);
+    if (slot->sock <0) {
+        debug(DBG_ERROR,"Console: Cannot create local socket");
         return NULL;
     }
+    // create input buffer
+    char *buff=calloc(1024,sizeof(char));
+    if (!buff) {
+        debug(DBG_ERROR,"Console: Cannot enter interactive mode:calloc()");
+        return NULL;
+    }
+    // loop until end requested
     int res=0;
     while(res>=0) {
         fprintf(stdout,"cmd> ");
