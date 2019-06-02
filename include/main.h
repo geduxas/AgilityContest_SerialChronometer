@@ -18,11 +18,13 @@
 #endif
 
 typedef struct {
+    int index; // thread index
     char * tname; // thread name
     configuration *config; // pointer to configuration options
     int shouldFinish; // flag to mark thread must die after processing
     pthread_t thread; // where to store pthread_create() info
-    int (*sc_thread_entry)(configuration *config);
+    void *(*handler)(void *config);// entry point
+    int sock; // socket to write data into
 } sc_thread_slot;
 
 #ifdef AGILITYCONTEST_SERIALCHRONOMETER_MAIN_C
@@ -31,7 +33,7 @@ typedef struct {
 #define EXTERN
 #endif
 
-EXTERN int sc_thread_create(sc_thread_slot *slot);
+EXTERN int sc_thread_create(int index,char *name, configuration *config,void *(*handler)(void *config));
 EXTERN int launchAndWait (char *cmd, char *args);
 EXTERN void waitForThreads(int numthreads);
 

@@ -3,20 +3,36 @@
 //
 #include <string.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
 
-#include "getopt.h"
-#include "ini.h"
+#include "../include/sc_tools.h"
+#include "../include/sc_sockets.h"
+#include "../include/getopt.h"
+#include "../include/ini.h"
 
 #include "libserialport.h"
 #include "../include/web_mgr.h"
 #include "../include/ajax_mgr.h"
 #include "../include/serial_mgr.h"
+#include "../include/console_mgr.h"
 #include "../include/debug.h"
 #include "../include/sc_config.h"
-#include "../include/parser.h"
 #include "../include/main.h"
 
-int sc_thread_create(sc_thread_slot *slot) {
+int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
+    sc_thread_slot *slot=&sc_threads[index];
+    slot->index=index;
+    slot->tname=name;
+    slot->config=config;
+    slot->handler=handler;
+    int res=pthread_create( &slot->thread, NULL, slot->handler, &slot->index);
+    if (res<0) {
+        debug(DBG_ERROR,"Cannot create and start posix thread");
+        slot->index=-1;
+        return -1;
+    }
     return 0;
 }
 
@@ -26,19 +42,26 @@ int sc_thread_create(sc_thread_slot *slot) {
  */
 static int usage() {
     fprintf(stderr,"%s command line options:\n",program_name);
-
-    fprintf(stderr,"\t -d comport || --device=com_port   Communication port to attach to (required) \n");
-    fprintf(stderr,"\t -w webport || --port=web_port     Where to listen for web interface. 0:disable . Default 8080\n");
-    fprintf(stderr,"\t -s ipaddr  || --server=ip_address Location of AgilityContest server. Default \"localhost\"\n");
-    fprintf(stderr,"\t -r ring    || --ring=ring_number  Tell server which ring to attach chrono. Default \"1\"\n");
-    fprintf(stderr,"\t -D level   || --debuglog=level    Set debug/logging level 0:none thru 8:all. Defaults to 3:error\n");
-    fprintf(stderr,"\t -L file    || --logfile=filename  Set log file. Defaults to \"stderr\"\n");
-    fprintf(stderr,"\t -b baud    || --baud=baudrate     Set baudrate for comm port. Defaults 9600\n");
-    fprintf(stderr,"\t -t         || --test              Test mode. Don't try to connect server, just check comm port\n");
-    fprintf(stderr,"\t -f         || --find-ports        Show available , non-busy comm ports\n");
-    fprintf(stderr,"\t -v                                (Verbose) Send debug to stderr\n");
-    fprintf(stderr,"\t -q                                (Quiet) Do not send debug log to console\n");
-    fprintf(stderr,"\t -h  || -?  || --help              Display this help and exit\n");
+    fprintf(stderr,"Serial parameters:\n");
+    fprintf(stderr,"\t -m module  || --module=module_name Serial comm module to be used. Default \"std\"\n");
+    fprintf(stderr,"\t -d comport || --device=com_port    Communication port to attach to (required) \n");
+    fprintf(stderr,"\t -b baud    || --baud=baudrate      Set baudrate for comm port. Defaults 9600\n");
+    fprintf(stderr,"Web interface:\n");
+    fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for web interface. 0:disable . Default 8080\n");
+    fprintf(stderr,"AgilityContest  interface:\n");
+    fprintf(stderr,"\t -s ipaddr  || --server=ip_address  Location (IP) of AgilityContest server.\n");
+    fprintf(stderr,"                                      Values: \"none\":disable - \"find\":search - Default: \"localhost\"\n");
+    fprintf(stderr,"\t -r ring    || --ring=ring_number   Tell server which ring to attach chrono. Default \"1\"\n");
+    fprintf(stderr,"\t -n name    || --name=<name>        Set device name in API bus. Defaults to \"SerialChrono_<commport>\"\n");
+    fprintf(stderr,"Debug options:\n");
+    fprintf(stderr,"\t -D level   || --debuglog=level     Set debug/logging level 0:none thru 8:all. Defaults to 3:error\n");
+    fprintf(stderr,"\t -L file    || --logfile=filename   Set log file. Defaults to \"stderr\"\n");
+    fprintf(stderr,"\t -c         || --console            open cmdline console and enter in interactive (no-daemon) mode\n");
+    fprintf(stderr,"\t -v         || --verbose            Send debug to stderr console\n");
+    fprintf(stderr,"\t -q         || --quiet              Do not send debug log to console\n");
+    fprintf(stderr,"Additional options:\n");
+    fprintf(stderr,"\t -f         || --find-ports         Show available , non-busy comm ports and exit\n");
+    fprintf(stderr,"\t -h  || -?  || --help               Display this help and exit\n");
     return 0;
 }
 
@@ -110,78 +133,68 @@ int main (int argc, char *argv[]) {
         return 0;
     }
 
-    // if comm port is not null, open it, and store handler in configuration
-    if (config->comm_port != (char*)NULL ) {
-        char *errmsg=NULL;
-        enum sp_return ret=sp_get_port_by_name(config->comm_port,&config->serial_port);
-        if (ret == SP_OK) {
-            ret = sp_open(config->serial_port,SP_MODE_READ_WRITE);
-            if (ret == SP_OK) {
-                sp_set_baudrate(config->serial_port, config->baud_rate);
-            } else {
-                errmsg="Cannot open serial port %s";
-            }
-        } else {
-            errmsg="Cannot locate serial port %s";
-        }
-        if (errmsg) {
-            // on error show message and disable comm port and associated thread handling
-            debug(DBG_ERROR,errmsg,config->comm_port);
-            if (config->serial_port) {
-                sp_free_port(config->serial_port);
-                config->serial_port=NULL;
-            }
-            config->comm_port=NULL;
-        }
-    }
-
     // start requested threads
-    sc_threads = calloc(3,sizeof(sc_thread_slot));
+    sc_threads = calloc(4,sizeof(sc_thread_slot));
     if (!sc_threads) {
-        debug(DBG_ERROR,"Error allocating thread data");
+        debug(DBG_ERROR,"Error allocating thread data space");
         usage();
         return 1;
     }
     // thread 0: recepcion de datos por puerto serie
     if (config->comm_port != (char*)NULL ) {
         debug(DBG_TRACE,"Starting comm port receiver thread");
-        sc_threads[0].tname="COMM";
-        sc_threads[0].config=config;
-        sc_threads[0].sc_thread_entry=serial_manager_thread;
-        sc_thread_create(&sc_threads[0]);
+        sc_thread_create(0,"SERIAL",config,serial_manager_thread);
     }
     // thread 1: gestion de mini-servidor web
     if (config->web_port !=0 ) {
         debug(DBG_TRACE,"Starting web server thread");
-        sc_threads[1].tname="WEB";
-        sc_threads[1].config=config;
-        sc_threads[1].sc_thread_entry=web_manager_thread;
-        sc_thread_create(&sc_threads[1]);
+        sc_thread_create(1,"WEB",config,web_manager_thread);
     }
     // thread 2: comunicaciones ajax con servidor AgilityContest
     if (config->ajax_server!= (char*)NULL) {
         debug(DBG_TRACE,"Starting ajax event listener thread");
-        sc_threads[2].tname = "AJAX";
-        sc_threads[2].config = config;
-        sc_threads[2].sc_thread_entry = ajax_manager_thread;
-        sc_thread_create(&sc_threads[2]);
+        sc_thread_create(2,"AJAX",config,ajax_manager_thread);
     }
-    // if interactive mode is enabled, enter infinite loop until exit
+    // Thread 3: interactive console
     if (config->opmode==OPMODE_TEST) {
-        debug(DBG_TRACE,"Enter in interactive (test) mode");
-        char *buff=calloc(1024,sizeof(char));
-        if (!buff) {
-            debug(DBG_ERROR,"Cannot enter interactive mode:calloc()");
-        } else {
-            int res=0;
-            while(res>=0) {
-                fprintf(stdout,"cmd> ");
-                char *p=fgets(buff,1023,stdin);
-                if (p) res=parse_cmd(config,"console",p);
-                else res=-1; // received eof from stdin
-            }
-        }
+        debug(DBG_TRACE,"Starting interactive console thread");
+        sc_thread_create(3,"CONSOLE",config,console_manager_thread);
     }
+
+    // ok. start socket server
+    int sock = passiveUDP(config->local_port);
+    if (sock < 0) {
+        debug(DBG_ERROR,"could not create socket to listen commands");
+        return -11;
+    }
+
+    // socket address used to store client address
+    struct sockaddr_in client_address;
+    unsigned int client_address_len = 0;
+    char buffer[500];
+    // run until exit command received
+    int loop=1;
+    while (loop) {
+        // read content into buffer from an incoming client
+        int len = recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr *)&client_address,&client_address_len);
+        // inet_ntoa prints user friendly representation of the ip address
+        buffer[len] = '\0';
+        debug(DBG_TRACE,"received: '%s' from %s\n", buffer,sc_threads[atoi(buffer)].tname);
+        // send received data to every active threads
+        int count=0;
+        for (int n=0;n<3;n++) {
+            if (sc_threads[n].index==-1) continue;
+            count++;
+        }
+        // if no alive thread or data includes "exit" command, ask for end loop
+        if (count==0) loop=0;
+        if (stripos(buffer,"exit")>=0) loop=0;
+
+        // send "OK" content back to the client
+        char *response="OK";
+        sendto(sock, response, strlen(response), 0, (struct sockaddr *)&client_address,sizeof(client_address));
+    }
+
     // arriving here means mark end of threads and wait them to die
     debug(DBG_TRACE,"Waiting for threads to exit");
 

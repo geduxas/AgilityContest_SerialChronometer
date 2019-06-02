@@ -13,7 +13,7 @@
 #define EXTERN
 #endif
 
-EXTERN int web_manager_thread(configuration *config);
+EXTERN void * web_manager_thread(void *config);
 #undef EXTERN
 
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_H

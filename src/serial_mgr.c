@@ -7,12 +7,40 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../include/main.h"
 #include "../libserialport/include/libserialport.h"
 #include "../include/debug.h"
 #include "../include/serial_mgr.h"
 #include "../include/sc_config.h"
 
-int serial_manager_thread(configuration *config){
+void *serial_manager_thread(void *arg){
+
+    int slotIndex= * ((int *)arg);
+    sc_thread_slot *slot=&sc_threads[slotIndex];
+    configuration *config=slot->config;
+
+    char *errmsg=NULL;
+    enum sp_return ret=sp_get_port_by_name(config->comm_port,&config->serial_port);
+    if (ret == SP_OK) {
+        ret = sp_open(config->serial_port,SP_MODE_READ_WRITE);
+        if (ret == SP_OK) {
+            sp_set_baudrate(config->serial_port, config->baud_rate);
+        } else {
+            errmsg="Cannot open serial port %s";
+        }
+    } else {
+        errmsg="Cannot locate serial port %s";
+    }
+    if (errmsg) {
+        // on error show message and disable comm port and associated thread handling
+        debug(DBG_ERROR,errmsg,config->comm_port);
+        if (config->serial_port) {
+            sp_free_port(config->serial_port);
+            config->serial_port=NULL;
+        }
+        config->comm_port=NULL;
+        return NULL;
+    }
     return 0;
 }
 

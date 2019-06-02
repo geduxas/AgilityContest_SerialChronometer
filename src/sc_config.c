@@ -35,6 +35,7 @@ configuration * default_options(configuration * config) {
     config->baud_rate = 9600;
     config->opmode = OPMODE_NORMAL; // 0:normal 1: test port 2: enumerate ports
     config->serial_port = NULL;
+    config->local_port="8887";
     return config;
 }
 

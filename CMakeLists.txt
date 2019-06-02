@@ -22,6 +22,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
+            pthread
             setupapi
             wsock32
     )
@@ -30,5 +31,6 @@ else()
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/linux/libserialport.a
+            pthread
     )
 endif()

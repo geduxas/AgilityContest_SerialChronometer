@@ -4,9 +4,14 @@
 
 #define AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_C
 
+#include "../include/main.h"
 #include "../include/web_mgr.h"
 #include "../include/sc_config.h"
 
-int web_manager_thread(configuration *config){
-    return 0;
+void *web_manager_thread(void *arg){
+    int slotIndex= * ((int *)arg);
+    sc_thread_slot *slot=&sc_threads[slotIndex];
+    configuration *config=slot->config;
+
+    return &slot->index;
 }

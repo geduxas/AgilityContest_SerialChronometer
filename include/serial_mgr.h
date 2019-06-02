@@ -13,7 +13,7 @@
 #define EXTERN
 #endif
 
-EXTERN int serial_manager_thread(configuration *config);
+EXTERN void *serial_manager_thread(void *config);
 EXTERN char ** serial_ports_enumerate(configuration *config, int *nports);
 EXTERN void serial_print_ports(configuration *config);
 

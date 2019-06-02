@@ -19,6 +19,7 @@
 
 typedef struct {
     char *osname;
+    char *local_port; // UDP Port to listen data from threads
     // log file
     char *logfile;
     // log level 0:none 1:panic 2:alert 3:error 4:notice 5:info 6:debug 7:trace 8:all
