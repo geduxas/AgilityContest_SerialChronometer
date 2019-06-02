@@ -1,10 +1,8 @@
 //
 // Created by jantonio on 2/06/19.
 //
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #define SERIALCHRONOMETER_SC_TOOLS_C

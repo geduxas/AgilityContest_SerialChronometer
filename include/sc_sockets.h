@@ -6,12 +6,14 @@
 #define SERIALCHRONOMETER_SC_SOCKETS_H
 
 #include <sys/types.h>
+#ifndef __WIN32
 #include <sys/socket.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <netdb.h>
+#else
+#include <winsock2.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 
