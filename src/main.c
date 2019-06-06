@@ -18,6 +18,7 @@
 #include "../include/debug.h"
 #include "../include/sc_config.h"
 #include "../include/main.h"
+#include "../include/parser.h"
 
 int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
     sc_thread_slot *slot=&sc_threads[index];
@@ -173,16 +174,21 @@ int main (int argc, char *argv[]) {
     // run until exit command received
     int loop=1;
     while (loop) {
+        int ntokens=0;
         // read content into buffer from an incoming client
         int len = recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr *)&client_address,&client_address_len);
         // inet_ntoa prints user friendly representation of the ip address
         buffer[len] = '\0';
-        debug(DBG_TRACE,"received: '%s' from %s\n", buffer,sc_threads[atoi(buffer)].tname);
+        // tokenize received message
+        char **tokens=tokenize(buffer,&ntokens);
+        debug(DBG_TRACE,"received: '%s' from %s\n", buffer,tokens[0]);
         // send received data to every active threads
         int count=0;
         for (int n=0;n<3;n++) {
             if (sc_threads[n].index==-1) continue;
             count++;
+            // invoke parser on thread
+            int res= sc_threads[n].parser(config,n,tokens,ntokens);
         }
         // if no alive thread or data includes "exit" command, ask for end loop
         if (count==0) loop=0;

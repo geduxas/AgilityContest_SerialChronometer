@@ -13,32 +13,27 @@
 #include "serial_mgr.h"
 #include "parser.h"
 
-static int help( configuration *config, int argc, char *argv[]);
-static int sc_exit( configuration *config, int argc, char *argv[]);
-static int sc_print_configuration( configuration *config, int argc, char *argv[]);
-static int sc_enumerate_ports( configuration *config, int argc, char *argv[]);
-
 static command_t command_list[]= {
-        { "start",  "Start of course run",      NULL,NULL,NULL,NULL },
-        { "int",    "Intermediate time mark",   NULL,NULL,NULL,NULL },
-        { "stop",   "End of course run",        NULL,NULL,NULL,NULL },
-        { "fail",   "Sensor faillure detected", NULL,NULL,NULL,NULL },
-        { "ok",     "Sensor recovery. Chrono ready",    NULL,NULL,NULL,NULL },
-        { "msg",    "Show message on chrono display",   NULL,NULL,NULL,NULL },
-        { "down",   "Start 15 seconds countdown",       NULL,NULL,NULL,NULL },
-        { "fault",  "Mark fault (+/-/#)",               NULL,NULL,NULL,NULL },
-        { "refusal","Mark refusal (+/-/#)",             NULL,NULL,NULL,NULL },
-        { "elim",   "Mark elimination [+-]",            NULL,NULL,NULL,NULL },
-        { "reset",  "Reset chronometer and countdown",  NULL,NULL,NULL,NULL },
-        { "help",   "show command list",                NULL,NULL,NULL,help },
-        { "exit",   "End program (from console)",       NULL,NULL,NULL,sc_exit },
-        { "server", "Set server IP address",            NULL,NULL,NULL,NULL },
-        { "ports",  "Show available serial ports",      NULL,NULL,NULL,sc_enumerate_ports },
-        { "config", "List configuration parameters",    NULL,NULL,NULL,sc_print_configuration },
-        { NULL,     "",                                 NULL,NULL,NULL,NULL }
+        { "start",  "Start of course run",              },
+        { "int",    "Intermediate time mark",           },
+        { "stop",   "End of course run",                },
+        { "fail",   "Sensor faillure detected",         },
+        { "ok",     "Sensor recovery. Chrono ready",    },
+        { "msg",    "Show message on chrono display",   },
+        { "down",   "Start 15 seconds countdown",       },
+        { "fault",  "Mark fault (+/-/#)",               },
+        { "refusal","Mark refusal (+/-/#)",             },
+        { "elim",   "Mark elimination [+-]",            },
+        { "reset",  "Reset chronometer and countdown",  },
+        { "help",   "show command list",                },
+        { "exit",   "End program (from console)",       },
+        { "server", "Set server IP address",            },
+        { "ports",  "Show available serial ports",      },
+        { "config", "List configuration parameters",    },
+        { NULL,     "",                                 }
 };
 
-static char **tokenize(char *line, int *argc) {
+char **tokenize(char *line, int *argc) {
     char *buff = calloc(1024, sizeof(char));
     *argc = 0;
     char **argv = malloc(sizeof(char *));
@@ -68,7 +63,7 @@ static char **tokenize(char *line, int *argc) {
 }
 
 // libera el array de tokens generado por el tokenizer
-static int freetokens(int argc,char *argv[]) {
+int freetokens(int argc,char *argv[]) {
     for ( int n=0;n<argc; n++) {
         if (argv[n]) free(argv[n]);
     }
@@ -76,7 +71,8 @@ static int freetokens(int argc,char *argv[]) {
     return 0;
 }
 
-static int help( configuration *config, int argc, char *argv[]) {
+
+int help( configuration *config, int argc, char *argv[]) {
     if (argc!=1) {
         char *cmd=argv[1]; // get command to obtaing help fromquit
         for ( int n=0; command_list[n].cmd;n++) {
@@ -96,46 +92,16 @@ static int help( configuration *config, int argc, char *argv[]) {
     return 0;
 }
 
-static int sc_exit(configuration *config, int argc, char *argv[]) {
+int sc_exit(configuration *config, int argc, char *argv[]) {
     return -1;
 }
 
-static int sc_enumerate_ports(configuration *config, int argc, char *argv[]) {
+int sc_enumerate_ports(configuration *config, int argc, char *argv[]) {
     serial_print_ports(config);
     return 0;
 }
 
-static int sc_print_configuration(configuration *config, int argc, char *argv[]) {
+int sc_print_configuration(configuration *config, int argc, char *argv[]) {
     print_configuration(config);
-    return 0;
-}
-
-int parse_cmd(configuration *config, char *tname, char *line) {
-    int argc=0;
-    // tokenize received data
-    char **argv=tokenize(line,&argc);
-    // if no tokens, just return
-    if ( argc==0) return 0;
-    // else look at token table to find match
-    for ( int n=0; command_list[n].cmd;n++) {
-        int res = 0;
-        if (strncmp(command_list[n].cmd, argv[0], strlen(command_list[n].cmd)) != 0) continue;
-        if (strcmp(tname, "console") == 0) {
-            if (command_list[n].console_func) res = (*command_list[n].console_func)(config, argc, argv);
-        }
-        else if (strcmp(tname, "ajax") == 0) {
-            if (command_list[n].ajax_func) res = (*command_list[n].ajax_func)(config, argc, argv);
-        }
-        else if (strcmp(tname, "web") == 0) {
-            if (command_list[n].web_func) res = (*command_list[n].web_func)(config, argc, argv);
-        }
-        else if (strcmp(tname, "serial") == 0) {
-            if (command_list[n].serial_func) res = (*command_list[n].serial_func)(config, argc, argv);
-        }
-        freetokens(argc,argv);
-        return res;
-    }
-    debug(DBG_ERROR,"Command %s not found. Type 'help' to see available commands",argv[0]);
-    freetokens(argc,argv);
     return 0;
 }

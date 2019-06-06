@@ -16,17 +16,15 @@
 typedef struct command_st {
     char *cmd; // command name
     char *desc; // command description
-    // what to do when executing from serial input thread
-    int (*serial_func)(configuration *config, int argc, char *argv[]);
-    // what to do when executing from web server thread
-    int (*web_func)(configuration *config, int argc, char *argv[]);
-    // what to do when executing from ajax event reader thread
-    int (*ajax_func)(configuration *config, int argc, char *argv[]);
-    // what to do when executing from console (test mode)
-    int (*console_func)(configuration *config, int argc, char *argv[]);
 } command_t;
 
-EXTERN int parse_cmd(configuration *config, char *tname, char *line);
+EXTERN char **tokenize(char *line, int *argc);
+EXTERN int freetokens(int argc,char *argv[]);
+EXTERN int help( configuration *config, int argc, char *argv[]);
+EXTERN int sc_exit( configuration *config, int argc, char *argv[]);
+EXTERN int sc_print_configuration( configuration *config, int argc, char *argv[]);
+EXTERN int sc_enumerate_ports( configuration *config, int argc, char *argv[]);
+
 #undef EXTERN
 
 #endif //SERIALCHRONOMETER_PARSER_H
