@@ -33,9 +33,10 @@ configuration * default_options(configuration * config) {
     config->web_port = 8080;
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
+    config->ring = 1;
     config->opmode = OPMODE_NORMAL; // 0:normal 1: test port 2: enumerate ports
     config->serial_port = NULL;
-    config->local_port="8887";
+    config->local_port = 8880;
     return config;
 }
 

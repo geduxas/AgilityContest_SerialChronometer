@@ -75,18 +75,19 @@ static int usage() {
  */
 static int parse_cmdline(configuration *config, int argc,  char * const argv[]) {
     int option=0;
-    while ((option = getopt(argc, argv,"d:w:s:L:D:b:vqhtf")) != -1) {
+    while ((option = getopt(argc, argv,"d:w:s:L:D:b:r:vqhtf")) != -1) {
         switch (option) {
-            case 'd' : config->comm_port = strdup(optarg); break;
-            case 'w' : config->web_port = atoi(optarg); break;
-            case 's' : config->ajax_server = strdup(optarg); break;
-            case 'L' : config->logfile = strdup(optarg); break;
-            case 'D' : config->loglevel = atoi(optarg)%9; break;
-            case 'b' : config->baud_rate = atoi(optarg); break; // pending: check valid baudrate
+            case 'd' : config->comm_port = strdup(optarg);  break;
+            case 'r' : config->ring = atoi(optarg);         break;
+            case 'w' : config->web_port = atoi(optarg);     break; // port used will be web_port+ring
+            case 's' : config->ajax_server = strdup(optarg);break;
+            case 'L' : config->logfile = strdup(optarg);    break;
+            case 'D' : config->loglevel = atoi(optarg)%9;   break;
+            case 'b' : config->baud_rate = atoi(optarg);    break; // pending: check valid baudrate
             case 'v' : config->verbose = 1; break;
-            case 'q' : config->verbose = OPMODE_NORMAL; break;
-            case 't' : config->opmode = OPMODE_TEST; break; // test serial port
-            case 'f' : config->opmode = OPMODE_ENUM; break; // find serial ports
+            case 'q' : config->verbose = OPMODE_NORMAL;     break;
+            case 't' : config->opmode = OPMODE_TEST;        break; // test serial port
+            case 'f' : config->opmode = OPMODE_ENUM;        break; // find serial ports
             case 'h' :
             case '?' : usage(); exit(0);
             default: return -1;
@@ -160,8 +161,8 @@ int main (int argc, char *argv[]) {
         sc_thread_create(3,"CONSOLE",config,console_manager_thread);
     }
 
-    // ok. start socket server
-    int sock = passiveUDP(config->local_port);
+    // ok. start socket server on port "base"+"ring" // to allow multiple instances
+    int sock = passiveUDP(config->local_port+config->ring);
     if (sock < 0) {
         debug(DBG_ERROR,"could not create socket to listen commands");
         return -11;
@@ -188,7 +189,7 @@ int main (int argc, char *argv[]) {
             if (sc_threads[n].index==-1) continue;
             count++;
             // invoke parser on thread
-            int res= sc_threads[n].parser(config,n,tokens,ntokens);
+            sc_threads[n].parser(config,n,tokens,ntokens);
         }
         // if no alive thread or data includes "exit" command, ask for end loop
         if (count==0) loop=0;

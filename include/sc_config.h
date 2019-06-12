@@ -31,6 +31,7 @@ typedef struct {
     // web server parameters
     int web_port;
     // serial port parameters
+    int ring;
     char *comm_port;
     int baud_rate;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
