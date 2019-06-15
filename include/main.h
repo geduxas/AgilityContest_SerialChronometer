@@ -17,6 +17,7 @@
 #define vmkdir(d,m) mkdir((d),(m))
 #endif
 
+typedef int (*func)(void *config,int slot,char *tokens[],int ntokens);
 typedef struct {
     int index; // thread index
     char * tname; // thread name
@@ -24,7 +25,7 @@ typedef struct {
     int shouldFinish; // flag to mark thread must die after processing
     pthread_t thread; // where to store pthread_create() info
     void *(*handler)(void *config); // entry point
-    int (*parser)(void *config,int slot,char *tokens[],int ntokens); // entry point for command parser
+    func entries[32];
     int sock; // socket to write data into
 } sc_thread_slot;
 

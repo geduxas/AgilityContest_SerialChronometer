@@ -13,63 +13,27 @@
 #include "serial_mgr.h"
 #include "parser.h"
 
-static command_t command_list[]= {
-        { "start",  "Start of course run",              },
-        { "int",    "Intermediate time mark",           },
-        { "stop",   "End of course run",                },
-        { "fail",   "Sensor faillure detected",         },
-        { "ok",     "Sensor recovery. Chrono ready",    },
-        { "msg",    "Show message on chrono display",   },
-        { "down",   "Start 15 seconds countdown",       },
-        { "fault",  "Mark fault (+/-/#)",               },
-        { "refusal","Mark refusal (+/-/#)",             },
-        { "elim",   "Mark elimination [+-]",            },
-        { "reset",  "Reset chronometer and countdown",  },
-        { "help",   "show command list",                },
-        { "exit",   "End program (from console)",       },
-        { "server", "Set server IP address",            },
-        { "ports",  "Show available serial ports",      },
-        { "config", "List configuration parameters",    },
-        { NULL,     "",                                 }
+command_t command_list[32]= {
+        { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
+        { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
+        { 2, "stop",    "End of course run",               "<miliseconds>"},
+        { 3, "fail",    "Sensor faillure detected",        ""},
+        { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
+        { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+        { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
+        { 6, "down",    "Start 15 seconds countdown",      ""},
+        { 7, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
+        { 8, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
+        { 9, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
+        { 10, "reset",  "Reset chronometer and countdown", "" },
+        { 11, "help",   "show command list",               "[cmd]"},
+        { 12, "version","Show software version",           "" },
+        { 13, "exit",   "End program (from console)",      "" },
+        { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        { 15, "ports",  "Show available serial ports",     "" },
+        { 16, "config", "List configuration parameters",   "" },
+        { -1, NULL,     "",                                "" }
 };
-
-char **tokenize(char *line, int *argc) {
-    char *buff = calloc(1024, sizeof(char));
-    *argc = 0;
-    char **argv = malloc(sizeof(char *));
-    *argv = NULL;
-    char *to = buff;
-    for (char *pt = line; *pt; pt++) {
-        if (!isspace(*pt)) {
-            // si no es espacio en blanco lo metemos en el token actual
-            *to++ = tolower(*pt);
-            continue;
-        }
-        // si ya hay algun caracter en el buffer, significa que tenemos token
-        if (to != &buff[0]) {
-            char **tmp = realloc(argv, (1 + *argc) * sizeof(char *));
-            // si realloc funciona rellenamos entrada con datos nuevos
-            if (tmp) {
-                argv[*argc] = strdup(buff);
-                *argc = 1+ *argc;
-                // argv[*argc]=NULL;
-                memset(buff, 0, 1024);
-                to = buff;
-            }
-        }
-    }
-    free(buff);
-    return argv; // *argc contiene el numero de tokens
-}
-
-// libera el array de tokens generado por el tokenizer
-int freetokens(int argc,char *argv[]) {
-    for ( int n=0;n<argc; n++) {
-        if (argv[n]) free(argv[n]);
-    }
-    free(argv);
-    return 0;
-}
 
 
 int help( configuration *config, int argc, char *argv[]) {

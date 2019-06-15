@@ -4,6 +4,8 @@
 
 #define AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_C
 
+#include <stdio.h>
+
 #include "../include/debug.h"
 #include "../include/main.h"
 #include "../include/web_mgr.h"
@@ -16,7 +18,9 @@ void *web_manager_thread(void *arg){
     configuration *config=slot->config;
 
     // create sock
-    slot->sock=connectUDP("localhost",config->local_port);
+    char portstr[16];
+    snprintf(portstr,16,"%d",config->local_port);
+    slot->sock=connectUDP("localhost",portstr);
     if (slot->sock <0) {
         debug(DBG_ERROR,"SerialMgr: Cannot create local socket");
         return NULL;

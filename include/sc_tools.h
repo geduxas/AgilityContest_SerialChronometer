@@ -14,6 +14,7 @@
 #define EXTERN
 #endif
 EXTERN int stripos(char* haystack, char* needle );
+EXTERN char **explode(char* line, char separator,int *nelem );
 
 #undef EXTERN
 #endif //SERIALCHRONOMETER_SC_TOOLS_H

@@ -162,10 +162,14 @@ int main (int argc, char *argv[]) {
     }
 
     // ok. start socket server on port "base"+"ring" // to allow multiple instances
-    int sock = passiveUDP(config->local_port+config->ring);
+
+    // create sock
+    char portstr[16];
+    snprintf(portstr,16,"%d",config->local_port+config->ring);
+    int sock = passiveUDP(portstr);
     if (sock < 0) {
-        debug(DBG_ERROR,"could not create socket to listen commands");
-        return -11;
+        debug(DBG_ERROR,"Could not create socket to listen for commands");
+        return -1;
     }
 
     // socket address used to store client address
@@ -181,19 +185,35 @@ int main (int argc, char *argv[]) {
         // inet_ntoa prints user friendly representation of the ip address
         buffer[len] = '\0';
         // tokenize received message
-        char **tokens=tokenize(buffer,&ntokens);
-        debug(DBG_TRACE,"received: '%s' from %s\n", buffer,tokens[0]);
+        char **tokens=explode(buffer,' ',&ntokens);
+        // source command arguments
+        // search command from list to retrieve index
+        int index=0;
+        for (;command_list[index].index>0;index++) {
+            if (stricmp(command_list[index].cmd,tokens[1])==0) break;
+        }
+        if (command_list[index].index<0) {
+            debug(DBG_ERROR,"Unknown command received: '%s' from %s\n", buffer,tokens[0]);
+            continue;
+        }
+        debug(DBG_ERROR,"Received command: '%s' from %s\n", buffer,tokens[0]);
         // send received data to every active threads
-        int count=0;
+        int alive=0;
         for (int n=0;n<3;n++) {
-            if (sc_threads[n].index==-1) continue;
-            count++;
+            if (sc_threads[n].index==-1) continue; // skip non active threads
             // invoke parser on thread
-            sc_threads[n].parser(config,n,tokens,ntokens);
+            sc_threads[n].entries[index](config,n,tokens,ntokens);
+            alive++; // increase alive threads counter
         }
         // if no alive thread or data includes "exit" command, ask for end loop
-        if (count==0) loop=0;
-        if (stripos(buffer,"exit")>=0) loop=0;
+        if (alive==0) {
+            debug(DBG_INFO,"No alive threads");
+            loop=0;
+        }
+        if (stripos(buffer,"exit")>=0) {
+            debug(DBG_INFO,"Received exit command");
+            loop=0;
+        }
 
         // send "OK" content back to the client
         char *response="OK";

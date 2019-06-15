@@ -14,11 +14,13 @@
 #endif
 
 typedef struct command_st {
+    int index; // to speedup search
     char *cmd; // command name
     char *desc; // command description
+    char *args; // command arguments
 } command_t;
 
-EXTERN char **tokenize(char *line, int *argc);
+EXTERN command_t command_list[32];
 EXTERN int freetokens(int argc,char *argv[]);
 EXTERN int help( configuration *config, int argc, char *argv[]);
 EXTERN int sc_exit( configuration *config, int argc, char *argv[]);

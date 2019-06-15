@@ -3,6 +3,7 @@
 //
 
 #define AGILITYCONTEST_SERIALCHRONOMETER_AJAX_MGR_C
+#include <stdio.h>
 
 #include "../include/main.h"
 #include "../include/debug.h"
@@ -16,7 +17,9 @@ void *ajax_manager_thread(void *arg){
     configuration *config=slot->config;
 
     // create sock
-    slot->sock=connectUDP("localhost",config->local_port);
+    char portstr[16];
+    snprintf(portstr,16,"%d",config->local_port);
+    slot->sock=connectUDP("localhost",portstr);
     if (slot->sock <0) {
         debug(DBG_ERROR,"AjaxMgr: Cannot create local socket");
         return NULL;
