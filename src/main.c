@@ -202,7 +202,13 @@ int main (int argc, char *argv[]) {
         for (int n=0;n<3;n++) {
             if (sc_threads[n].index==-1) continue; // skip non active threads
             // invoke parser on thread
-            sc_threads[n].entries[index](config,n,tokens,ntokens);
+            if (sc_threads[n].entries[index]) {
+                // if function pointer is not null fire up code
+                int res=sc_threads[n].entries[index](config,n,tokens,ntokens);
+                if (res<0) {
+                    debug(DBG_ERROR,"Error sendinc command: '%s' from %s to %s\n", buffer,tokens[0],sc_threads[n].tname);
+                }
+            }
             alive++; // increase alive threads counter
         }
         // if no alive thread or data includes "exit" command, ask for end loop
