@@ -190,7 +190,7 @@ int main (int argc, char *argv[]) {
         // search command from list to retrieve index
         int index=0;
         for (;command_list[index].index>0;index++) {
-            if (stricmp(command_list[index].cmd,tokens[1])==0) break;
+            if (stripos(command_list[index].cmd,tokens[1])>=0) break;
         }
         if (command_list[index].index<0) {
             debug(DBG_ERROR,"Unknown command received: '%s' from %s\n", buffer,tokens[0]);
