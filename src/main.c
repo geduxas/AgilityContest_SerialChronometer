@@ -3,6 +3,7 @@
 //
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <pthread.h>
 
 #include "../include/sc_tools.h"
@@ -19,6 +20,7 @@
 #include "../include/sc_config.h"
 #include "../include/main.h"
 #include "../include/parser.h"
+
 
 int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
     sc_thread_slot *slot=&sc_threads[index];
@@ -144,25 +146,25 @@ int main (int argc, char *argv[]) {
     if (config->comm_port != (char*)NULL ) {
         config->opmode |= OPMODE_NORMAL;
         debug(DBG_TRACE,"Starting comm port receiver thread");
-        sc_thread_create(0,"SERIAL",config,serial_manager_thread);
+        sc_thread_create(0,SC_SERIAL,config,serial_manager_thread);
     }
     // thread 1: gestion de mini-servidor we 0b
     if (config->web_port !=0 ) {
         config->opmode |= OPMODE_WEB;
         debug(DBG_TRACE,"Starting internal web server thread");
-        sc_thread_create(1,"WEB",config,web_manager_thread);
+        sc_thread_create(1,SC_WEBSRV,config,web_manager_thread);
     }
     // thread 2: comunicaciones ajax con servidor AgilityContest
     if (strcasecmp("none",config->ajax_server)==0) config->ajax_server=NULL;
     if (config->ajax_server!= (char*)NULL) {
         config->opmode |= OPMODE_SERVER;
         debug(DBG_TRACE,"Starting AgilityContest event listener thread");
-        sc_thread_create(2,"AJAX",config,ajax_manager_thread);
+        sc_thread_create(2,SC_AJAXSRV,config,ajax_manager_thread);
     }
     // Thread 3: interactive console
     if (config->opmode & OPMODE_CONSOLE) {
         debug(DBG_TRACE,"Starting interactive console thread");
-        sc_thread_create(3,"CONSOLE",config,console_manager_thread);
+        sc_thread_create(3,SC_CONSOLE,config,console_manager_thread);
     }
 
     // ok. start socket server on port "base"+"ring" // to allow multiple instances
@@ -186,6 +188,9 @@ int main (int argc, char *argv[]) {
         int ntokens=0;
         // read content into buffer from an incoming client
         int len = recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr *)&client_address,&client_address_len);
+        if( len<0) {
+            debug(DBG_ERROR,"recvfrom error: %s",strerror(errno));
+        }
         // inet_ntoa prints user friendly representation of the ip address
         buffer[len] = '\0';
         debug(DBG_TRACE,"Main loop: received: '%s'",buffer);
@@ -195,9 +200,13 @@ int main (int argc, char *argv[]) {
             debug(DBG_ERROR,"Cannot tokenize received data '%s'",buffer);
             continue;
         }
+        if (ntokens<2) {
+            debug(DBG_ERROR,"Invalid message length received data '%s'",buffer);
+        }
         // search command from list to retrieve index
         int index=0;
-        for (;command_list[index].index<0;index++) {
+        for (;command_list[index].index>=0;index++) {
+            // debug(DBG_TRACE,"Check command '%s' against index %d -> '%s'",tokens[1],index,command_list[index].cmd);
             if (stripos(command_list[index].cmd,tokens[1])>=0) break;
         }
         if (command_list[index].index<0) {
@@ -207,9 +216,15 @@ int main (int argc, char *argv[]) {
         debug(DBG_ERROR,"Received command %d -> '%s' from %s\n", index, buffer,tokens[0]);
         // send received data to every active threads
         int alive=0;
-        for (int n=0;n<3;n++) {
-            if (sc_threads[n].index<0) continue; // skip non active threads
-            if (sc_threads[n].entries == NULL) continue; // no function pointers declared for current thread
+        for (int n=0;n<4;n++) {
+            if (sc_threads[n].index<0) {
+                debug(DBG_TRACE,"Thread %d is not active",n);
+                continue; // skip non active threads
+            }
+            if (sc_threads[n].entries == NULL) {
+                debug(DBG_TRACE,"Thread %d has no function entry points",n);
+                continue; // no function pointers declared for current thread
+            }
             // invoke parser on thread
             if (sc_threads[n].entries[index]) {
                 // if function pointer is not null fire up code

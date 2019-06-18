@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "../include/main.h"
 #include "../include/sc_sockets.h"
@@ -124,18 +125,33 @@ void *console_manager_thread(void *arg){
     slot->index=slotIndex;
     // loop until end requested
     int res=0;
-    sprintf(request,"console ");
+    sprintf(request,"%s ",SC_CONSOLE);
+    int offset=strlen(request);
     while(res>=0) {
         fprintf(stdout,"cmd> ");
-        char *p=fgets(&request[8],1000,stdin);
+        char *p=fgets(&request[offset],1000,stdin);
         if (p) {
+            if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
             debug(DBG_TRACE,"Console: sent to local socket: '%s'",request);
             write(slot->sock,request,strlen(request));
             res=read(slot->sock,response,1024);
-            response[res]='\0';
-            fprintf(stdin,"%s\n",response);
+            if (res<0) {
+                debug(DBG_ERROR,"Console: error waiting response: %s",strerror(errno));
+            } else {
+                response[res]='\0';
+                fprintf(stdout,"Main loop response: %s\n",response);
+            }
+        } else {
+            debug(DBG_TRACE,"Console: received EOF from user input");
+            res=-1; // received eof from stdin
         }
-        else res=-1; // received eof from stdin
+        // check for end requested
+        if (slot->index<0) {
+            debug(DBG_TRACE,"Console: 'exit' command invoked");
+            res=-1;
+        }
     }
+    debug(DBG_TRACE,"Exiting console thread");
+    slot->index=-1;
     return &slot->index;
 }

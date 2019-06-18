@@ -5,6 +5,7 @@
 #define AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_C
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include "../include/debug.h"
 #include "../include/main.h"
@@ -94,6 +95,15 @@ void *web_manager_thread(void *arg){
 
     // mark thread alive before entering loop
     slot->index=slotIndex;
-
+    int res=0;
+    while(res>=0) {
+        sleep(1);
+        if (slot->index<0) {
+            debug(DBG_TRACE,"Web server thread: 'exit' command invoked");
+            res=-1;
+        }
+    }
+    debug(DBG_TRACE,"Exiting web server thread");
+    slot->index=-1;
     return &slot->index;
 }

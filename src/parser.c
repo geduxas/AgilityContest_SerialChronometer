@@ -35,10 +35,10 @@ command_t command_list[32]= {
         { -1, NULL,     "",                                "" }
 };
 
-
+// argv[0]:source argv[1]:command argv[2]:argument 1...
 int sc_help( configuration *config, int argc, char *argv[]) {
-    if (argc!=1) {
-        char *cmd=argv[1]; // get command to obtaing help fromquit
+    if (argc>2) {
+        char *cmd=argv[2]; // get command to obtaing help from
         for ( int n=0; command_list[n].cmd;n++) {
             if (strcmp(command_list[n].cmd,cmd)==0) {
                 fprintf(stderr,"\t%s: %s\n",command_list[n].cmd, command_list[n].desc);
@@ -48,7 +48,7 @@ int sc_help( configuration *config, int argc, char *argv[]) {
         fprintf(stderr,"Command %s not found",cmd);
         return 1;
     } else {
-        fprintf(stderr,"List of available commands:");
+        fprintf(stderr,"List of available commands:\n");
         for ( int n=0; command_list[n].cmd;n++) {
             fprintf(stderr,"\t%s: %s\n",command_list[n].cmd, command_list[n].desc);
         }

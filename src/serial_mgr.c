@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "../include/main.h"
 #include "../libserialport/include/libserialport.h"
@@ -115,13 +116,24 @@ void *serial_manager_thread(void *arg){
             config->serial_port=NULL;
         }
         config->comm_port=NULL;
-        return NULL;
+        debug(DBG_TRACE,"Exiting serial thread due to initialization errors");
+        slot->index=-1;
+        return &slot->index;
     }
 
     // mark thread alive before entering loop
     slot->index=slotIndex;
-
-    return 0;
+    int res=0;
+    while(res>=0) {
+        sleep(1);
+        if (slot->index<0) {
+            debug(DBG_TRACE,"Serial thread: 'exit' command invoked");
+            res=-1;
+        }
+    }
+    debug(DBG_TRACE,"Exiting serial thread");
+    slot->index=-1;
+    return &slot->index;
 }
 
 /**
