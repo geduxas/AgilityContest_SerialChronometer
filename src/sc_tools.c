@@ -49,16 +49,19 @@ int stripos(char* haystack, char* needle ) {
 char **explode(char *line, char separator,int *nelem) {
     char *buff = calloc(1+strlen(line), sizeof(char));
     strncpy(buff,line,strlen(line)); // copy string into working space
-    char **res=NULL;
+    char **res=calloc(32,sizeof(char *));
     *nelem=0;
     char *from=buff;
     for (char *to = buff; *to; to++) { // while not end of string
         if (*to != separator) continue; // not separator; next char
         *to = '\0';
+        res[*nelem] = from;
+        // point to next token to explode (or null at end)
+        from = to+1;
+        if (*nelem>31) return res;
         *nelem= 1+*nelem;
-        res = realloc(res, (*nelem) * sizeof(char *));
-        res[*nelem-1] = from;
-        from = to+1; // point to next token to explode (or null at end)
     }
+    // arriving here means end of line. store and return
+    res[*nelem]=from;
     return res;
 }

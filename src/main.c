@@ -197,14 +197,14 @@ int main (int argc, char *argv[]) {
         }
         // search command from list to retrieve index
         int index=0;
-        for (;command_list[index].index>0;index++) {
+        for (;command_list[index].index<0;index++) {
             if (stripos(command_list[index].cmd,tokens[1])>=0) break;
         }
         if (command_list[index].index<0) {
             debug(DBG_ERROR,"Unknown command received: '%s' from %s\n", buffer,tokens[0]);
             continue;
         }
-        debug(DBG_ERROR,"Received command: '%s' from %s\n", buffer,tokens[0]);
+        debug(DBG_ERROR,"Received command %d -> '%s' from %s\n", index, buffer,tokens[0]);
         // send received data to every active threads
         int alive=0;
         for (int n=0;n<3;n++) {
