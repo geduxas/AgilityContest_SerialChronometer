@@ -21,8 +21,7 @@ typedef struct command_st {
 } command_t;
 
 EXTERN command_t command_list[32];
-EXTERN int freetokens(int argc,char *argv[]);
-EXTERN int help( configuration *config, int argc, char *argv[]);
+EXTERN int sc_help( configuration *config, int argc, char *argv[]);
 EXTERN int sc_exit( configuration *config, int argc, char *argv[]);
 EXTERN int sc_print_configuration( configuration *config, int argc, char *argv[]);
 EXTERN int sc_enumerate_ports( configuration *config, int argc, char *argv[]);

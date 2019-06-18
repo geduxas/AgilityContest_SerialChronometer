@@ -12,9 +12,11 @@
 
 #include "libserialport.h"
 
-#define OPMODE_NORMAL 0
-#define OPMODE_TEST 1
-#define OPMODE_ENUM 2
+#define OPMODE_NORMAL 1
+#define OPMODE_CONSOLE 2
+#define OPMODE_WEB 4
+#define OPMODE_SERVER 8
+#define OPMODE_FIND 16 /* find serial ports and exit */
 
 typedef struct {
     char *osname;

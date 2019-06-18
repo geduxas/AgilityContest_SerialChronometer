@@ -36,7 +36,7 @@ command_t command_list[32]= {
 };
 
 
-int help( configuration *config, int argc, char *argv[]) {
+int sc_help( configuration *config, int argc, char *argv[]) {
     if (argc!=1) {
         char *cmd=argv[1]; // get command to obtaing help fromquit
         for ( int n=0; command_list[n].cmd;n++) {

@@ -34,8 +34,8 @@ configuration * default_options(configuration * config) {
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
     config->ring = 1;
-    config->opmode = OPMODE_NORMAL; // 0:normal 1: test port 2: enumerate ports
     config->serial_port = NULL;
+    config->opmode = 0; //bitmask 1:serial 2:console 4:web 8:agilitycontest
     config->local_port = 8880;
     return config;
 }
@@ -50,8 +50,9 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"ajax_server %s", config->ajax_server);
     debug(DBG_DEBUG,"comm_port %s",  config->comm_port);
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
+    debug(DBG_DEBUG,"ring %d",  config->ring);
     debug(DBG_DEBUG,"web port %d",  config->web_port);
-    if (config->opmode==OPMODE_TEST) {
+    if (config->opmode & OPMODE_CONSOLE) {
         fprintf(stderr,"Configuration parameters:\n");
         fprintf(stderr,"osname %s\n",   config->osname);
         fprintf(stderr,"logfile %s\n",    config->logfile);
@@ -61,6 +62,7 @@ void print_configuration(configuration *config) {
         fprintf(stderr,"ajax_server %s\n", config->ajax_server);
         fprintf(stderr,"comm_port %s\n",  config->comm_port);
         fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
+        fprintf(stderr,"ring %d\n",  config->ring);
         fprintf(stderr,"web port %d\n",  config->web_port);
     }
 }
@@ -78,8 +80,8 @@ static int handler(void * data, const char* section, const char* name, const cha
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
     if      (MATCH("Debug",  "logfile"))     config->logfile = strdup(value);
     else if (MATCH("Debug",  "loglevel"))    config->loglevel = atoi(value) % 9; /* 0..8 */
-    else if (MATCH("Debug",  "opmode"))      config->opmode = atoi(value) % 4; /* 0..3 */
-    else if (MATCH("Debug",  "verbose"))      config->opmode = (atoi(value)!=0)?1:0;
+    else if (MATCH("Debug",  "opmode"))      config->opmode = atoi(value) %  0x1F; /* bitmask */
+    else if (MATCH("Debug",  "console"))     config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
     else if (MATCH("Config", "ajax_server"))   config->ajax_server = strdup(value); /* def "localhost" */
     else if (MATCH("Config", "comm_port"))   config->comm_port = strdup(value);
     else if (MATCH("Config", "baud_rate"))   config->baud_rate = atoi(value); /* def 9600 */

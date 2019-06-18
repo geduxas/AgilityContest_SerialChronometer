@@ -14,11 +14,77 @@
 #include "../include/sc_config.h"
 #include "../include/sc_sockets.h"
 
+static int serial_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static int serial_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
+    debug(DBG_INFO,"Serial manager thread exit requested");
+    return -1;
+}
+static int serial_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
+static func entries[32]= {
+        serial_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
+        serial_mgr_int,    // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
+        serial_mgr_stop,   // { 2, "stop",    "End of course run",               "<miliseconds>"},
+        serial_mgr_fail,   // { 3, "fail",    "Sensor faillure detected",        ""},
+        serial_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
+        serial_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+        serial_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
+        serial_mgr_down,   // { 6, "down",    "Start 15 seconds countdown",      ""},
+        serial_mgr_fault,  // { 7, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
+        serial_mgr_refusal,// { 8, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
+        serial_mgr_elim,   // { 9, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
+        serial_mgr_reset,  // { 10, "reset",  "Reset chronometer and countdown", "" },
+        NULL,            // { 11, "help",   "show command list",               "[cmd]"},
+        NULL,            // { 12, "version","Show software version",           "" },
+        serial_mgr_exit,   // { 13, "exit",   "End program (from console)",      "" },
+        serial_mgr_server, // { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        NULL,            // { 15, "ports",  "Show available serial ports",     "" },
+        NULL,            // { 16, "config", "List configuration parameters",   "" },
+        NULL             // { -1, NULL,     "",                                "" }
+};
+
 void *serial_manager_thread(void *arg){
 
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
+    slot->entries=entries;
 
     // create sock
     char portstr[16];
@@ -51,6 +117,10 @@ void *serial_manager_thread(void *arg){
         config->comm_port=NULL;
         return NULL;
     }
+
+    // mark thread alive before entering loop
+    slot->index=slotIndex;
+
     return 0;
 }
 

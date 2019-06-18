@@ -12,7 +12,7 @@
 #else
 #define EXTERN
 #endif
-
+#define CONSOLE_MGR_VERSION "1.0.0"
 EXTERN void * console_manager_thread(void *config);
 #undef EXTERN
 

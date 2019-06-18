@@ -75,7 +75,7 @@ static int usage() {
  */
 static int parse_cmdline(configuration *config, int argc,  char * const argv[]) {
     int option=0;
-    while ((option = getopt(argc, argv,"d:w:s:L:D:b:r:vqhtf")) != -1) {
+    while ((option = getopt(argc, argv,"d:w:s:L:D:b:r:vqhcf")) != -1) {
         switch (option) {
             case 'd' : config->comm_port = strdup(optarg);  break;
             case 'r' : config->ring = atoi(optarg);         break;
@@ -85,9 +85,9 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
             case 'D' : config->loglevel = atoi(optarg)%9;   break;
             case 'b' : config->baud_rate = atoi(optarg);    break; // pending: check valid baudrate
             case 'v' : config->verbose = 1; break;
-            case 'q' : config->verbose = OPMODE_NORMAL;     break;
-            case 't' : config->opmode = OPMODE_TEST;        break; // test serial port
-            case 'f' : config->opmode = OPMODE_ENUM;        break; // find serial ports
+            case 'q' : config->verbose = 0; break; // no console output
+            case 'c' : config->opmode |= OPMODE_CONSOLE;    break; // test serial port
+            case 'f' : config->opmode = OPMODE_FIND;        break; // find serial ports
             case 'h' :
             case '?' : usage(); exit(0);
             default: return -1;
@@ -128,7 +128,7 @@ int main (int argc, char *argv[]) {
     print_configuration(config);
 
     // if opmode==enumerate, do nothing but search and print available serial ports
-    if (config->opmode==OPMODE_ENUM) {
+    if (config->opmode & OPMODE_FIND) {
         serial_print_ports(config);
         return 0;
     }
@@ -137,26 +137,30 @@ int main (int argc, char *argv[]) {
     sc_threads = calloc(4,sizeof(sc_thread_slot));
     if (!sc_threads) {
         debug(DBG_ERROR,"Error allocating thread data space");
-        usage();
         return 1;
     }
+    for (int n=0;n<4;n++) sc_threads[n].index=-1;
     // thread 0: recepcion de datos por puerto serie
     if (config->comm_port != (char*)NULL ) {
+        config->opmode |= OPMODE_NORMAL;
         debug(DBG_TRACE,"Starting comm port receiver thread");
         sc_thread_create(0,"SERIAL",config,serial_manager_thread);
     }
-    // thread 1: gestion de mini-servidor web
+    // thread 1: gestion de mini-servidor we 0b
     if (config->web_port !=0 ) {
-        debug(DBG_TRACE,"Starting web server thread");
+        config->opmode |= OPMODE_WEB;
+        debug(DBG_TRACE,"Starting internal web server thread");
         sc_thread_create(1,"WEB",config,web_manager_thread);
     }
     // thread 2: comunicaciones ajax con servidor AgilityContest
+    if (strcasecmp("none",config->ajax_server)==0) config->ajax_server=NULL;
     if (config->ajax_server!= (char*)NULL) {
-        debug(DBG_TRACE,"Starting ajax event listener thread");
+        config->opmode |= OPMODE_SERVER;
+        debug(DBG_TRACE,"Starting AgilityContest event listener thread");
         sc_thread_create(2,"AJAX",config,ajax_manager_thread);
     }
     // Thread 3: interactive console
-    if (config->opmode==OPMODE_TEST) {
+    if (config->opmode & OPMODE_CONSOLE) {
         debug(DBG_TRACE,"Starting interactive console thread");
         sc_thread_create(3,"CONSOLE",config,console_manager_thread);
     }
@@ -184,9 +188,13 @@ int main (int argc, char *argv[]) {
         int len = recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr *)&client_address,&client_address_len);
         // inet_ntoa prints user friendly representation of the ip address
         buffer[len] = '\0';
+        debug(DBG_TRACE,"Main loop: received: '%s'",buffer);
         // tokenize received message
         char **tokens=explode(buffer,' ',&ntokens);
-        // source command arguments
+        if (!tokens) {
+            debug(DBG_ERROR,"Cannot tokenize received data '%s'",buffer);
+            continue;
+        }
         // search command from list to retrieve index
         int index=0;
         for (;command_list[index].index>0;index++) {
@@ -200,11 +208,13 @@ int main (int argc, char *argv[]) {
         // send received data to every active threads
         int alive=0;
         for (int n=0;n<3;n++) {
-            if (sc_threads[n].index==-1) continue; // skip non active threads
+            if (sc_threads[n].index<0) continue; // skip non active threads
+            if (sc_threads[n].entries == NULL) continue; // no function pointers declared for current thread
             // invoke parser on thread
             if (sc_threads[n].entries[index]) {
                 // if function pointer is not null fire up code
-                int res=sc_threads[n].entries[index](config,n,tokens,ntokens);
+                func handler=sc_threads[n].entries[index];
+                int res=handler(config,n,tokens,ntokens);
                 if (res<0) {
                     debug(DBG_ERROR,"Error sendinc command: '%s' from %s to %s\n", buffer,tokens[0],sc_threads[n].tname);
                 }
@@ -220,7 +230,8 @@ int main (int argc, char *argv[]) {
             debug(DBG_INFO,"Received exit command");
             loop=0;
         }
-
+        // liberate space reserved from tokenizer
+        free(tokens);
         // send "OK" content back to the client
         char *response="OK";
         sendto(sock, response, strlen(response), 0, (struct sockaddr *)&client_address,sizeof(client_address));

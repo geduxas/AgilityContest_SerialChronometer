@@ -55,10 +55,10 @@ char **explode(char *line, char separator,int *nelem) {
     for (char *to = buff; *to; to++) { // while not end of string
         if (*to != separator) continue; // not separator; next char
         *to = '\0';
-        res[*nelem] = from;
-        from = to+1; // point to next token to explode (or null at end)
-        (*nelem)++;
+        *nelem= 1+*nelem;
         res = realloc(res, (*nelem) * sizeof(char *));
+        res[*nelem-1] = from;
+        from = to+1; // point to next token to explode (or null at end)
     }
     return res;
 }
