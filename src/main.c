@@ -178,13 +178,13 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
-    // socket address used to store client address
-    struct sockaddr_in client_address;
-    unsigned int client_address_len = 0;
-    char buffer[500];
+
     // run until exit command received
     int loop=1;
-    while (loop) {
+    while (loop) {    // socket address used to store client address
+        struct sockaddr_in client_address;
+        socklen_t client_address_len = sizeof(client_address);
+        char buffer[500];
         int ntokens=0;
         // read content into buffer from an incoming client
         int len = recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr *)&client_address,&client_address_len);
@@ -193,7 +193,7 @@ int main (int argc, char *argv[]) {
         }
         // inet_ntoa prints user friendly representation of the ip address
         buffer[len] = '\0';
-        debug(DBG_TRACE,"Main loop: received: '%s'",buffer);
+        // debug(DBG_TRACE,"Main loop: received: '%s'",buffer);
         // tokenize received message
         char **tokens=explode(buffer,' ',&ntokens);
         if (!tokens) {
@@ -231,7 +231,7 @@ int main (int argc, char *argv[]) {
                 func handler=sc_threads[n].entries[index];
                 int res=handler(config,n,tokens,ntokens);
                 if (res<0) {
-                    debug(DBG_ERROR,"Error sendinc command: '%s' from %s to %s\n", buffer,tokens[0],sc_threads[n].tname);
+                    debug(DBG_ERROR,"Error sendind command: '%s' from %s to %s\n", buffer,tokens[0],sc_threads[n].tname);
                 }
             }
             alive++; // increase alive threads counter
@@ -249,7 +249,7 @@ int main (int argc, char *argv[]) {
         free(tokens);
         // send "OK" content back to the client
         char *response="OK";
-        sendto(sock, response, strlen(response), 0, (struct sockaddr *)&client_address,sizeof(client_address));
+        sendto(sock, response, strlen(response), 0, (struct sockaddr *)&client_address,client_address_len);
     }
 
     // arriving here means mark end of threads and wait them to die

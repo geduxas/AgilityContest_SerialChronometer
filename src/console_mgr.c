@@ -60,10 +60,11 @@ static int console_mgr_help(configuration * config, int slot, char **tokens, int
 static int console_mgr_version(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"Console_manager version:%s",CONSOLE_MGR_VERSION);
     fprintf(stdout,"Console_manager version:%s\n",CONSOLE_MGR_VERSION);
+    return 0;
 }
 static int console_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"Console Manager Thread exit requested");
-    return -1;
+    return 0; // command results ok, not error
 }
 static int console_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
@@ -139,7 +140,7 @@ void *console_manager_thread(void *arg){
                 debug(DBG_ERROR,"Console: error waiting response: %s",strerror(errno));
             } else {
                 response[res]='\0';
-                fprintf(stdout,"Main loop response: %s\n",response);
+                fprintf(stdout,"Command response: %s\n",response);
             }
         } else {
             debug(DBG_TRACE,"Console: received EOF from user input");
