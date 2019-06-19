@@ -22,14 +22,14 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
     set(CMAKE_CROSSCOMPILING 1)
     # mingw does not support "-rdynamic", so force empty flags and tell cmake to search static libs
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-    set( CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "" )
-    set( CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "" )
+    set( CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-static" )
+    set( CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-static" )
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
-            pthread
             setupapi
             ws2_32
+            pthread
     )
 else()
     find_package (Threads)

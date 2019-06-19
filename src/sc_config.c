@@ -37,7 +37,33 @@ configuration * default_options(configuration * config) {
     config->serial_port = NULL;
     config->opmode = 0; //bitmask 1:serial 2:console 4:web 8:agilitycontest
     config->local_port = 8880;
+    // internal status tracking
+    config->status.eliminated=0;
+    config->status.faults=0;
+    config->status.refusals=0;
+    config->status.timestamp=-1L;
+    config->status.dorsal=0;
+    config->status.elapsed=0.0f;
     return config;
+}
+
+void print_status(configuration *config) {
+    debug(DBG_DEBUG,"Status info:");
+    debug(DBG_DEBUG,"Dorsal %d",      config->status.dorsal);
+    debug(DBG_DEBUG,"Timestamp %lld",   config->status.timestamp);
+    debug(DBG_DEBUG,"LastTime %f",   config->status.elapsed);
+    debug(DBG_DEBUG,"Faults %d",    config->status.faults);
+    debug(DBG_DEBUG,"Refusals %d",    config->status.refusals);
+    debug(DBG_DEBUG,"Eliminated %d",      config->status.eliminated);
+    if (config->opmode & OPMODE_CONSOLE) {
+        fprintf(stderr,"Status information:\n");
+        fprintf(stderr,"Dorsal %d\n",    config->status.dorsal);
+        fprintf(stderr,"Timestamp %lld\n",   config->status.timestamp);
+        fprintf(stderr,"LastTime %f\n",   config->status.elapsed);
+        fprintf(stderr,"Faults %d\n",    config->status.faults);
+        fprintf(stderr,"Refusals %d\n",    config->status.refusals);
+        fprintf(stderr,"Eliminated %d\n",      config->status.eliminated);
+    }
 }
 
 void print_configuration(configuration *config) {

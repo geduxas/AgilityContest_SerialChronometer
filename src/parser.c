@@ -32,6 +32,7 @@ command_t command_list[32]= {
         { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
         { 15, "ports",  "Show available serial ports",     "" },
         { 16, "config", "List configuration parameters",   "" },
+        { 17, "status", "Show Fault/Refusal/Elim state",   "" },
         { -1, NULL,     "",                                "" }
 };
 
@@ -67,5 +68,10 @@ int sc_enumerate_ports(configuration *config, int argc, char *argv[]) {
 
 int sc_print_configuration(configuration *config, int argc, char *argv[]) {
     print_configuration(config);
+    return 0;
+}
+
+int sc_print_status(configuration *config, int argc, char *argv[]) {
+    print_status(config);
     return 0;
 }

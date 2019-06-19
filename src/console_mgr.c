@@ -10,30 +10,62 @@
 #include <errno.h>
 
 #include "../include/main.h"
+#include "../include/sc_tools.h"
 #include "../include/sc_sockets.h"
 #include "../include/debug.h"
 #include "../include/console_mgr.h"
 #include "../include/sc_config.h"
 #include "../include/parser.h"
 
-static time_t timestamp;
-
+/* start [timestamp] */
 static int console_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==2)  config->status.timestamp=current_timestamp();
+    else config->status.timestamp= strtoull(tokens[2],NULL,10);
+    debug(DBG_TRACE,"START: timestamp:%l\n",config->status.timestamp);
     return 0;
 }
 static int console_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
+    if (config->status.timestamp<0) {
+        debug(DBG_WARN,"INT: chrono is not running");
+        fprintf(stderr,"Intermediate time: chrono is not running\n");
+        return -1;
+    }
+    long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
+    float elapsed=(float)(end-config->status.timestamp)/1000.0f;
+    debug(DBG_WARN,"INT: elapsed time:%f",elapsed);
+    fprintf(stderr,"Intermediate time: %f seconds",elapsed);
     return 0;
 }
 static int console_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
+    if (config->status.timestamp<0) {
+        debug(DBG_WARN,"STOP: chrono is not running");
+        fprintf(stderr,"Course time: chrono is not running\n");
+        return -1;
+    }
+    long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
+    float elapsed=(float)(end-config->status.timestamp)/1000.0f;
+    debug(DBG_TRACE,"STOP: elapsed time:%f",elapsed);
+    fprintf(stderr,"Course time: %f seconds",elapsed);
+    config->status.timestamp=-1;
+    config->status.elapsed= elapsed;
     return 0;
 }
 static int console_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
+    debug(DBG_TRACE,"sensor(s) FAIL");
+    fprintf(stderr,"Sensor(s) failure noticed");
     return 0;
 }
 static int console_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
+    debug(DBG_TRACE,"chrono OK");
+    fprintf(stderr,"Sensor(s) OK . Chronometer is ready");
     return 0;
 }
+/* msg <message> [duration] */
 static int console_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
+    char *msg =(ntokens==3)?tokens[2]:"(empty)";
+    int duration = (ntokens==4)?atoi(tokens[3]):3;
+    debug(DBG_TRACE,"MSG: %s duration %d",msg,duration);
+    fprintf(stderr,"Received message %s",msg);
     return 0;
 }
 static int console_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
@@ -43,15 +75,51 @@ static int console_mgr_down(configuration * config, int slot, char **tokens, int
     return 0;
 }
 static int console_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==3) {
+        if (strcmp(tokens[2],"+")==0) config->status.faults++;
+        else if (strcmp(tokens[2],"-")==0) config->status.faults--;
+        else config->status.faults=atoi(tokens[2]);
+    } else {
+        config->status.faults++;
+    }
+    if (config->status.faults<0) config->status.faults=0;
+    debug(DBG_TRACE,"FAULT: %d",config->status.faults);
+    fprintf(stderr,"Fault count is: %d",config->status.faults);
     return 0;
 }
 static int console_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==3) {
+        if (strcmp(tokens[2],"+")==0) config->status.refusals++;
+        else if (strcmp(tokens[2],"-")==0) config->status.refusals--;
+        else config->status.refusals=atoi(tokens[2]);
+    } else {
+        config->status.refusals++;
+    }
+    if (config->status.refusals<0) config->status.refusals=0;
+    debug(DBG_TRACE,"REFUSAL: %d",config->status.refusals);
+    fprintf(stderr,"Refusal count is: %d",config->status.refusals);
     return 0;
 }
 static int console_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==3) {
+        if (strcmp(tokens[2],"+")==0) config->status.eliminated=1;
+        else if (strcmp(tokens[2],"-")==0) config->status.eliminated=0;
+        else config->status.eliminated= ( atoi(tokens[2])==0)?0:1;
+    } else {
+        config->status.eliminated=1;
+    }
+    debug(DBG_TRACE,"ELIM: %d",config->status.eliminated);
+    fprintf(stderr,"Eliminated status is: %d",config->status.eliminated);
     return 0;
 }
 static int console_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
+    config->status.timestamp=-1L;
+    config->status.faults=0;
+    config->status.refusals=0;
+    config->status.eliminated=0;
+    // DO NOT reset "dorsal"
+    debug(DBG_TRACE,"RESET");
+    fprintf(stderr,"Received RESET");
     return 0;
 }
 static int console_mgr_help(configuration * config, int slot, char **tokens, int ntokens) {
@@ -76,6 +144,10 @@ static int console_mgr_config(configuration * config, int slot, char **tokens, i
     return sc_print_configuration(config,ntokens,tokens);
 }
 
+static int console_mgr_status(configuration * config, int slot, char **tokens, int ntokens) {
+    return sc_print_status(config,ntokens,tokens);
+}
+
 static func entries[32]= {
         console_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
         console_mgr_int,    // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
@@ -95,6 +167,7 @@ static func entries[32]= {
         console_mgr_server, // { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
         console_mgr_ports,  // { 15, "ports",  "Show available serial ports",     "" },
         console_mgr_config, // { 16, "config", "List configuration parameters",   "" },
+        console_mgr_status, // { 16, "status", "Show faults/refusal/elim info",   "" },
         NULL                // { -1, NULL,     "",                                "" }
 };
 
@@ -134,10 +207,15 @@ void *console_manager_thread(void *arg){
         if (p) {
             if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
             debug(DBG_TRACE,"Console: sent to local socket: '%s'",request);
-            write(slot->sock,request,strlen(request));
-            res=read(slot->sock,response,1024);
+            res=send(slot->sock,request,strlen(request),0);
+            if (res<0){
+                debug(DBG_ERROR,"Console write(): error sending request: %s",strerror(errno));
+                continue;
+            }
+            res=recv(slot->sock,response,1024,0);
             if (res<0) {
-                debug(DBG_ERROR,"Console: error waiting response: %s",strerror(errno));
+                debug(DBG_ERROR,"Console read(): error waiting response: %s",strerror(errno));
+                continue;
             } else {
                 response[res]='\0';
                 fprintf(stdout,"Command response: %s\n",response);

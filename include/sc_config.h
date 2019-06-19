@@ -19,6 +19,15 @@
 #define OPMODE_FIND 16 /* find serial ports and exit */
 
 typedef struct {
+    long long timestamp;
+    float elapsed; // last stored elapsed time
+    int faults;
+    int refusals;
+    int eliminated;
+    int dorsal;
+} sc_data_t;
+
+typedef struct {
     char *osname;
     int local_port; // UDP Port to listen data from threads
     // log file
@@ -37,7 +46,7 @@ typedef struct {
     int baud_rate;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
     struct sp_port *serial_port; // serial port to be openend
-
+    sc_data_t status;
 } configuration;
 
 #ifdef SERIALCHRONOMETER_SC_CONFIG_C
@@ -49,6 +58,7 @@ typedef struct {
 EXTERN configuration *default_options(configuration *config);
 EXTERN configuration *parse_ini_file(configuration *config, char *filename);
 EXTERN void print_configuration(configuration *config);
+EXTERN void print_status(configuration *config);
 #undef EXTERN
 
 #endif //SERIALCHRONOMETER_SC_CONFIG_H

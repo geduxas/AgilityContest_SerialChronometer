@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#endif
 
 #include "../include/sc_tools.h"
 #include "../include/sc_sockets.h"
@@ -99,6 +106,11 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
 }
 
 int main (int argc, char *argv[]) {
+#ifdef __WIN32__
+    WORD versionWanted = MAKEWORD(1, 1);
+    WSADATA wsaData;
+    WSAStartup(versionWanted, &wsaData);
+#endif
     program_name=argv[0];
 
     configuration *config;
@@ -181,7 +193,9 @@ int main (int argc, char *argv[]) {
 
     // run until exit command received
     int loop=1;
-    while (loop) {    // socket address used to store client address
+    while (loop) {
+        char *response="OK";
+        // socket address used to store client address
         struct sockaddr_in client_address;
         socklen_t client_address_len = sizeof(client_address);
         char buffer[500];
@@ -190,6 +204,7 @@ int main (int argc, char *argv[]) {
         int len = recvfrom(sock, buffer, sizeof(buffer), 0,(struct sockaddr *)&client_address,&client_address_len);
         if( len<0) {
             debug(DBG_ERROR,"recvfrom error: %s",strerror(errno));
+            continue;
         }
         // inet_ntoa prints user friendly representation of the ip address
         buffer[len] = '\0';
@@ -211,9 +226,10 @@ int main (int argc, char *argv[]) {
         }
         if (command_list[index].index<0) {
             debug(DBG_ERROR,"Unknown command received: '%s' from %s\n", buffer,tokens[0]);
-            continue;
+            response="ERROR";
+            goto free_and_response;
         }
-        debug(DBG_ERROR,"Received command %d -> '%s' from %s\n", index, buffer,tokens[0]);
+        debug(DBG_TRACE,"Received command %d -> '%s' from %s\n", index, buffer,tokens[0]);
         // send received data to every active threads
         int alive=0;
         for (int n=0;n<4;n++) {
@@ -231,7 +247,8 @@ int main (int argc, char *argv[]) {
                 func handler=sc_threads[n].entries[index];
                 int res=handler(config,n,tokens,ntokens);
                 if (res<0) {
-                    debug(DBG_ERROR,"Error sendind command: '%s' from %s to %s\n", buffer,tokens[0],sc_threads[n].tname);
+                    debug(DBG_ERROR,"Error sending command: '%s' from %s to %s\n", buffer,tokens[0],sc_threads[n].tname);
+                    response="ERROR";
                 }
             }
             alive++; // increase alive threads counter
@@ -245,10 +262,10 @@ int main (int argc, char *argv[]) {
             debug(DBG_INFO,"Received exit command");
             loop=0;
         }
+free_and_response:
         // liberate space reserved from tokenizer
         free(tokens);
-        // send "OK" content back to the client
-        char *response="OK";
+        // send response content back to the client
         sendto(sock, response, strlen(response), 0, (struct sockaddr *)&client_address,client_address_len);
     }
 

@@ -24,6 +24,7 @@ EXTERN command_t command_list[32];
 EXTERN int sc_help( configuration *config, int argc, char *argv[]);
 EXTERN int sc_exit( configuration *config, int argc, char *argv[]);
 EXTERN int sc_print_configuration( configuration *config, int argc, char *argv[]);
+EXTERN int sc_print_status( configuration *config, int argc, char *argv[]);
 EXTERN int sc_enumerate_ports( configuration *config, int argc, char *argv[]);
 
 #undef EXTERN
