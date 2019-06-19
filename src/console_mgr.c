@@ -31,7 +31,7 @@ static int console_mgr_int(configuration * config, int slot, char **tokens, int 
         return -1;
     }
     long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    float elapsed=(float)(end-config->status.timestamp)/1000.0f;
+    float elapsed=(float)(end - config->status.timestamp)/1000.0f;
     debug(DBG_WARN,"INT: elapsed time:%f",elapsed);
     fprintf(stderr,"Intermediate time: %f seconds",elapsed);
     return 0;
@@ -43,7 +43,7 @@ static int console_mgr_stop(configuration * config, int slot, char **tokens, int
         return -1;
     }
     long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    float elapsed=(float)(end-config->status.timestamp)/1000.0f;
+    float elapsed=(float)(end - config->status.timestamp)/1000.0f;
     debug(DBG_TRACE,"STOP: elapsed time:%f",elapsed);
     fprintf(stderr,"Course time: %f seconds",elapsed);
     config->status.timestamp=-1;

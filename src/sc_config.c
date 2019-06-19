@@ -7,6 +7,7 @@
 
 #define SERIALCHRONOMETER_SC_CONFIG_C
 #include "sc_config.h"
+#include "sc_tools.h"
 #include "debug.h"
 #include "ini.h"
 
@@ -60,6 +61,10 @@ void print_status(configuration *config) {
         fprintf(stderr,"Dorsal %d\n",    config->status.dorsal);
         fprintf(stderr,"Timestamp %lld\n",   config->status.timestamp);
         fprintf(stderr,"LastTime %f\n",   config->status.elapsed);
+        if (config->status.timestamp>=0) {
+            float elapsed=(float)(current_timestamp()-config->status.timestamp)/1000.0;
+            fprintf(stderr,"Elapsed Time %f\n",elapsed);
+        }
         fprintf(stderr,"Faults %d\n",    config->status.faults);
         fprintf(stderr,"Refusals %d\n",    config->status.refusals);
         fprintf(stderr,"Eliminated %d\n",      config->status.eliminated);
