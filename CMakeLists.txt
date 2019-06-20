@@ -25,6 +25,7 @@ add_executable(SerialChronometer ${SOURCES} ${INCLUDES})
 
 # add libcsoap library
 if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
+    set(dlfcn-win32_DIR /usr/i686-w64-mingw32/sys-root/mingw/share/dlfcn-win32)
     find_package(dlfcn-win32 REQUIRED)
     set(CMAKE_SYSTEM_NAME Windows)
     set(CMAKE_CROSSCOMPILING 1)
