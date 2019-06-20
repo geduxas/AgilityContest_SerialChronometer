@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <errno.h>
 #include <dlfcn.h>
 
 #include "main.h"
@@ -161,8 +161,34 @@ void *serial_manager_thread(void *arg){
     // mark thread alive before entering loop
     slot->index=slotIndex;
     int res=0;
+    char *p;
+    char request[1024];
+    sprintf(request,"%s ",SC_SERIAL);
+    int offset=strlen(request);
+    char response[1024];
     while(res>=0) {
-        sleep(1);
+        res=sp_blocking_read(config->serial_port,&request[offset],sizeof(request)-offset,5000); // 5seg timeout
+        if (res<0) {
+            debug(DBG_ERROR,"Serial read() returns %d",res);
+            res=0;
+        }
+        request[res]='\0';
+        if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
+        if (strlen(request)==0) continue; // empty string received
+        debug(DBG_TRACE,"Serial: sending to local socket: '%s'",request);
+        res=send(slot->sock,request,strlen(request),0);
+        if (res<0){
+            debug(DBG_ERROR,"Serial send(): error sending request: %s",strerror(errno));
+            continue;
+        }
+        res=recv(slot->sock,response,1024,0);
+        if (res<0) {
+            debug(DBG_ERROR,"Serial recv(): error waiting response: %s",strerror(errno));
+            continue;
+        } else {
+            response[res]='\0';
+            fprintf(stdout,"Serial command response: %s\n",response);
+        }
         if (slot->index<0) {
             debug(DBG_TRACE,"Serial thread: 'exit' command invoked");
             res=-1;

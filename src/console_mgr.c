@@ -203,26 +203,27 @@ void *console_manager_thread(void *arg){
     int offset=strlen(request);
     while(res>=0) {
         fprintf(stdout,"cmd> ");
-        char *p=fgets(&request[offset],1000,stdin);
-        if (p) {
-            if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
-            debug(DBG_TRACE,"Console: sent to local socket: '%s'",request);
-            res=send(slot->sock,request,strlen(request),0);
-            if (res<0){
-                debug(DBG_ERROR,"Console write(): error sending request: %s",strerror(errno));
-                continue;
-            }
-            res=recv(slot->sock,response,1024,0);
-            if (res<0) {
-                debug(DBG_ERROR,"Console read(): error waiting response: %s",strerror(errno));
-                continue;
-            } else {
-                response[res]='\0';
-                fprintf(stdout,"Command response: %s\n",response);
-            }
-        } else {
+        char *p=fgets(&request[offset],sizeof(request)-offset,stdin);
+        if (!p) {
             debug(DBG_TRACE,"Console: received EOF from user input");
-            res=-1; // received eof from stdin
+            snprintf(request,1024,"quit");  // received eof from stdin -> quit command
+            res=strlen(request);
+        }
+        if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
+        if (strlen(request)==0) continue; // empty string received
+        debug(DBG_TRACE,"Console: sending to local socket: '%s'",request);
+        res=send(slot->sock,request,strlen(request),0);
+        if (res<0){
+            debug(DBG_ERROR,"Console send(): error sending request: %s",strerror(errno));
+            continue;
+        }
+        res=recv(slot->sock,response,1024,0);
+        if (res<0) {
+            debug(DBG_ERROR,"Console recv(): error waiting response: %s",strerror(errno));
+            continue;
+        } else {
+            response[res]='\0';
+            fprintf(stdout,"Console command response: %s\n",response);
         }
         // check for end requested
         if (slot->index<0) {

@@ -121,7 +121,7 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Serial", "module"))     config->module = strdup(value);
     else if (MATCH("Serial", "comm_port"))   config->comm_port = strdup(value);
     else if (MATCH("Serial", "baud_rate"))   config->baud_rate = atoi(value); /* def 9600 */
-    else if (MATCH("Serial", "web_port"))   config->web_port = atoi(value); /* def 8080 */
+    else if (MATCH("Web", "web_port"))   config->web_port = atoi(value); /* def 8080 */
     else return 0; /* unknown section/name, error */
     return 1;
 }
