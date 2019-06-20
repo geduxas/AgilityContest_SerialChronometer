@@ -18,49 +18,70 @@
 #include "sc_sockets.h"
 #include "modules.h"
 
+static int serial_write(configuration *config,char *cmd,char *arg1, char *arg2) {
+    static char *msg;
+    if (!msg) msg=calloc(1024,sizeof(char));
+    if (arg2) snprintf(msg,1024,"%s %s %s",cmd,arg1,arg2);
+    else if (arg1) snprintf(msg,1024,"%s %s",cmd,arg1);
+    else  snprintf(msg,1024,"%s",cmd);
+    debug(DBG_TRACE,"Serial msg '%s'",msg);
+    strncat(msg,"\n",1024); // add newline
+    enum sp_return ret=sp_nonblocking_write(config->serial_port,msg,strlen(msg));
+    return ret;
+}
+
 static int serial_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (ntokens==2) return serial_write(config,tokens[1], "0",NULL);
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
+    // fail msg is not to be sent to chrono (read only)
+    debug(DBG_TRACE,"Serial msg 'FAIL' (do not send)");
     return 0;
 }
 static int serial_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
+    // fail msg is not to be sent to chrono (read only)
+    debug(DBG_TRACE,"Serial msg 'OK' (do not send)");
     return 0;
 }
 static int serial_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
+    // PENDING; properly handle multi word messages
     return 0;
 }
 static int serial_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (ntokens==2) return serial_write(config,tokens[1], "420",NULL); // default 7 minutes
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (ntokens==2) return serial_write(config,tokens[1], "15",NULL); // default 15 seconds
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (ntokens==2) return serial_write(config,tokens[1], "+",NULL); // default increase fault
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (ntokens==2) return serial_write(config,tokens[1], "+",NULL); // default increase refusals
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (ntokens==2) return serial_write(config,tokens[1], "+",NULL); // default: eliminate
+    return serial_write(config,tokens[1],tokens[2],NULL );
 }
 static int serial_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    return serial_write(config,tokens[1],NULL,NULL );
 }
 static int serial_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"Serial manager thread exit requested");
     return -1;
 }
-static int serial_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
-}
+
 static func entries[32]= {
         serial_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
         serial_mgr_int,    // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
@@ -77,7 +98,7 @@ static func entries[32]= {
         NULL,            // { 11, "help",   "show command list",               "[cmd]"},
         NULL,            // { 12, "version","Show software version",           "" },
         serial_mgr_exit,   // { 13, "exit",   "End program (from console)",      "" },
-        serial_mgr_server, // { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        NULL,              // { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
         NULL,            // { 15, "ports",  "Show available serial ports",     "" },
         NULL,            // { 16, "config", "List configuration parameters",   "" },
         NULL             // { -1, NULL,     "",                                "" }

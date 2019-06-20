@@ -21,7 +21,7 @@
 static int console_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
     if (ntokens==2)  config->status.timestamp=current_timestamp();
     else config->status.timestamp= strtoull(tokens[2],NULL,10);
-    debug(DBG_TRACE,"START: timestamp:%l\n",config->status.timestamp);
+    debug(DBG_TRACE,"START: timestamp:%llu\n",config->status.timestamp);
     return 0;
 }
 static int console_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
@@ -203,10 +203,10 @@ void *console_manager_thread(void *arg){
     int offset=strlen(request);
     while(res>=0) {
         fprintf(stdout,"cmd> ");
-        char *p=fgets(&request[offset],sizeof(request)-offset,stdin);
-        if (!p) {
+        char *p=fgets(&request[offset],1024-offset,stdin);
+        if (p==NULL) {
             debug(DBG_TRACE,"Console: received EOF from user input");
-            snprintf(request,1024,"quit");  // received eof from stdin -> quit command
+            snprintf(request,1024-offset,"exit");  // received eof from stdin -> quit command
             res=strlen(request);
         }
         if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline

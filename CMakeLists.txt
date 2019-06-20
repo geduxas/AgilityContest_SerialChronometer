@@ -30,6 +30,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
     set(CMAKE_SYSTEM_NAME Windows)
     set(CMAKE_CROSSCOMPILING 1)
     target_link_options(SerialChronometer PRIVATE -static)
+    target_compile_options(SerialChronometer PRIVATE -static)
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
