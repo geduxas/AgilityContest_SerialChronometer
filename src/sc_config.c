@@ -35,6 +35,7 @@ configuration * default_options(configuration * config) {
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
     config->ring = 1;
+    config->module="generic";
     config->serial_port = NULL;
     config->opmode = 0; //bitmask 1:serial 2:console 4:web 8:agilitycontest
     config->local_port = 8880;
@@ -79,6 +80,7 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"opmode %d",      config->opmode);
     debug(DBG_DEBUG,"verbose %d",    config->verbose);
     debug(DBG_DEBUG,"ajax_server %s", config->ajax_server);
+    debug(DBG_DEBUG,"module %s",    config->module);
     debug(DBG_DEBUG,"comm_port %s",  config->comm_port);
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
     debug(DBG_DEBUG,"ring %d",  config->ring);
@@ -91,6 +93,7 @@ void print_configuration(configuration *config) {
         fprintf(stderr,"opmode %d\n",      config->opmode);
         fprintf(stderr,"verbose %d\n",    config->verbose);
         fprintf(stderr,"ajax_server %s\n", config->ajax_server);
+        fprintf(stderr,"module %s\n",  config->module);
         fprintf(stderr,"comm_port %s\n",  config->comm_port);
         fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
         fprintf(stderr,"ring %d\n",  config->ring);
@@ -113,10 +116,12 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Debug",  "loglevel"))    config->loglevel = atoi(value) % 9; /* 0..8 */
     else if (MATCH("Debug",  "opmode"))      config->opmode = atoi(value) %  0x1F; /* bitmask */
     else if (MATCH("Debug",  "console"))     config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
-    else if (MATCH("Config", "ajax_server"))   config->ajax_server = strdup(value); /* def "localhost" */
-    else if (MATCH("Config", "comm_port"))   config->comm_port = strdup(value);
-    else if (MATCH("Config", "baud_rate"))   config->baud_rate = atoi(value); /* def 9600 */
-    else if (MATCH("Config", "web_port"))   config->web_port = atoi(value); /* def 8080 */
+    else if (MATCH("Server", "ajax_server"))   config->ajax_server = strdup(value); /* def "localhost" */
+    else if (MATCH("Server", "name"))       config->client_name = strdup(value); /* def serial module name */
+    else if (MATCH("Serial", "module"))     config->module = strdup(value);
+    else if (MATCH("Serial", "comm_port"))   config->comm_port = strdup(value);
+    else if (MATCH("Serial", "baud_rate"))   config->baud_rate = atoi(value); /* def 9600 */
+    else if (MATCH("Serial", "web_port"))   config->web_port = atoi(value); /* def 8080 */
     else return 0; /* unknown section/name, error */
     return 1;
 }

@@ -8,12 +8,15 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../include/main.h"
+#include <dlfcn.h>
+
+#include "main.h"
 #include "../libserialport/include/libserialport.h"
-#include "../include/debug.h"
-#include "../include/serial_mgr.h"
-#include "../include/sc_config.h"
-#include "../include/sc_sockets.h"
+#include "debug.h"
+#include "serial_mgr.h"
+#include "sc_config.h"
+#include "sc_sockets.h"
+#include "modules.h"
 
 static int serial_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
@@ -82,43 +85,77 @@ static func entries[32]= {
 
 void *serial_manager_thread(void *arg){
 
+    int (*module_init)(configuration *config) = NULL;
+    int (*module_end)() = NULL;
+    int (*module_open)() = NULL;
+    int (*module_close)() = NULL;
+    int (*module_read)(char *buffer,size_t length) = NULL;
+    int (*module_write)(char *buffer,size_t length) = NULL;
+
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
     slot->entries=entries;
 
     // create sock
-    char portstr[16];
-    snprintf(portstr,16,"%d",config->local_port);
-    slot->sock=connectUDP("localhost",portstr);
+    char tmpstr[1024];
+    snprintf(tmpstr,1024,"%d",config->local_port);
+    slot->sock=connectUDP("localhost",tmpstr);
     if (slot->sock <0) {
         debug(DBG_ERROR,"SerialMgr: Cannot create local socket");
+        slot->index=-1;
         return NULL;
     }
 
-    char *errmsg=NULL;
-    enum sp_return ret=sp_get_port_by_name(config->comm_port,&config->serial_port);
-    if (ret == SP_OK) {
-        ret = sp_open(config->serial_port,SP_MODE_READ_WRITE);
-        if (ret == SP_OK) {
-            sp_set_baudrate(config->serial_port, config->baud_rate);
-        } else {
-            errmsg="Cannot open serial port %s";
-        }
-    } else {
-        errmsg="Cannot locate serial port %s";
-    }
-    if (errmsg) {
-        // on error show message and disable comm port and associated thread handling
-        debug(DBG_ERROR,errmsg,config->comm_port);
-        if (config->serial_port) {
-            sp_free_port(config->serial_port);
-            config->serial_port=NULL;
-        }
+    // load serial module
+#ifdef _WIN32
+    snprintf(tmpstr,1024,"%s.dll",config->module);
+#else
+    snprintf(tmpstr,1024,"%s/%s.so",getcwd(NULL,1024),config->module);
+#endif
+    debug(DBG_TRACE,"Loading driver library '%s'",config->module);
+    void *library=dlopen(tmpstr,RTLD_LAZY|RTLD_LOCAL);
+    if (!library) {
+        debug(DBG_ERROR,"SerialMgr: Cannot load serial driver dll '%s':%s",config->module,dlerror());
         config->comm_port=NULL;
-        debug(DBG_TRACE,"Exiting serial thread due to initialization errors");
         slot->index=-1;
-        return &slot->index;
+        return NULL;
+    }
+    // verify module
+    debug(DBG_TRACE,"verifying library module");
+    module_init=dlsym(library,"module_init");
+    module_end=dlsym(library,"module_end");
+    module_open=dlsym(library,"module_open");
+    module_close=dlsym(library,"module_close");
+    module_read=dlsym(library,"module_read");
+    module_write=dlsym(library,"module_write");
+    if (!module_init || !module_end || !module_open || !module_close || !module_read || !module_write) {
+        debug(DBG_ERROR,"SerialMgr: dlsymbol(s) mismatch on module %s",config->module);
+        dlclose(library);
+        config->comm_port=NULL;
+        slot->index=-1;
+        return NULL;
+    }
+
+    // init module
+    debug(DBG_TRACE,"initialize library module");
+    if ( module_init(config) < 0) {
+        debug(DBG_TRACE,"SerialMgr: module_init() failed");
+        dlclose(library);
+        config->comm_port=NULL;
+        slot->index=-1;
+        return NULL;
+    }
+
+    // open module port
+    debug(DBG_TRACE,"openin library module device");
+    if ( module_open(config) < 0) {
+        module_end();
+        dlclose(library);
+        debug(DBG_TRACE,"SerialMgr: module_open() failed");
+        config->comm_port=NULL;
+        slot->index=-1;
+        return NULL;
     }
 
     // mark thread alive before entering loop
@@ -131,6 +168,14 @@ void *serial_manager_thread(void *arg){
             res=-1;
         }
     }
+
+    // close port
+    module_close();
+    // deinit module
+    module_end();
+    // unload module
+    dlclose(library);
+    // exit thread
     debug(DBG_TRACE,"Exiting serial thread");
     slot->index=-1;
     return &slot->index;
@@ -182,14 +227,4 @@ void serial_print_ports(configuration *config) {
         }
         free(ports);
     }
-}
-
-/**
- * Send data to serial port
- * @param config configuration pointer
- * @param data data
- * @return number of bytes sent or -1 on error
- */
-int serial_write(configuration *config, char *data) {
-
 }

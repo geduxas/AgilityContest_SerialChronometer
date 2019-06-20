@@ -51,16 +51,16 @@ int sc_thread_create(int index,char *name,configuration *config,void *(*handler)
 static int usage() {
     fprintf(stderr,"%s command line options:\n",program_name);
     fprintf(stderr,"Serial parameters:\n");
-    fprintf(stderr,"\t -m module  || --module=module_name Serial comm module to be used. Default \"std\"\n");
+    fprintf(stderr,"\t -m module  || --module=module_name Serial comm module to be used. Default \"generic\"\n");
     fprintf(stderr,"\t -d comport || --device=com_port    Communication port to attach to (required) \n");
     fprintf(stderr,"\t -b baud    || --baud=baudrate      Set baudrate for comm port. Defaults 9600\n");
     fprintf(stderr,"Web interface:\n");
     fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for web interface. 0:disable . Default 8080\n");
     fprintf(stderr,"AgilityContest  interface:\n");
     fprintf(stderr,"\t -s ipaddr  || --server=ip_address  Location (IP) of AgilityContest server.\n");
+    fprintf(stderr,"\t -n name    || --client_name=name   chrono name sent to AgilityContest. Defaults to module name\n");
     fprintf(stderr,"                                      Values: \"none\":disable - \"find\":search - Default: \"localhost\"\n");
     fprintf(stderr,"\t -r ring    || --ring=ring_number   Tell server which ring to attach chrono. Default \"1\"\n");
-    fprintf(stderr,"\t -n name    || --name=<name>        Set device name in API bus. Defaults to \"SerialChrono_<commport>\"\n");
     fprintf(stderr,"Debug options:\n");
     fprintf(stderr,"\t -D level   || --debuglog=level     Set debug/logging level 0:none thru 8:all. Defaults to 3:error\n");
     fprintf(stderr,"\t -L file    || --logfile=filename   Set log file. Defaults to \"stderr\"\n");
@@ -84,8 +84,10 @@ static int usage() {
  */
 static int parse_cmdline(configuration *config, int argc,  char * const argv[]) {
     int option=0;
-    while ((option = getopt(argc, argv,"d:w:s:L:D:b:r:vqhcf")) != -1) {
+    while ((option = getopt(argc, argv,"m:n:d:w:s:L:D:b:r:vqhcf")) != -1) {
         switch (option) {
+            case 'm' : config->module = strdup(optarg);     break;
+            case 'n' : config->client_name = strdup(optarg);break;
             case 'd' : config->comm_port = strdup(optarg);  break;
             case 'r' : config->ring = atoi(optarg);         break;
             case 'w' : config->web_port = atoi(optarg);     break; // port used will be web_port+ring
@@ -154,29 +156,29 @@ int main (int argc, char *argv[]) {
         return 1;
     }
     for (int n=0;n<4;n++) sc_threads[n].index=-1;
-    // thread 0: recepcion de datos por puerto serie
+    // Thread 0: interactive console
+    if (config->opmode & OPMODE_CONSOLE) {
+        debug(DBG_TRACE,"Starting interactive console thread");
+        sc_thread_create(0,SC_CONSOLE,config,console_manager_thread);
+    }
+    // thread 1: recepcion de datos por puerto serie
     if (config->comm_port != (char*)NULL ) {
         config->opmode |= OPMODE_NORMAL;
         debug(DBG_TRACE,"Starting comm port receiver thread");
-        sc_thread_create(0,SC_SERIAL,config,serial_manager_thread);
+        sc_thread_create(1,SC_SERIAL,config,serial_manager_thread);
     }
-    // thread 1: gestion de mini-servidor we 0b
+    // thread 2: gestion de mini-servidor we 0b
     if (config->web_port !=0 ) {
         config->opmode |= OPMODE_WEB;
         debug(DBG_TRACE,"Starting internal web server thread");
-        sc_thread_create(1,SC_WEBSRV,config,web_manager_thread);
+        sc_thread_create(2,SC_WEBSRV,config,web_manager_thread);
     }
-    // thread 2: comunicaciones ajax con servidor AgilityContest
+    // thread 3: comunicaciones ajax con servidor AgilityContest
     if (strcasecmp("none",config->ajax_server)==0) config->ajax_server=NULL;
     if (config->ajax_server!= (char*)NULL) {
         config->opmode |= OPMODE_SERVER;
         debug(DBG_TRACE,"Starting AgilityContest event listener thread");
-        sc_thread_create(2,SC_AJAXSRV,config,ajax_manager_thread);
-    }
-    // Thread 3: interactive console
-    if (config->opmode & OPMODE_CONSOLE) {
-        debug(DBG_TRACE,"Starting interactive console thread");
-        sc_thread_create(3,SC_CONSOLE,config,console_manager_thread);
+        sc_thread_create(3,SC_AJAXSRV,config,ajax_manager_thread);
     }
 
     // ok. start socket server on port "base"+"ring" // to allow multiple instances

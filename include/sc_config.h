@@ -28,24 +28,30 @@ typedef struct {
 } sc_data_t;
 
 typedef struct {
-    char *osname;
+    char *osname; //windows/Linux/Darwin
     int local_port; // UDP Port to listen data from threads
-    // log file
-    char *logfile;
-    // log level 0:none 1:panic 2:alert 3:error 4:notice 5:info 6:debug 7:trace 8:all
-    int loglevel;
-    // also send logging to stderr 0:no 1:yes
-    int verbose;
+
+    // debug options
+    char *logfile; // log file
+    int loglevel;  // log level 0:none 1:panic 2:alert 3:error 4:notice 5:info 6:debug 7:trace 8:all
+    int verbose;   // also send logging to stderr 0:no 1:yes
+
     // AgilityContest server parameters
     char *ajax_server;
+    char *client_name;
+
     // web server parameters
     int web_port;
+
     // serial port parameters
+    char *module; // dll module name ( without .dll/.so )
     int ring;
     char *comm_port;
     int baud_rate;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
     struct sp_port *serial_port; // serial port to be openend
+
+    // chrono status
     sc_data_t status;
 } configuration;
 
