@@ -143,9 +143,21 @@ static int console_mgr_ports(configuration * config, int slot, char **tokens, in
 static int console_mgr_config(configuration * config, int slot, char **tokens, int ntokens) {
     return sc_print_configuration(config,ntokens,tokens);
 }
-
 static int console_mgr_status(configuration * config, int slot, char **tokens, int ntokens) {
     return sc_print_status(config,ntokens,tokens);
+}
+static int console_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==3) {
+        if (strcmp(tokens[2],"+")==0) config->status.dorsal++;
+        else if (strcmp(tokens[2],"-")==0) config->status.dorsal--;
+        else config->status.dorsal=atoi(tokens[2]);
+    } else {
+        config->status.dorsal++;
+    }
+    if (config->status.dorsal<0) config->status.dorsal=0;
+    debug(DBG_TRACE,"DORSAL: %d",config->status.dorsal);
+    fprintf(stderr,"DORSAL number is: %d",config->status.dorsal);
+    return 0;
 }
 
 static func entries[32]= {
@@ -156,18 +168,19 @@ static func entries[32]= {
         console_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
         console_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
         console_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
-        console_mgr_down,   // { 6, "down",    "Start 15 seconds countdown",      ""},
-        console_mgr_fault,  // { 7, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
-        console_mgr_refusal,// { 8, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
-        console_mgr_elim,   // { 9, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
-        console_mgr_reset,  // { 10, "reset",  "Reset chronometer and countdown", "" },
-        console_mgr_help,   // { 11, "help",   "show command list",               "[cmd]"},
-        console_mgr_version,// { 12, "version","Show software version",           "" },
-        console_mgr_exit,   // { 13, "exit",   "End program (from console)",      "" },
-        console_mgr_server, // { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
-        console_mgr_ports,  // { 15, "ports",  "Show available serial ports",     "" },
-        console_mgr_config, // { 16, "config", "List configuration parameters",   "" },
-        console_mgr_status, // { 16, "status", "Show faults/refusal/elim info",   "" },
+        console_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
+        console_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
+        console_mgr_refusal,// { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
+        console_mgr_elim,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
+        console_mgr_reset,  // { 11, "reset",  "Reset chronometer and countdown", "" },
+        console_mgr_help,   // { 12, "help",   "show command list",               "[cmd]"},
+        console_mgr_version,// { 13, "version","Show software version",           "" },
+        console_mgr_exit,   // { 14, "exit",   "End program (from console)",      "" },
+        console_mgr_server, // { 15, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        console_mgr_ports,  // { 16, "ports",  "Show available serial ports",     "" },
+        console_mgr_config, // { 17, "config", "List configuration parameters",   "" },
+        console_mgr_status, // { 18, "status", "Show faults/refusal/elim info",   "" },
+        console_mgr_dorsal,   // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         NULL                // { -1, NULL,     "",                                "" }
 };
 

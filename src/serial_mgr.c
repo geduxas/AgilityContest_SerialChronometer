@@ -81,6 +81,9 @@ static int serial_mgr_exit(configuration * config, int slot, char **tokens, int 
     debug(DBG_INFO,"Serial manager thread exit requested");
     return -1;
 }
+static int serial_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+    return serial_write(config,tokens[1],NULL,NULL );
+}
 
 static func entries[32]= {
         serial_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
@@ -90,18 +93,20 @@ static func entries[32]= {
         serial_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
         serial_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
         serial_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
-        serial_mgr_down,   // { 6, "down",    "Start 15 seconds countdown",      ""},
-        serial_mgr_fault,  // { 7, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
-        serial_mgr_refusal,// { 8, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
-        serial_mgr_elim,   // { 9, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
-        serial_mgr_reset,  // { 10, "reset",  "Reset chronometer and countdown", "" },
-        NULL,            // { 11, "help",   "show command list",               "[cmd]"},
-        NULL,            // { 12, "version","Show software version",           "" },
-        serial_mgr_exit,   // { 13, "exit",   "End program (from console)",      "" },
-        NULL,              // { 14, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
-        NULL,            // { 15, "ports",  "Show available serial ports",     "" },
-        NULL,            // { 16, "config", "List configuration parameters",   "" },
-        NULL             // { -1, NULL,     "",                                "" }
+        serial_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
+        serial_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
+        serial_mgr_refusal,// { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
+        serial_mgr_elim,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
+        serial_mgr_reset,  // { 11, "reset",  "Reset chronometer and countdown", "" },
+        NULL,              // { 12, "help",   "show command list",               "[cmd]"},
+        NULL,              // { 13, "version","Show software version",           "" },
+        serial_mgr_exit,   // { 14, "exit",   "End program (from console)",      "" },
+        NULL,              // { 15, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        NULL,              // { 16, "ports",  "Show available serial ports",     "" },
+        NULL,              // { 17, "config", "List configuration parameters",   "" },
+        NULL,              // { 18, "status", "Show faults/refusal/elim info",   "" },
+        serial_mgr_dorsal,   // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        NULL               // { -1, NULL,     "",                                "" }
 };
 
 void *serial_manager_thread(void *arg){
