@@ -26,19 +26,19 @@ static int console_mgr_start(configuration * config, int slot, char **tokens, in
 }
 static int console_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
     if (config->status.timestamp<0) {
-        debug(DBG_WARN,"INT: chrono is not running");
+        debug(DBG_NOTICE,"INT: chrono is not running");
         fprintf(stderr,"Intermediate time: chrono is not running\n");
         return -1;
     }
     long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
     float elapsed=(float)(end - config->status.timestamp)/1000.0f;
-    debug(DBG_WARN,"INT: elapsed time:%f",elapsed);
+    debug(DBG_NOTICE,"INT: elapsed time:%f",elapsed);
     fprintf(stderr,"Intermediate time: %f seconds",elapsed);
     return 0;
 }
 static int console_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
     if (config->status.timestamp<0) {
-        debug(DBG_WARN,"STOP: chrono is not running");
+        debug(DBG_NOTICE,"STOP: chrono is not running");
         fprintf(stderr,"Course time: chrono is not running\n");
         return -1;
     }
@@ -160,6 +160,20 @@ static int console_mgr_dorsal(configuration * config, int slot, char **tokens, i
     return 0;
 }
 
+static int console_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
+    debug(DBG_INFO,"Enter clock mode requested");
+    return 0;
+}
+
+static int console_mgr_debug(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==3) {
+        set_debug_level(atoi(tokens[2]));
+    }
+    debug(DBG_TRACE,"DEBUG: %d",config->status.dorsal);
+    fprintf(stderr,"Debug level is: %d",get_debug_level());
+    return 0;
+}
+
 static func entries[32]= {
         console_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
         console_mgr_int,    // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
@@ -181,6 +195,8 @@ static func entries[32]= {
         console_mgr_config, // { 17, "config", "List configuration parameters",   "" },
         console_mgr_status, // { 18, "status", "Show faults/refusal/elim info",   "" },
         console_mgr_dorsal,   // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        console_mgr_clock,  // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        console_mgr_debug,  //{ 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL                // { -1, NULL,     "",                                "" }
 };
 

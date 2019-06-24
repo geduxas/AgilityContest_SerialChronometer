@@ -38,12 +38,59 @@ extern "C"
 #endif
 
 /* Declare our Add function using the above definitions. */
+
+/**
+ * Initialize module:
+ * - create internal data structures,
+ * - verify configuration consistency
+ * - copy configuration pointer
+ * @param config pointer to configuration
+ * @return 0:on success, -1:on error
+ */
 ADDAPI int ADDCALL module_init(configuration *config);
+
+/**
+ * De-initialize module
+ * - close ( if yet-open ) device
+ * - free internal data structures
+ * @return 0:success -1:error
+ */
 ADDAPI int ADDCALL module_end();
+
+/**
+ * Open device, set speed an protocol. store handler
+ * @return 0:success -1:error
+ */
 ADDAPI int ADDCALL module_open();
+
+/**
+ * Close device
+ * Make it still available, but unable for I/O operations
+ * @return 0:success -1:error
+ */
 ADDAPI int ADDCALL module_close();
+
+/**
+ * Perform blocking-read ( or timeout after x seconds )
+ * @param buffer pointer to buffer for data received. On read timeout should contain "" ( empty string )
+ * @param length length of receiving buffer
+ * @return length of received data, 0 on timeout or -1 on error
+ */
 ADDAPI int ADDCALL module_read(char *buffer,size_t length);
+
+/**
+ * Send data from application to module in CommAPI format
+ * @param buffer data to send
+ * @param length  length of data
+ * @return 0:message sent to chronometer -1:error
+ */
 ADDAPI int ADDCALL module_write(char *buffer,size_t length);
+
+/**
+ * Retrieve last error message string
+ * @return pointer to last error. program won't free() received pointer
+ */
+ADDAPI char * ADDCALL module_error();
 
 #ifdef __cplusplus
 } // __cplusplus defined.

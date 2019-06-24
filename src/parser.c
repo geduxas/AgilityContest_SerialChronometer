@@ -34,6 +34,8 @@ command_t command_list[32]= {
         { 17, "config", "List configuration parameters",   "" },
         { 18, "status", "Show Fault/Refusal/Elim state",   "" },
         { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
         { -1, NULL,     "",                                "" }
 };
 

@@ -79,6 +79,8 @@ static func entries[32]= {
         NULL,            // { 17, "config", "List configuration parameters",   "" },
         NULL,            // { 18, "status", "Show Fault/Refusal/Elim state",   "" },
         ajax_mgr_dorsal,   // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        NULL,            // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,            // { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }
 };
 

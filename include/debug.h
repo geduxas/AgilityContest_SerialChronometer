@@ -27,7 +27,7 @@
 #define DBG_PANIC 1
 #define DBG_ALERT 2
 #define DBG_ERROR 3
-#define DBG_WARN 4
+#define DBG_NOTICE 4
 #define DBG_INFO 5
 #define DBG_DEBUG 6
 #define DBG_TRACE 7

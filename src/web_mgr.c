@@ -59,6 +59,9 @@ static int web_mgr_server(configuration * config, int slot, char **tokens, int n
 static int web_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
 }
+static int web_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
 static func entries[32]= {
         web_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
         web_mgr_int,    // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
@@ -80,6 +83,8 @@ static func entries[32]= {
         NULL,            // { 17, "config", "List configuration parameters",   "" },
         NULL,            // { 18, "status", "Show faults/refusal/elim info",   "" },
         web_mgr_dorsal,    // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        web_mgr_clock,   // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,           // { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }
 };
 

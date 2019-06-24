@@ -84,6 +84,10 @@ static int serial_mgr_exit(configuration * config, int slot, char **tokens, int 
 static int serial_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
     return serial_write(config,tokens[1],NULL,NULL );
 }
+static int serial_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==2) return serial_write(config,tokens[1], "",NULL); // default use internal clock time
+    return serial_write(config,tokens[1],tokens[2],NULL );
+}
 
 static func entries[32]= {
         serial_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
@@ -105,7 +109,9 @@ static func entries[32]= {
         NULL,              // { 16, "ports",  "Show available serial ports",     "" },
         NULL,              // { 17, "config", "List configuration parameters",   "" },
         NULL,              // { 18, "status", "Show faults/refusal/elim info",   "" },
-        serial_mgr_dorsal,   // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        serial_mgr_dorsal, // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        serial_mgr_clock,  // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,              // { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL               // { -1, NULL,     "",                                "" }
 };
 
