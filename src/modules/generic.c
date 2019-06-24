@@ -1,19 +1,21 @@
 //
 // Created by jantonio on 20/06/19.
 //
-
+#include <stdio.h>
 #include "modules.h"
 #include "sc_config.h"
 #include "debug.h"
+
+static char error_str[1024];
 
 static configuration *config;
 /* Declare our Add function using the above definitions. */
 int ADDCALL module_init(configuration *cfg){
     config=cfg;
-
     enum sp_return ret=sp_get_port_by_name(config->comm_port,&config->serial_port);
     if (ret!= SP_OK) {
-        debug(DBG_ERROR,"Cannot locate serial port '%s'",config->comm_port);
+        snprintf(error_str,1024,"Cannot locate serial port '%s'",config->comm_port);
+        debug(DBG_ERROR,error_str);
         return -1;
     }
     return 0;
@@ -30,7 +32,8 @@ int ADDCALL module_open(){
     if (config->serial_port) {
         enum sp_return ret = sp_open(config->serial_port,SP_MODE_READ_WRITE);
         if (ret != SP_OK) {
-            debug(DBG_ERROR,"Cannot open serial port %s",config->comm_port);
+            snprintf("Cannot open serial port %s",config->comm_port)
+            debug(DBG_ERROR,error_str);
             return -1;
         }
     }
@@ -53,4 +56,8 @@ int ADDCALL module_read(char *buffer,size_t length){
 int ADDCALL module_write(char *buffer,size_t length){
     enum sp_return ret=sp_nonblocking_write(config->serial_port,buffer,length);
     return ret;
+}
+
+char * ADDCALL module_error() {
+    return error_str;
 }

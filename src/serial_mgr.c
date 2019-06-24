@@ -123,6 +123,7 @@ void *serial_manager_thread(void *arg){
     int (*module_close)() = NULL;
     int (*module_read)(char *buffer,size_t length) = NULL;
     int (*module_write)(char *buffer,size_t length) = NULL;
+    char *(*module_error)() = NULL;
 
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
@@ -161,8 +162,9 @@ void *serial_manager_thread(void *arg){
     module_close=dlsym(library,"module_close");
     module_read=dlsym(library,"module_read");
     module_write=dlsym(library,"module_write");
-    if (!module_init || !module_end || !module_open || !module_close || !module_read || !module_write) {
-        debug(DBG_ERROR,"SerialMgr: dlsymbol(s) mismatch on module %s",config->module);
+    module_error=dlsym(library,"module_error");
+    if (!module_init || !module_end || !module_open || !module_close || !module_read || !module_write || !module_error) {
+        debug(DBG_ERROR,"SerialMgr: missing symbol() in module %s",config->module);
         dlclose(library);
         config->comm_port=NULL;
         slot->index=-1;

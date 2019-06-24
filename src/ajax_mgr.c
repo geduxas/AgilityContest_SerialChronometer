@@ -78,11 +78,30 @@ static func entries[32]= {
         NULL,            // { 16, "ports",  "Show available serial ports",     "" },
         NULL,            // { 17, "config", "List configuration parameters",   "" },
         NULL,            // { 18, "status", "Show Fault/Refusal/Elim state",   "" },
-        ajax_mgr_dorsal,   // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        ajax_mgr_dorsal, // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         NULL,            // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,            // { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }
 };
+
+static void find_server() {
+    // obtenemos las interfaces "localhost" y de red con dirección IPv4
+    // en cada interfaz iteramos
+    // si es localhost, solo se itera la 127.0.0.1
+    // PENDING. esta funcion implica implementar "ifconfig", lo cual es demasiado lio para una primera version
+}
+
+int connect_server () {
+    return 0;
+}
+
+int wait_for_event() {
+    return 0;
+}
+
+int parse_event(int evtnum) {
+    return 0;
+}
 
 void *ajax_manager_thread(void *arg){
     int slotIndex= * ((int *)arg);
@@ -104,11 +123,30 @@ void *ajax_manager_thread(void *arg){
         debug(DBG_INFO,"Trying to locate AgilityContest server IP address");
     }
 
+    if (connect_server<0) {
+        debug(DBG_ERROR,"Cannot connect AgilityContest server at '%s'",config->ajax_server);
+        return NULL;
+    }
     // mark thread alive before entering loop
     slot->index=slotIndex;
     int res=0;
     while(res>=0) {
-        sleep(1);
+        res=wait_for_event();
+        if (res<0) {
+            debug(DBG_NOTICE,"WaitForEvent failed. retrying");
+            res=0;
+            // fallback in next "if"
+        }
+        if (res==0) {
+            debug(DBG_NOTICE,"No events. wait and retry");
+            sleep(5);
+            continue;
+        } else {
+            for (int n=0;n<res;n++) {
+                res=parse_event(n);
+            }
+        }
+        // finally check for exit request
         if (slot->index<0) {
             debug(DBG_TRACE,"Ajax thread: 'exit' command invoked");
             res=-1;
