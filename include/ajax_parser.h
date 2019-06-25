@@ -16,9 +16,17 @@
 /**
  * parse a selectring request and extract session for choosen ring
  * @param config configuration parameters
- * @param jsonstr string to parse
+ * @param json_str string to parse
+ * @param json_len string length
  */
 EXTERN int parse_select(configuration *config, char *json_str,size_t json_len);
 
+/**
+ * parse a connect request and extract last init eventID and timestamp for choosen ring
+ * @param config configuration parameters
+ * @param json_str string to parse
+ * @param json_len string length
+ */
+EXTERN int parse_connect(configuration *config, char *json_str,size_t json_len);
 #undef EXTERN
 #endif //SERIALCHRONOMETER_AJAX_PARSER_H

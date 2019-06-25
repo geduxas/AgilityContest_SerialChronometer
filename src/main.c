@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <ctype.h>
 #ifdef __WIN32__
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -59,7 +60,7 @@ static int usage() {
     fprintf(stderr,"AgilityContest  interface:\n");
     fprintf(stderr,"\t -s ipaddr  || --server=ip_address  Location (IP) of AgilityContest server.\n");
     fprintf(stderr,"                                      Values: \"none\":disable - \"find\":search - Default: \"localhost\"\n");
-    fprintf(stderr,"\t -n name    || --client_name=name   chrono name sent to AgilityContest. Defaults to module name\n");
+    fprintf(stderr,"\t -n name    || --client_name=name   chrono name sent to AgilityContest. Defaults to 'module_name@ring'\n");
     fprintf(stderr,"\t -r ring    || --ring=ring_number   Tell server which ring to attach chrono. Default \"1\"\n");
     fprintf(stderr,"Debug options:\n");
     fprintf(stderr,"\t -D level   || --debuglog=level     Set debug/logging level 0:none thru 8:all. Defaults to 3:error\n");
@@ -141,6 +142,8 @@ int main (int argc, char *argv[]) {
         debug(DBG_ALERT,"Cannot create log file. Using stderr");
     }
 
+    // fix client name to replace non alphanum chars to '_'
+    for (char *p=config->client_name; *p; p++) if (!isalnum(*p) || !isascii(*p) ) *p='_';
     print_configuration(config);
 
     // if opmode==enumerate, do nothing but search and print available serial ports

@@ -40,9 +40,10 @@
 
 */
 #define URL_BUFFSIZE 2018
+// PENDING rework to be retrieved from configuration
+#define BASE_URL "agility"
 
-/* manual states that curl handler is not re-entrant, so create/destroy handler on every putEvent() */
-static CURL *curl; // used in select/connect/getEvents
+static char SessionName[1024]; // // source:ringsessid:view:mode:sessionaname
 
 // listado de sesiones disponibles
 // https://{ajax_server}/{baseurl}/ajax/database/sessionFunctions.php
@@ -145,6 +146,13 @@ static void find_server() {
     // PENDING. esta funcion implica implementar "ifconfig", lo cual es demasiado lio para una primera version
 }
 
+static char * getSessionName(configuration *config, int sessionID) {
+    static char *name=NULL;
+    if (!name) name =calloc(1024,sizeof(char));
+    snprintf(name,1024,"chrono:%d:0:0:%s",sessionID,config->client_name);
+    return name;
+}
+
 /****************** guarrerias usadas para almacenar la respuesta de curl en un string */
 struct string {
     char *ptr;
@@ -184,11 +192,11 @@ static size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
  */
 static int connect_server (configuration *config) {
 
+    CURL *curl=curl_easy_init();
     struct string s;
     init_string(&s);
 
-    char *baseurl="agility"; // PENDING define in configuration
-    snprintf(sc_selecturl,URL_BUFFSIZE,"https://%s/%s/ajax/database/sessionFunctions.php?Operation=selectring",config->ajax_server,baseurl);
+    snprintf(sc_selecturl,URL_BUFFSIZE,"https://%s/%s/ajax/database/sessionFunctions.php?Operation=selectring",config->ajax_server,BASE_URL);
     debug(DBG_TRACE,"Connecting server at '%s'",config->ajax_server);
     curl_easy_setopt(curl, CURLOPT_URL, sc_selecturl);
     /* example.com is redirected, so we tell libcurl to follow redirection */
@@ -204,10 +212,10 @@ static int connect_server (configuration *config) {
     int res = curl_easy_perform(curl);
     /* Check for errors */
     if(res != CURLE_OK) {
-        debug(DBG_ERROR, "curl_easy_perform() failed: %s", curl_easy_strerror(res));
+        debug(DBG_ERROR, "curl_easy_perform(select) failed: %s", curl_easy_strerror(res));
         return -1;
     }
-    debug(DBG_DEBUG,"Curl call returns: \n%s",s.ptr);
+    debug(DBG_DEBUG,"SelectRing() returns: \n%s",s.ptr);
 
     // now, get sessionID for current ring from json response
     int sessid= parse_select(config,s.ptr,s.len);
@@ -217,10 +225,56 @@ static int connect_server (configuration *config) {
     }
     /* always cleanup */
     curl_easy_cleanup(curl);
-    return 0;
+    return sessid;
 }
 
-static int wait_for_event() {
+// conectarse a una sesion
+// https://{ajax_server}/{baseurl}/ajax/database/eventFunctions.php
+//      ?Operation=connect&Session={ID}&SessionName={name}
+static int open_session(configuration *config,int sessionid) {
+
+    CURL *curl=curl_easy_init();
+    struct string s;
+    init_string(&s);
+
+    char *baseurl="agility"; // PENDING define in configuration
+    snprintf(sc_connecturl,
+            URL_BUFFSIZE,
+            "https://%s/%s/ajax/database/eventFunctions.php?Operation=connect&Session=%d&SessionName=%s",
+            config->ajax_server,BASE_URL,sessionid,getSessionName(config,sessionid));
+    debug(DBG_TRACE,"ConnectSession: %s",sc_connecturl);
+    curl_easy_setopt(curl, CURLOPT_URL, sc_connecturl);
+    /* example.com is redirected, so we tell libcurl to follow redirection */
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+
+    /* Perform the request, res will get the return code */
+    int res = curl_easy_perform(curl);
+    /* Check for errors */
+    if(res != CURLE_OK) {
+        debug(DBG_ERROR, "curl_easy_perform(connect) failed: %s", curl_easy_strerror(res));
+        return -1;
+    }
+    debug(DBG_DEBUG,"ConnectSession returns: \n%s",s.ptr);
+
+    // now, get sessionID for current ring from json response
+    int sessid= parse_connect(config,s.ptr,s.len);
+    if (sessid<0) {
+        debug(DBG_NOTICE, "There are no init event for session %s", config->ring);
+        debug(DBG_NOTICE, "Retrying in 5econds");
+        return -1;
+    }
+    /* always cleanup */
+    curl_easy_cleanup(curl);
+    return sessid;
+}
+
+static int wait_for_events() {
     return 0;
 }
 
@@ -243,6 +297,7 @@ static int put_event(configuration *config, char *type, char *value) {
 }
 
 void *ajax_manager_thread(void *arg){
+    int sessionID=0;
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
@@ -262,22 +317,24 @@ void *ajax_manager_thread(void *arg){
         debug(DBG_INFO,"Trying to locate AgilityContest server IP address");
     }
 
-    // initialize curl
-    curl = curl_easy_init();
-    if(!curl) {
-        debug(DBG_ERROR,"Cannot initialize curl subsystem");
-        return NULL;
+    // retrieve session ID
+    sessionID=connect_server(config);
+    if (sessionID<0) {
+        debug(DBG_ERROR,"Cannot retrieve session id for ring %d on server %s",config->ring,config->ajax_server);
     }
-    if (connect_server(config)<0) {
-        debug(DBG_ERROR,"Cannot connect AgilityContest server at '%s'",config->ajax_server);
+
+    // call ajax connect session
+    int res=open_session(config,sessionID);
+    if (res<0) {
+        debug(DBG_ERROR,"Cannot open session %d at server '%s'",config->ajax_server);
         return NULL;
     }
 
     // mark thread alive before entering loop
     slot->index=slotIndex;
-    int res=0;
+    res=0;
     while(res>=0) {
-        res=wait_for_event();
+        res=wait_for_events();
         if (res<0) {
             debug(DBG_NOTICE,"WaitForEvent failed. retrying");
             res=0;
@@ -300,7 +357,6 @@ void *ajax_manager_thread(void *arg){
     }
     debug(DBG_TRACE,"Exiting ajax thread");
 
-    curl_easy_cleanup(curl);
     slot->index=-1;
     return &slot->index;
 }
