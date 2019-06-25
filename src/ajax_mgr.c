@@ -5,12 +5,65 @@
 #define AGILITYCONTEST_SERIALCHRONOMETER_AJAX_MGR_C
 #include <stdio.h>
 #include <unistd.h>
+#include <curl/curl.h>
 
 #include "../include/main.h"
 #include "../include/debug.h"
 #include "../include/ajax_mgr.h"
 #include "../include/sc_config.h"
 #include "../include/sc_sockets.h"
+
+/*
+# Request to server are made by sending json request to:
+#
+# http://ip.addr.of.server/base_url/ajax/database/eventFunctions.php
+#
+# Parameter list
+# Operation=chronoEvent
+# Type= one of : ( from ajax/database/Eventos.php )
+#               'crono_start'   // Arranque Crono electronico
+#               'crono_int'     // Tiempo intermedio Crono electronico
+#               'crono_stop'    // Parada Crono electronico
+#               'crono_rec'     // comienzo/fin del reconocimiento de pista
+#               'crono_dat'     // Envio de Falta/Rehuse/Eliminado desde el crono (need extra data. see below)
+#               'crono_reset'   // puesta a cero del contador
+#               'crono_error'   // sensor error detected (Value=1) or solved (Value=0)
+#               'crono_ready'   // chrono synced and listening (Value=1) or disabled (Value=0)
+# Session= Session ID to join. You should select it from retrieved list of available session ID's from server
+# Source= Chronometer ID. should be in form "chrono_sessid"
+# Value= start/stop/int: time of event detection
+#                 error: 1: detected 0:solved
+# Timestamp= time mark of last event parsed as received from server
+# example:
+# ?Operation=chronoEvent&Type=crono_rec&TimeStamp=150936&Source=chrono_2&Session=2&Value=150936
+
+*/
+#define URL_BUFFSIZE 2018
+
+/* manual states that curl handler is not re-entrant, so create/destroy handler on every putEvent() */
+static CURL *curl; // used in select/connect/getEvents
+
+// listado de sesiones disponibles
+// https://{ajax_server}/{baseurl}/ajax/database/sessionFunctions.php
+//      ?Operation=selectring
+static char sc_selecturl[URL_BUFFSIZE];
+
+// conectarse a una sesion
+// https://{ajax_server}/{baseurl}/ajax/database/eventFunctions.php
+//      ?Operation=connect&Session={ID}&SessionName={name}
+static char sc_connecturl[URL_BUFFSIZE];
+
+// obtener eventos
+// https://{ajax_server}/{baseurl}/ajax/database/eventFunctions.php
+//      ?Operation=getEvents&Session={ID}&TimeStamp={timestamp}&SessionName={name}
+static char sc_geteventurl[URL_BUFFSIZE];
+
+// enviar evento
+// https://{ajax_server}/{baseurl}/ajax/database/eventFunctions.php
+//      ?Operation={chrono_op}&Session={ID}&TimeStamp={timestamp}&source={source}&SessionName={name}&Value={value}
+//      &Faltas={f}&Tocados={t}&Rehuses={r}&Eliminado={e}&NoPresentado={n}
+// PENDING: study if need additional info ( prueba,jornada, manga, perro, etc... ) o se obtiene de la sesion
+static char sc_puteventurl[URL_BUFFSIZE];
 
 static int ajax_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
@@ -91,15 +144,92 @@ static void find_server() {
     // PENDING. esta funcion implica implementar "ifconfig", lo cual es demasiado lio para una primera version
 }
 
-int connect_server () {
+/****************** guarrerias usadas para almacenar la respuesta de curl en un string */
+struct string {
+    char *ptr;
+    size_t len;
+};
+
+static void init_string(struct string *s) {
+    s->len = 0;
+    s->ptr = malloc(s->len+1);
+    if (s->ptr == NULL) {
+        fprintf(stderr, "malloc() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    s->ptr[0] = '\0';
+}
+
+static size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
+{
+    size_t new_len = s->len + size*nmemb;
+    s->ptr = realloc(s->ptr, new_len+1);
+    if (s->ptr == NULL) {
+        fprintf(stderr, "realloc() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(s->ptr+s->len, ptr, size*nmemb);
+    s->ptr[new_len] = '\0';
+    s->len = new_len;
+
+    return size*nmemb;
+}
+
+/**
+ * config->ajax_server contains url
+// https://{ajax_server}/{baseurl}/ajax/database/sessionFunctions.php
+//      ?Operation=selectring
+ * @return
+ */
+static int connect_server (configuration *config) {
+
+    struct string s;
+    init_string(&s);
+
+    char *baseurl="agility"; // PENDING define in configuration
+    snprintf(sc_selecturl,URL_BUFFSIZE,"https://%s/%s/ajax/database/sessionFunctions.php?Operation=selectring",config->ajax_server,baseurl);
+    debug(DBG_TRACE,"Connecting server at '%s'",config->ajax_server);
+    curl_easy_setopt(curl, CURLOPT_URL, sc_selecturl);
+    /* example.com is redirected, so we tell libcurl to follow redirection */
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+
+    /* Perform the request, res will get the return code */
+    int res = curl_easy_perform(curl);
+    /* Check for errors */
+    if(res != CURLE_OK) {
+        debug(DBG_ERROR, "curl_easy_perform() failed: %s", curl_easy_strerror(res));
+        return -1;
+    }
+    debug(DBG_INFO,"Curl call returns: \n%s",s.ptr);
+
+    /* always cleanup */
+    curl_easy_cleanup(curl);
     return 0;
 }
 
-int wait_for_event() {
+static int wait_for_event() {
     return 0;
 }
 
-int parse_event(int evtnum) {
+static int parse_event(int evtnum) {
+    return 0;
+}
+
+static int put_event(configuration *config, char *type, char *value) {
+    /* doc states that curl_easy_perform is not re-entrant, so create a curl handler on every send event */
+    CURL *sc = curl_easy_init();
+    if(!sc) {
+        debug(DBG_ERROR,"Cannot initialize curl handler to put event");
+        return -1;
+    }
+
+
+    /* cleanup */
+    curl_easy_cleanup(sc);
     return 0;
 }
 
@@ -123,10 +253,17 @@ void *ajax_manager_thread(void *arg){
         debug(DBG_INFO,"Trying to locate AgilityContest server IP address");
     }
 
-    if (connect_server<0) {
+    // initialize curl
+    curl = curl_easy_init();
+    if(!curl) {
+        debug(DBG_ERROR,"Cannot initialize curl subsystem");
+        return NULL;
+    }
+    if (connect_server(config)<0) {
         debug(DBG_ERROR,"Cannot connect AgilityContest server at '%s'",config->ajax_server);
         return NULL;
     }
+
     // mark thread alive before entering loop
     slot->index=slotIndex;
     int res=0;
@@ -153,6 +290,8 @@ void *ajax_manager_thread(void *arg){
         }
     }
     debug(DBG_TRACE,"Exiting ajax thread");
+
+    curl_easy_cleanup(curl);
     slot->index=-1;
     return &slot->index;
 }

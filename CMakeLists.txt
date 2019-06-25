@@ -29,12 +29,22 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
     find_package(dlfcn-win32 REQUIRED)
     set(CMAKE_SYSTEM_NAME Windows)
     set(CMAKE_CROSSCOMPILING 1)
-    target_link_options(SerialChronometer PRIVATE -static)
-    target_compile_options(SerialChronometer PRIVATE -static)
+    set( CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-static" )
+    set( CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-static")
+    # target_link_options(SerialChronometer PRIVATE -static)
+    target_compile_options(SerialChronometer PRIVATE -static -DCURL_STATICLIB)
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
             dlfcn-win32::dl
+            curl
+            idn2
+            ssh2
+            ssl
+            crypto
+            gdi32
+            z
+            wldap32
             setupapi
             ws2_32
             pthread
@@ -51,6 +61,7 @@ else()
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/linux/libserialport.a
             pthread
+            curl
             dl
     )
     target_link_libraries(

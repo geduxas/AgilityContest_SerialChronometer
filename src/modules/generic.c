@@ -2,6 +2,8 @@
 // Created by jantonio on 20/06/19.
 //
 #include <stdio.h>
+#include <string.h>
+
 #include "modules.h"
 #include "sc_config.h"
 #include "debug.h"
@@ -14,7 +16,7 @@ int ADDCALL module_init(configuration *cfg){
     config=cfg;
     enum sp_return ret=sp_get_port_by_name(config->comm_port,&config->serial_port);
     if (ret!= SP_OK) {
-        snprintf(error_str,1024,"Cannot locate serial port '%s'",config->comm_port);
+        snprintf(error_str,strlen(error_str),"Cannot locate serial port '%s'",config->comm_port);
         debug(DBG_ERROR,error_str);
         return -1;
     }
@@ -32,7 +34,7 @@ int ADDCALL module_open(){
     if (config->serial_port) {
         enum sp_return ret = sp_open(config->serial_port,SP_MODE_READ_WRITE);
         if (ret != SP_OK) {
-            snprintf("Cannot open serial port %s",config->comm_port)
+            snprintf(error_str,strlen(error_str),"Cannot open serial port %s",config->comm_port);
             debug(DBG_ERROR,error_str);
             return -1;
         }
