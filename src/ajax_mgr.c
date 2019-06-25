@@ -10,6 +10,7 @@
 #include "../include/main.h"
 #include "../include/debug.h"
 #include "../include/ajax_mgr.h"
+#include "../include/ajax_parser.h"
 #include "../include/sc_config.h"
 #include "../include/sc_sockets.h"
 
@@ -194,6 +195,8 @@ static int connect_server (configuration *config) {
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
 
@@ -204,8 +207,14 @@ static int connect_server (configuration *config) {
         debug(DBG_ERROR, "curl_easy_perform() failed: %s", curl_easy_strerror(res));
         return -1;
     }
-    debug(DBG_INFO,"Curl call returns: \n%s",s.ptr);
+    debug(DBG_DEBUG,"Curl call returns: \n%s",s.ptr);
 
+    // now, get sessionID for current ring from json response
+    int sessid= parse_select(config,s.ptr,s.len);
+    if (sessid<0) {
+        debug(DBG_ERROR, "There is no session ID for ring: %s", config->ring);
+        return -1;
+    }
     /* always cleanup */
     curl_easy_cleanup(curl);
     return 0;

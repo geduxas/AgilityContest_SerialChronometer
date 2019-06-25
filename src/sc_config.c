@@ -116,8 +116,9 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Debug",  "loglevel"))    config->loglevel = atoi(value) % 9; /* 0..8 */
     else if (MATCH("Debug",  "opmode"))      config->opmode = atoi(value) %  0x1F; /* bitmask */
     else if (MATCH("Debug",  "console"))     config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
-    else if (MATCH("Server", "ajax_server"))   config->ajax_server = strdup(value); /* def "localhost" */
+    else if (MATCH("Server", "ajax_server")) config->ajax_server = strdup(value); /* def "localhost" */
     else if (MATCH("Server", "name"))       config->client_name = strdup(value); /* def serial module name */
+    else if (MATCH("Server", "ring"))       config->ring = atoi(value); /* default 1 */
     else if (MATCH("Serial", "module"))     config->module = strdup(value);
     else if (MATCH("Serial", "comm_port"))   config->comm_port = strdup(value);
     else if (MATCH("Serial", "baud_rate"))   config->baud_rate = atoi(value); /* def 9600 */
