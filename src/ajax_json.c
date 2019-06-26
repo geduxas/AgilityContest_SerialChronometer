@@ -113,5 +113,65 @@ int parse_connect(configuration *config, char *json_str,size_t json_len) {
  * @return list of serial chrono API commands to be executed. null on error, or empty array if no data to send
  */
 char **parse_events(configuration *config, char *json_str,size_t json_len, int *evtid, time_t *timestamp) {
-    return NULL;
+    // dirty way to count tokens:
+    size_t count=0;
+    for (char *pt=json_str;*pt;pt++) if (*pt==':') count++;
+    json_t mem[count];
+    // get root token
+    json_t const* root = json_create( json_str, mem, sizeof mem / sizeof *mem );
+    if ( !root ) {
+        debug(DBG_ERROR,"Error parse_events::json_create()");
+        return NULL;
+    }
+
+    // check for session active
+    char const* total=json_getPropertyValue( root, "total" );
+    if (! total) {
+        debug(DBG_ERROR,"parse_events::getPropertyValue(total): invalid received json response %s",json_str);
+        return NULL;
+    }
+    if (strcmp("0",total)==0) {
+        debug(DBG_NOTICE,"parse_events::getPropertyValue('total'): no events received since last call on ring %d",config->ring);
+    }
+    // get rows array
+    json_t const* rows = json_getProperty( root, "rows" );
+    if ( !rows || JSON_ARRAY != json_getType( rows ) ) {
+        debug(DBG_ERROR,"parse_events::json_getProperty('rows')");
+        return NULL;
+    }
+    // creamos un array de comandos de longitud total+1
+    char **result= calloc(1+atoi(total),sizeof(char*));
+    if (!result) {
+        debug(DBG_ERROR,"parse_events::calloc(numrows): cannot allocate space for response");
+        return NULL;
+    }
+    // obtenemos el ultimo event id por el metodo guarro de recorrer la lista y quedarnos con el ultimo evento
+    json_t const* event;
+    for( event = json_getChild( rows ); event != 0; event = json_getSibling( event ) ) {
+        if ( JSON_OBJ == json_getType( event ) ) {
+            // cogemos el event ID
+            char const* eventstr = json_getPropertyValue( event, "ID" );
+            debug(DBG_INFO,"Parsing event id %s on ring %d",eventstr,config->ring);
+            // analizamos ahora el campo "Data" para extraer Type,Value y TimeStamp
+            char const *data = json_getPropertyValue( event, "Data" );
+            if ( !data ) {
+                debug(DBG_ERROR,"parse_events::json_getPropertyValue('event/Data') cannot get Data for eventid: %s",eventstr);
+                return NULL;
+            }
+            // field "Data is a string representing a json object. So need to re-parse
+            json_t jdata[128];
+            json_t const* rdata = json_create( data, jdata, sizeof mem / sizeof *jdata );
+            char const* typestr = json_getPropertyValue( rdata, "Type" );
+            char const* tsstr = json_getPropertyValue( rdata, "TimeStamp" );
+            char const* valuestr = json_getPropertyValue( rdata, "Value" );
+            debug(DBG_INFO,"Event ID:%s TimeStamp:%s Type:%s Value:%s",eventstr,tsstr,typestr,valuestr);
+
+            // PENDING: do something usefull with data: fill result array with serial API commands
+
+            // assign values
+            *timestamp=atoll(tsstr);
+            *evtid=atoi(eventstr);
+        }
+    }
+    return result;
 }

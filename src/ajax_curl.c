@@ -221,17 +221,17 @@ char ** ajax_wait_for_events(configuration *config, int sessionid, int *evtid, t
         debug(DBG_ERROR, "curl_easy_perform(getEvents) failed: %s", curl_easy_strerror(res));
         return NULL;
     }
-    debug(DBG_TRACE,"getEvents() returns: \n%s",s.ptr);
+    // debug(DBG_TRACE,"getEvents() returns: \n%s",s.ptr);
 
     // retrieve number of events
     char ** cmds = parse_events(config,s.ptr,s.len,evtid,timestamp);
-    if (cmds<0) {
+    if (cmds==NULL) {
         debug(DBG_ERROR, "parseEvents() on ring %d failed", config->ring);
     }
     /* always cleanup */
     curl_easy_cleanup(curl);
     end_string(&s);
-    debug(DBG_DEBUG,"Last event id for ring %d is %d",config->ring,evtid);
+    debug(DBG_DEBUG,"Last event id/timestamp for ring %d is %d/%lu",config->ring,*evtid,*timestamp);
     return cmds;
 }
 
