@@ -251,7 +251,7 @@ void *console_manager_thread(void *arg){
             debug(DBG_ERROR,"Console recv(): error waiting response: %s",strerror(errno));
             continue;
         } else {
-            response[res]='\0';
+            response[res]='\0'; // put eol at end of recvd string
             fprintf(stdout,"Console command response: %s\n",response);
         }
         // check for end requested
@@ -260,6 +260,8 @@ void *console_manager_thread(void *arg){
             res=-1;
         }
     }
+    free(request);
+    free(response);
     debug(DBG_TRACE,"Exiting console thread");
     slot->index=-1;
     return &slot->index;
