@@ -31,7 +31,7 @@ static char *debug_levels[] = {
         "PANIC   ",
         "ALERT   ",
         "ERROR   ",
-        "WARN    ",
+        "NOTICE  ",
         "INFO    ",
         "DEBUG   ",
         "TRACE   ",
@@ -46,9 +46,10 @@ int debug_init(configuration *config) {
     } else {
         set_debug_level(config->loglevel);
         debug_stderr = (config->verbose==0)? NULL:stderr;
-        if(debug_file) fclose(debug_file);
+
+        if(debug_file) fclose(debug_file); // close file before repoen. may fail
         debug_file=fopen(config->logfile,"w");
-        if (!debug_file) {
+        if (!debug_file) { // on error opening logfile, use stderr
             debug_stderr=stderr;
             return -1;
         }

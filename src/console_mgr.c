@@ -60,12 +60,11 @@ static int console_mgr_ok(configuration * config, int slot, char **tokens, int n
     fprintf(stderr,"Sensor(s) OK . Chronometer is ready");
     return 0;
 }
-/* msg <message> [duration] */
+/* source msg <duration> <message> <...> */
 static int console_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
-    char *msg =(ntokens==3)?tokens[2]:"(empty)";
-    int duration = (ntokens==4)?atoi(tokens[3]):3;
-    debug(DBG_TRACE,"MSG: %s duration %d",msg,duration);
-    fprintf(stderr,"Received message %s",msg);
+    debug(DBG_TRACE,"MSG: %s duration %s",tokens[3],tokens[2]);
+    fprintf(stderr,"Received message:");
+    for (int n=3;n<ntokens;n++) fprintf(stderr," %s",tokens[n]);
     return 0;
 }
 static int console_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
@@ -180,7 +179,7 @@ static func entries[32]= {
         console_mgr_stop,   // { 2, "stop",    "End of course run",               "<miliseconds>"},
         console_mgr_fail,   // { 3, "fail",    "Sensor faillure detected",        ""},
         console_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
-        console_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+        console_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<seconds>:<message>"},
         console_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
         console_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
         console_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},

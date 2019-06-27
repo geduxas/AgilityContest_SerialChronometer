@@ -64,11 +64,11 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         time_t seconds= (startstr)?atoll(startstr):0L;
         snprintf(result,MSG_LEN,"WALK %lu\n",seconds);
     } else if ( strcmp(typestr,"crono_dat")==0) { // dog data FRE
-        char *flt=json_getPropertyValue( rdata, "Flt" );
-        char *toc=json_getPropertyValue( rdata, "Toc" );
-        char *reh=json_getPropertyValue( rdata, "Reh" );
-        char *eli=json_getPropertyValue( rdata, "Eli" );
-        char *npr=json_getPropertyValue( rdata, "NPr" );
+        char const *flt=json_getPropertyValue( rdata, "Flt" );
+        char const *toc=json_getPropertyValue( rdata, "Toc" );
+        char const *reh=json_getPropertyValue( rdata, "Reh" );
+        char const *eli=json_getPropertyValue( rdata, "Eli" );
+        char const *npr=json_getPropertyValue( rdata, "NPr" );
         int f=(strcmp(flt,"-1")==0)?config->status.faults:atoi(flt);
         int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
         int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
@@ -85,11 +85,11 @@ static char * process_eventData(configuration *config,char const * datastr, int 
     } else if ( strcmp(typestr,"llamada")==0) { // Call dog to enter in ring
         // no action
     } else if ( strcmp(typestr,"datos")==0) { // manual dog data
-        char *flt=json_getPropertyValue( rdata, "Flt" );
-        char *toc=json_getPropertyValue( rdata, "Toc" );
-        char *reh=json_getPropertyValue( rdata, "Reh" );
-        char *eli=json_getPropertyValue( rdata, "Eli" );
-        char *npr=json_getPropertyValue( rdata, "NPr" );
+        char const *flt=json_getPropertyValue( rdata, "Flt" );
+        char const *toc=json_getPropertyValue( rdata, "Toc" );
+        char const *reh=json_getPropertyValue( rdata, "Reh" );
+        char const *eli=json_getPropertyValue( rdata, "Eli" );
+        char const *npr=json_getPropertyValue( rdata, "NPr" );
         int f=(strcmp(flt,"-1")==0)?config->status.faults:atoi(flt);
         int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
         int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
@@ -104,15 +104,14 @@ static char * process_eventData(configuration *config,char const * datastr, int 
     } else if ( strcmp(typestr,"user")==0) { // user defined event
         // no action
     } else if ( strcmp(typestr,"command")==0) { // miscelaneous commands Value
-        // only allowed command is 7:msg
+        // only allowed command is Oper:7: Value: seconds:msg
         char const* operstr = json_getPropertyValue( rdata, "Oper" );
         if (strcmp("8",operstr)==0) {
-            // event api provides msg:duration. so need to reverse order
-            char *str = calloc(1+strlen(valuestr),sizeof(char));
-            memcpy(str,valuestr,strlen(valuestr));
-            char *sep = strrchr(str,':');
-            if (sep) *sep++='\0';
-            snprintf(result,MSG_LEN,"MSG %s:%s\n",(sep)?sep:"2",str);
+            char *secs=strdup(valuestr);
+            char *msg=strchr(secs,':');
+            if (msg) *msg++='\0';
+            snprintf(result,MSG_LEN,"MSG %s %s\n",secs,msg);
+            free(secs);
         }
     } else if ( strcmp(typestr,"camera")==0) { // switch camera sources for session
         // no action

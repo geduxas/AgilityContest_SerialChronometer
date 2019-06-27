@@ -29,7 +29,7 @@ configuration * default_options(configuration * config) {
     config->logfile = strdup("./serial_chrono.log");
 #endif
     config->loglevel = 3;
-    config->verbose = 1;
+    config->verbose = 0;
     config->ajax_server = strdup("localhost");
     config->web_port = 8080;
     config->comm_port = NULL; // must be declared on program invocation or ini file
@@ -119,6 +119,7 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Debug",  "loglevel"))    config->loglevel = atoi(value) % 9; /* 0..8 */
     else if (MATCH("Debug",  "opmode"))      config->opmode = atoi(value) %  0x1F; /* bitmask */
     else if (MATCH("Debug",  "console"))     config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
+    else if (MATCH("Debug",  "verbose"))     config->verbose = ((atoi(value)!=0)?1:0);
     else if (MATCH("Server", "ajax_server")) config->ajax_server = strdup(value); /* def "localhost" */
     else if (MATCH("Server", "client_name")) config->client_name = strdup(value); /* def serial module name */
     else if (MATCH("Server", "ring"))       config->ring = atoi(value); /* default 1 */
