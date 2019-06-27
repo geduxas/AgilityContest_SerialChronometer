@@ -24,7 +24,8 @@ typedef struct {
     int faults;
     int refusals;
     int eliminated;
-    int dorsal;
+    int numero;
+
 } sc_data_t;
 
 typedef struct {

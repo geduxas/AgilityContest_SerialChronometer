@@ -136,7 +136,7 @@ static int console_mgr_reset(configuration * config, int slot, char **tokens, in
     config->status.faults=0;
     config->status.refusals=0;
     config->status.eliminated=0;
-    // DO NOT reset "dorsal"
+    // DO NOT reset "numero" nor tanda related values
     debug(DBG_TRACE,"RESET");
     fprintf(stderr,"Received RESET\n");
     return 0;
@@ -165,17 +165,17 @@ static int console_mgr_config(configuration * config, int slot, char **tokens, i
 static int console_mgr_status(configuration * config, int slot, char **tokens, int ntokens) {
     return sc_print_status(config,ntokens,tokens);
 }
-static int console_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+static int console_mgr_numero(configuration * config, int slot, char **tokens, int ntokens) {
     if (ntokens==3) {
-        if (strcmp(tokens[2],"+")==0) config->status.dorsal++;
-        else if (strcmp(tokens[2],"-")==0) config->status.dorsal--;
-        else config->status.dorsal=atoi(tokens[2]);
+        if (strcmp(tokens[2],"+")==0) config->status.numero++;
+        else if (strcmp(tokens[2],"-")==0) config->status.numero--;
+        else config->status.numero=atoi(tokens[2]);
     } else {
-        config->status.dorsal++;
+        config->status.numero++;
     }
-    if (config->status.dorsal<0) config->status.dorsal=0;
-    debug(DBG_TRACE,"DORSAL: %d",config->status.dorsal);
-    fprintf(stderr,"Entering dog number: %d\n",config->status.dorsal);
+    if (config->status.numero<0) config->status.numero=0;
+    debug(DBG_TRACE,"Numero: %d",config->status.numero);
+    fprintf(stderr,"Entering dog number: %d\n",config->status.numero);
     return 0;
 }
 
@@ -188,7 +188,7 @@ static int console_mgr_debug(configuration * config, int slot, char **tokens, in
     if (ntokens==3) {
         set_debug_level(atoi(tokens[2]));
     }
-    debug(DBG_TRACE,"DEBUG: %d",config->status.dorsal);
+    debug(DBG_TRACE,"DEBUG: %d",config->status.numero);
     fprintf(stderr,"Debug level is: %d\n",get_debug_level());
     return 0;
 }
@@ -214,7 +214,7 @@ static func entries[32]= {
         console_mgr_ports,  // { 17, "ports",  "Show available serial ports",     "" },
         console_mgr_config, // { 18, "config", "List configuration parameters",   "" },
         console_mgr_status, // { 19, "status", "Show faults/refusal/elim info",   "" },
-        console_mgr_dorsal, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        console_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         console_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         console_mgr_debug,  // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL                // { -1, NULL,     "",                                "" }

@@ -84,7 +84,7 @@ static int serial_mgr_exit(configuration * config, int slot, char **tokens, int 
     debug(DBG_INFO,"Serial manager thread exit requested");
     return -1;
 }
-static int serial_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+static int serial_mgr_numero(configuration * config, int slot, char **tokens, int ntokens) {
     return serial_write(config,tokens[1],NULL,NULL );
 }
 static int serial_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
@@ -113,7 +113,7 @@ static func entries[32]= {
         NULL,              // { 17, "ports",  "Show available serial ports",     "" },
         NULL,              // { 18, "config", "List configuration parameters",   "" },
         NULL,              // { 19, "status", "Show faults/refusal/elim info",   "" },
-        serial_mgr_dorsal, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        serial_mgr_numero // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         serial_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,              // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL               // { -1, NULL,     "",                                "" }

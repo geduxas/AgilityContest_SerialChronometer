@@ -59,7 +59,7 @@ static int web_mgr_exit(configuration * config, int slot, char **tokens, int nto
 static int web_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
 }
-static int web_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+static int web_mgr_numero(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
 }
 static int web_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
@@ -86,7 +86,7 @@ static func entries[32]= {
         NULL,           // { 17, "ports",  "Show available serial ports",     "" },
         NULL,           // { 18, "config", "List configuration parameters",   "" },
         NULL,           // { 19, "status", "Show faults/refusal/elim info",   "" },
-        web_mgr_dorsal, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        web_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         web_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,           // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL            // { -1, NULL,     "",                                "" }

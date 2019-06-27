@@ -87,7 +87,7 @@ static int ajax_mgr_exit(configuration * config, int slot, char **tokens, int nt
 static int ajax_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
 }
-static int ajax_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+static int ajax_mgr_numero(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
 }
 static func entries[32]= {
@@ -111,7 +111,7 @@ static func entries[32]= {
         NULL,            // { 17, "ports",  "Show available serial ports",     "" },
         NULL,            // { 18, "config", "List configuration parameters",   "" },
         NULL,            // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
-        ajax_mgr_dorsal, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        ajax_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         NULL,            // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,            // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }
