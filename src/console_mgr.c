@@ -22,42 +22,43 @@ static int console_mgr_start(configuration * config, int slot, char **tokens, in
     if (ntokens==2)  config->status.timestamp=current_timestamp();
     else config->status.timestamp= strtoull(tokens[2],NULL,10);
     debug(DBG_TRACE,"START: timestamp:%llu\n",config->status.timestamp);
+    fprintf(stderr,"Received START\n");
     return 0;
 }
 static int console_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
     if (config->status.timestamp<0) {
         debug(DBG_NOTICE,"INT: chrono is not running");
-        fprintf(stderr,"Intermediate time: chrono is not running\n");
+        fprintf(stderr,"Received INT but chrono is not running\n");
         return -1;
     }
     long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
     float elapsed=(float)(end - config->status.timestamp)/1000.0f;
     debug(DBG_NOTICE,"INT: elapsed time:%f",elapsed);
-    fprintf(stderr,"Intermediate time: %f seconds",elapsed);
+    fprintf(stderr,"RECEIVED INT. Intermediate time: %f seconds\n",elapsed);
     return 0;
 }
 static int console_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
     if (config->status.timestamp<0) {
         debug(DBG_NOTICE,"STOP: chrono is not running");
-        fprintf(stderr,"Course time: chrono is not running\n");
+        fprintf(stderr,"Received STOP but chrono is not running\n");
         return -1;
     }
     long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
     float elapsed=(float)(end - config->status.timestamp)/1000.0f;
     debug(DBG_TRACE,"STOP: elapsed time:%f",elapsed);
-    fprintf(stderr,"Course time: %f seconds",elapsed);
+    fprintf(stderr,"Received STOP. Course time: %f seconds\n",elapsed);
     config->status.timestamp=-1;
     config->status.elapsed= elapsed;
     return 0;
 }
 static int console_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_TRACE,"sensor(s) FAIL");
-    fprintf(stderr,"Sensor(s) failure noticed");
+    fprintf(stderr,"Sensor(s) failure noticed\n");
     return 0;
 }
 static int console_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_TRACE,"chrono OK");
-    fprintf(stderr,"Sensor(s) OK . Chronometer is ready");
+    fprintf(stderr,"Sensor(s) OK . Chronometer is ready\n");
     return 0;
 }
 /* source msg <duration> <message> <...> */
@@ -65,12 +66,17 @@ static int console_mgr_msg(configuration * config, int slot, char **tokens, int 
     debug(DBG_TRACE,"MSG: %s duration %s",tokens[3],tokens[2]);
     fprintf(stderr,"Received message:");
     for (int n=3;n<ntokens;n++) fprintf(stderr," %s",tokens[n]);
+    fprintf(stderr,"\n");
     return 0;
 }
 static int console_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
+    debug(DBG_TRACE,"WALK %s seconds",tokens[2]);
+    fprintf(stderr,"%d minutes course walk\n",atoi(tokens[2])/60);
     return 0;
 }
 static int console_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
+    debug(DBG_TRACE,"DOWN %s seconds",tokens[2]);
+    fprintf(stderr,"%s seconds course run countdown\n",tokens[2]);
     return 0;
 }
 static int console_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
@@ -96,7 +102,7 @@ static int console_mgr_refusal(configuration * config, int slot, char **tokens, 
     }
     if (config->status.refusals<0) config->status.refusals=0;
     debug(DBG_TRACE,"REFUSAL: %d",config->status.refusals);
-    fprintf(stderr,"Refusal count is: %d",config->status.refusals);
+    fprintf(stderr,"Refusal count is: %d\n",config->status.refusals);
     return 0;
 }
 static int console_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
@@ -111,6 +117,20 @@ static int console_mgr_elim(configuration * config, int slot, char **tokens, int
     fprintf(stderr,"Eliminated status is: %d",config->status.eliminated);
     return 0;
 }
+static int console_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
+    char *str=strdup(tokens[2]);
+    char *pt=strchr(str,':');
+    *pt++='\0';
+    char *pt2=strchr(pt,':');
+    *pt2++='\0';
+    config->status.faults=atoi(str);
+    config->status.refusals=atoi(pt);
+    config->status.eliminated=(atoi(pt2)==0)?0:1;
+
+    debug(DBG_TRACE,"DATA: %s",tokens[2]);
+    fprintf(stderr,"Received DATA. F:%d R:%d E:%d\n",config->status.faults,config->status.refusals,config->status.eliminated);
+    return 0;
+}
 static int console_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
     config->status.timestamp=-1L;
     config->status.faults=0;
@@ -118,7 +138,7 @@ static int console_mgr_reset(configuration * config, int slot, char **tokens, in
     config->status.eliminated=0;
     // DO NOT reset "dorsal"
     debug(DBG_TRACE,"RESET");
-    fprintf(stderr,"Received RESET");
+    fprintf(stderr,"Received RESET\n");
     return 0;
 }
 static int console_mgr_help(configuration * config, int slot, char **tokens, int ntokens) {
@@ -155,7 +175,7 @@ static int console_mgr_dorsal(configuration * config, int slot, char **tokens, i
     }
     if (config->status.dorsal<0) config->status.dorsal=0;
     debug(DBG_TRACE,"DORSAL: %d",config->status.dorsal);
-    fprintf(stderr,"DORSAL number is: %d",config->status.dorsal);
+    fprintf(stderr,"Entering dog number: %d\n",config->status.dorsal);
     return 0;
 }
 
@@ -169,7 +189,7 @@ static int console_mgr_debug(configuration * config, int slot, char **tokens, in
         set_debug_level(atoi(tokens[2]));
     }
     debug(DBG_TRACE,"DEBUG: %d",config->status.dorsal);
-    fprintf(stderr,"Debug level is: %d",get_debug_level());
+    fprintf(stderr,"Debug level is: %d\n",get_debug_level());
     return 0;
 }
 
@@ -185,17 +205,18 @@ static func entries[32]= {
         console_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
         console_mgr_refusal,// { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
         console_mgr_elim,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
-        console_mgr_reset,  // { 11, "reset",  "Reset chronometer and countdown", "" },
-        console_mgr_help,   // { 12, "help",   "show command list",               "[cmd]"},
-        console_mgr_version,// { 13, "version","Show software version",           "" },
-        console_mgr_exit,   // { 14, "exit",   "End program (from console)",      "" },
-        console_mgr_server, // { 15, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
-        console_mgr_ports,  // { 16, "ports",  "Show available serial ports",     "" },
-        console_mgr_config, // { 17, "config", "List configuration parameters",   "" },
-        console_mgr_status, // { 18, "status", "Show faults/refusal/elim info",   "" },
-        console_mgr_dorsal,   // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        console_mgr_clock,  // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        console_mgr_debug,  //{ 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        console_mgr_data,   // { 11, "data",   "Set faults/refusal/disq info",    "<flt>:<reh>:<disq>"},
+        console_mgr_reset,  // { 12, "reset",  "Reset chronometer and countdown", "" },
+        console_mgr_help,   // { 13, "help",   "show command list",               "[cmd]"},
+        console_mgr_version,// { 14, "version","Show software version",           "" },
+        console_mgr_exit,   // { 15, "exit",   "End program (from console)",      "" },
+        console_mgr_server, // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        console_mgr_ports,  // { 17, "ports",  "Show available serial ports",     "" },
+        console_mgr_config, // { 18, "config", "List configuration parameters",   "" },
+        console_mgr_status, // { 19, "status", "Show faults/refusal/elim info",   "" },
+        console_mgr_dorsal, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        console_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        console_mgr_debug,  // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL                // { -1, NULL,     "",                                "" }
 };
 
@@ -250,8 +271,8 @@ void *console_manager_thread(void *arg){
             debug(DBG_ERROR,"Console recv(): error waiting response: %s",strerror(errno));
             continue;
         } else {
-            response[res]='\0'; // put eol at end of recvd string
-            fprintf(stdout,"Console command response: %s\n",response);
+            response[res] = '\0'; // put eol at end of recvd string
+            debug(DBG_NOTICE, "%s main loop command response: %s\n", SC_CONSOLE, response);
         }
         // check for end requested
         if (slot->index<0) {

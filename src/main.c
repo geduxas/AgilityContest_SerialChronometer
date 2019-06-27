@@ -218,16 +218,24 @@ int main (int argc, char *argv[]) {
         char **tokens=explode(buffer,' ',&ntokens);
         if (!tokens) {
             debug(DBG_ERROR,"Cannot tokenize received data '%s'",buffer);
-            continue;
+            response="ERROR";
+            goto free_and_response;
         }
         if (ntokens<2) {
             debug(DBG_ERROR,"Invalid message length received data '%s'",buffer);
+            response="ERROR";
+            goto free_and_response;
+        }
+        if (strcmp(tokens[1],"")==0) { // empty command
+            debug(DBG_INFO,"received empty command from '%s'",tokens[0]);
+            response="OK"; // empty command is ok ( i.e: just return on console
+            goto free_and_response;
         }
         // search command from list to retrieve index
-        int index=0;
-        for (;command_list[index].index>=0;index++) {
+        int index=-1;
+        for (int n=0;command_list[n].index>=0;n++) {
             // debug(DBG_TRACE,"Check command '%s' against index %d -> '%s'",tokens[1],index,command_list[index].cmd);
-            if (stripos(command_list[index].cmd,tokens[1])>=0) break;
+            if (stripos(command_list[n].cmd,tokens[1])>=0) { index=n; break; }
         }
         if (command_list[index].index<0) {
             debug(DBG_ERROR,"Unknown command received: '%s' from %s\n", buffer,tokens[0]);

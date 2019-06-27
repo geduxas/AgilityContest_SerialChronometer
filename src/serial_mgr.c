@@ -74,6 +74,9 @@ static int serial_mgr_elim(configuration * config, int slot, char **tokens, int 
     if (ntokens==2) return serial_write(config,tokens[1], "+",NULL); // default: eliminate
     return serial_write(config,tokens[1],tokens[2],NULL );
 }
+static int serial_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
+    return serial_write(config,tokens[1],tokens[2],NULL );
+}
 static int serial_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
     return serial_write(config,tokens[1],NULL,NULL );
 }
@@ -101,17 +104,18 @@ static func entries[32]= {
         serial_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
         serial_mgr_refusal,// { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
         serial_mgr_elim,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
-        serial_mgr_reset,  // { 11, "reset",  "Reset chronometer and countdown", "" },
-        NULL,              // { 12, "help",   "show command list",               "[cmd]"},
-        NULL,              // { 13, "version","Show software version",           "" },
-        serial_mgr_exit,   // { 14, "exit",   "End program (from console)",      "" },
-        NULL,              // { 15, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
-        NULL,              // { 16, "ports",  "Show available serial ports",     "" },
-        NULL,              // { 17, "config", "List configuration parameters",   "" },
-        NULL,              // { 18, "status", "Show faults/refusal/elim info",   "" },
-        serial_mgr_dorsal, // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        serial_mgr_clock,  // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        NULL,              // { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        serial_mgr_data,   // { 11, "data",   "Set faults/refusal/disq info",    "<flt>:<reh>:<disq>"},
+        serial_mgr_reset,  // { 12, "reset",  "Reset chronometer and countdown", "" },
+        NULL,              // { 13, "help",   "show command list",               "[cmd]"},
+        NULL,              // { 14, "version","Show software version",           "" },
+        serial_mgr_exit,   // { 15, "exit",   "End program (from console)",      "" },
+        NULL,              // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        NULL,              // { 17, "ports",  "Show available serial ports",     "" },
+        NULL,              // { 18, "config", "List configuration parameters",   "" },
+        NULL,              // { 19, "status", "Show faults/refusal/elim info",   "" },
+        serial_mgr_dorsal, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        serial_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,              // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL               // { -1, NULL,     "",                                "" }
 };
 

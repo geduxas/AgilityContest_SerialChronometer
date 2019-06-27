@@ -83,7 +83,8 @@ static char * process_eventData(configuration *config,char const * datastr, int 
     } else if ( strcmp(typestr,"crono_ready")==0) { // sensor recovery
         snprintf(result,MSG_LEN,"OK\n");
     } else if ( strcmp(typestr,"llamada")==0) { // Call dog to enter in ring
-        // no action
+        char const *num=json_getPropertyValue( rdata, "Numero" );
+        snprintf(result,MSG_LEN,"TURN %s\n",num);
     } else if ( strcmp(typestr,"datos")==0) { // manual dog data
         char const *flt=json_getPropertyValue( rdata, "Flt" );
         char const *toc=json_getPropertyValue( rdata, "Toc" );

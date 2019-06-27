@@ -74,6 +74,9 @@ static int ajax_mgr_refusal(configuration * config, int slot, char **tokens, int
 static int ajax_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
 }
+static int ajax_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
+    return 0;
+}
 static int ajax_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
 }
@@ -99,17 +102,18 @@ static func entries[32]= {
         ajax_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
         ajax_mgr_refusal,// { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
         ajax_mgr_elim,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
-        ajax_mgr_reset,  // { 11, "reset",  "Reset chronometer and countdown", "" },
-        NULL,            // { 12, "help",   "show command list",               "[cmd]"},
-        NULL,            // { 13, "version","Show software version",           "" },
-        ajax_mgr_exit,   // { 14, "exit",   "End program (from console)",      "" },
-        ajax_mgr_server, // { 15, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
-        NULL,            // { 16, "ports",  "Show available serial ports",     "" },
-        NULL,            // { 17, "config", "List configuration parameters",   "" },
-        NULL,            // { 18, "status", "Show Fault/Refusal/Elim state",   "" },
-        ajax_mgr_dorsal, // { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        NULL,            // { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        NULL,            // { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        ajax_mgr_data,   // { 11, "data",   "Set faults/refusal/disq info",    "<flt>:<reh>:<disq>"},
+        ajax_mgr_reset,  // { 12, "reset",  "Reset chronometer and countdown", "" },
+        NULL,            // { 13, "help",   "show command list",               "[cmd]"},
+        NULL,            // { 14, "version","Show software version",           "" },
+        ajax_mgr_exit,   // { 15, "exit",   "End program (from console)",      "" },
+        ajax_mgr_server, // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        NULL,            // { 17, "ports",  "Show available serial ports",     "" },
+        NULL,            // { 18, "config", "List configuration parameters",   "" },
+        NULL,            // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
+        ajax_mgr_dorsal, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        NULL,            // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,            // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }
 };
 
@@ -197,7 +201,7 @@ void *ajax_manager_thread(void *arg){
                 continue;
             } else {
                 response[res]='\0'; // put eol at end of recvd string
-                fprintf(stdout,"Console command response: %s\n",response);
+                debug(DBG_NOTICE,"%s main loop command response: %s\n",SC_AJAXSRV,response);
             }
             // free message
             free(*n);

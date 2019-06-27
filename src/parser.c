@@ -24,18 +24,19 @@ command_t command_list[32]= {
         { 7, "down",    "Start 15 seconds countdown",      ""},
         { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num {+}>"},
         { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num {+}>"},
-        { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
-        { 11, "reset",  "Reset chronometer and countdown", "" },
-        { 12, "help",   "show command list",               "[cmd]"},
-        { 13, "version","Show software version",           "" },
-        { 14, "exit",   "End program (from console)",      "" },
-        { 15, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
-        { 16, "ports",  "Show available serial ports",     "" },
-        { 17, "config", "List configuration parameters",   "" },
-        { 18, "status", "Show Fault/Refusal/Elim state",   "" },
-        { 19, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        { 20, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        { 21, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        { 10, "elim",    "Mark elimination [+-]",          "[ + | - ] {+}"},
+        { 11, "data",    "Set course fault/ref/disq info", "<faults>:<refulsals>:<disq>"},
+        { 12, "reset",  "Reset chronometer and countdown", "" },
+        { 13, "help",   "show command list",               "[cmd]"},
+        { 14, "version","Show software version",           "" },
+        { 15, "exit",   "End program (from console)",      "" },
+        { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        { 17, "ports",  "Show available serial ports",     "" },
+        { 18, "config", "List configuration parameters",   "" },
+        { 19, "status", "Show Fault/Refusal/Elim state",   "" },
+        { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         { -1, NULL,     "",                                "" }
 };
 
@@ -45,7 +46,7 @@ int sc_help( configuration *config, int argc, char *argv[]) {
         char *cmd=argv[2]; // get command to obtaing help from
         for ( int n=0; command_list[n].cmd;n++) {
             if (strcmp(command_list[n].cmd,cmd)==0) {
-                fprintf(stderr,"\t%s: %s\n",command_list[n].cmd, command_list[n].desc);
+                fprintf(stderr,"Descr.:\t%s \nUsage:\t%s %s\n",command_list[n].desc,command_list[n].cmd,command_list[n].args);
                 return 0;
             }
         }
