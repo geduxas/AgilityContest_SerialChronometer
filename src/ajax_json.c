@@ -6,10 +6,127 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "main.h"
 #include "sc_config.h"
 #include "debug.h"
 #include "ajax_json.h"
 #include "tiny-json.h"
+
+#define MSG_LEN 256
+
+static time_t start_time; // used to handle start/stop events
+
+static char * process_eventData(configuration *config,char const * datastr, int *eventID, time_t *timestamp) {
+    char *data=calloc(strlen(datastr),sizeof(char));
+    memcpy(data,datastr,strlen(datastr));
+    json_t jdata[128];
+    json_t const* rdata = json_create( data, jdata, sizeof jdata / sizeof *jdata );
+    char const* typestr = json_getPropertyValue( rdata, "Type" );
+    char const* tsstr = json_getPropertyValue( rdata, "TimeStamp" );
+    if (tsstr) *timestamp=atoll(tsstr);
+    char const* valuestr = json_getPropertyValue( rdata, "Value" );
+    char const* startstr = json_getPropertyValue( rdata, "start" ); // lowercase
+    debug(DBG_INFO,"Event ID:%sType:%s Value:%s",datastr,typestr,valuestr);
+    // PENDING: do something usefull with data: fill result array with serial API commands
+    char *result=calloc(MSG_LEN,sizeof(char));
+    if (!result) {
+        debug(DBG_ERROR,"process_eventData::calloc() cannot reserve space for SerialAPI command");
+        return NULL;
+    }
+    if ( strcmp(typestr,"null")==0) { // null event
+        // no action
+    } else if ( strcmp(typestr,"init")==0) { // connect to session
+        // no action. ( PENDING: what about sending reset? )
+    } else if ( strcmp(typestr,"login")==0) { // user login
+        // no action
+    } else if ( strcmp(typestr,"open")==0) { // tanda selection
+        // no action
+    } else if ( strcmp(typestr,"close")==0) { // tanda exit
+        // no action
+    } else if ( strcmp(typestr,"salida")==0) { // 15 seconds countdown
+        snprintf(result,MSG_LEN,"DOWN 15\n");
+    } else if ( strcmp(typestr,"start")==0) { // manual chrono start. Value= timestamp
+        start_time=atoll(valuestr);
+        snprintf(result,MSG_LEN,"START 0\n");
+    } else if ( strcmp(typestr,"stop")==0) { // manual chrono stop. Value=timestamp
+        time_t stop_time=atoll(valuestr);
+        snprintf(result,MSG_LEN,"STOP %lu\n",stop_time-start_time);
+    } else if ( strcmp(typestr,"crono_start")==0) { // electronic chrono start Value=timestamp
+        start_time=atoll(valuestr);
+        snprintf(result,MSG_LEN,"START 0\n");
+    } else if ( strcmp(typestr,"crono_int")==0) { // electronic chrono intermediate time Value=timestamp
+        time_t int_time=atoll(valuestr);
+        snprintf(result,MSG_LEN,"INT %lu\n",int_time-start_time);
+    } else if ( strcmp(typestr,"crono_stop")==0) {  // electronic chrono start Value=timestamp
+        time_t stop_time=atoll(valuestr);
+        snprintf(result,MSG_LEN,"STOP %lu\n",stop_time-start_time);
+    } else if ( strcmp(typestr,"crono_rec")==0) { // course walk. start=seconds
+        time_t seconds= (startstr)?atoll(startstr):0L;
+        snprintf(result,MSG_LEN,"WALK %lu\n",seconds);
+    } else if ( strcmp(typestr,"crono_dat")==0) { // dog data FRE
+        char *flt=json_getPropertyValue( rdata, "Flt" );
+        char *toc=json_getPropertyValue( rdata, "Toc" );
+        char *reh=json_getPropertyValue( rdata, "Reh" );
+        char *eli=json_getPropertyValue( rdata, "Eli" );
+        char *npr=json_getPropertyValue( rdata, "NPr" );
+        int f=(strcmp(flt,"-1")==0)?config->status.faults:atoi(flt);
+        int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
+        int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
+        int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
+        snprintf(result,MSG_LEN,"DATA %d:%d:%d\n",f+t,r,e);
+    } else if ( strcmp(typestr,"crono_restart")==0) { // swicth crono from manual to electronic
+        // no action: previous manual start remains active
+    } else if ( strcmp(typestr,"crono_reset")==0) { // reset crono and dog data
+        snprintf(result,MSG_LEN,"RESET\n");
+    } else if ( strcmp(typestr,"crono_error")==0) { // sensor error
+        snprintf(result,MSG_LEN,"FAIL\n");
+    } else if ( strcmp(typestr,"crono_ready")==0) { // sensor recovery
+        snprintf(result,MSG_LEN,"OK\n");
+    } else if ( strcmp(typestr,"llamada")==0) { // Call dog to enter in ring
+        // no action
+    } else if ( strcmp(typestr,"datos")==0) { // manual dog data
+        char *flt=json_getPropertyValue( rdata, "Flt" );
+        char *toc=json_getPropertyValue( rdata, "Toc" );
+        char *reh=json_getPropertyValue( rdata, "Reh" );
+        char *eli=json_getPropertyValue( rdata, "Eli" );
+        char *npr=json_getPropertyValue( rdata, "NPr" );
+        int f=(strcmp(flt,"-1")==0)?config->status.faults:atoi(flt);
+        int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
+        int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
+        int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
+        snprintf(result,MSG_LEN,"DATA %d:%d:%d\n",f+t,r,e);
+    } else if ( strcmp(typestr,"aceptar")==0) { // validate dog data
+        // no action
+    } else if ( strcmp(typestr,"cancelar")==0) { // reset dog data
+        // no action
+    } else if ( strcmp(typestr,"info")==0) { // informational event. no action required
+        debug(DBG_NOTICE,"ajaxmgr: received event info '%s'",valuestr);
+    } else if ( strcmp(typestr,"user")==0) { // user defined event
+        // no action
+    } else if ( strcmp(typestr,"command")==0) { // miscelaneous commands Value
+        // only allowed command is 7:msg
+        char const* operstr = json_getPropertyValue( rdata, "Oper" );
+        if (strcmp("8",operstr)==0) {
+            // event api provides msg:duration. so need to reverse order
+            char *str = calloc(1+strlen(valuestr),sizeof(char));
+            memcpy(str,valuestr,strlen(valuestr));
+            char *sep = strrchr(str,':');
+            if (sep) *sep++='\0';
+            snprintf(result,MSG_LEN,"MSG %s:%s\n",(sep)?sep:"2",str);
+        }
+    } else if ( strcmp(typestr,"camera")==0) { // switch camera sources for session
+        // no action
+    } else if ( strcmp(typestr,"reconfig")==0) { // server reconfiguration
+        // no action
+    } else { // unknown event. notify and continue
+        debug(DBG_ERROR,"ajaxmgr: received unknown event type '%s'",typestr);
+    }
+    if (strcmp(result,"")==0) {
+        free(result);
+        result=NULL;
+    }
+    return result;
+}
 
 /**
  * parse a selectring request and extract session for choosen ring
@@ -98,7 +215,6 @@ int parse_connect(configuration *config, char *json_str,size_t json_len) {
     return eventID;
 }
 
-
 /**
  * parse getEvents request
  *
@@ -145,32 +261,24 @@ char **parse_events(configuration *config, char *json_str,size_t json_len, int *
         debug(DBG_ERROR,"parse_events::calloc(numrows): cannot allocate space for response");
         return NULL;
     }
+    int evt_count=0;
     // obtenemos el ultimo event id por el metodo guarro de recorrer la lista y quedarnos con el ultimo evento
-    json_t const* event;
-    for( event = json_getChild( rows ); event != 0; event = json_getSibling( event ) ) {
+    for( json_t const *event = json_getChild( rows ); event != 0; event = json_getSibling( event ) ) {
         if ( JSON_OBJ == json_getType( event ) ) {
             // cogemos el event ID
             char const* eventstr = json_getPropertyValue( event, "ID" );
             debug(DBG_INFO,"Parsing event id %s on ring %d",eventstr,config->ring);
+            *evtid=atoi(eventstr);
             // analizamos ahora el campo "Data" para extraer Type,Value y TimeStamp
             char const *data = json_getPropertyValue( event, "Data" );
             if ( !data ) {
+                // PENDING: study if exists events with no Data and how to handle them
                 debug(DBG_ERROR,"parse_events::json_getPropertyValue('event/Data') cannot get Data for eventid: %s",eventstr);
-                return NULL;
+                continue;
             }
-            // field "Data is a string representing a json object. So need to re-parse
-            json_t jdata[128];
-            json_t const* rdata = json_create( data, jdata, sizeof mem / sizeof *jdata );
-            char const* typestr = json_getPropertyValue( rdata, "Type" );
-            char const* tsstr = json_getPropertyValue( rdata, "TimeStamp" );
-            char const* valuestr = json_getPropertyValue( rdata, "Value" );
-            debug(DBG_INFO,"Event ID:%s TimeStamp:%s Type:%s Value:%s",eventstr,tsstr,typestr,valuestr);
-
-            // PENDING: do something usefull with data: fill result array with serial API commands
-
-            // assign values
-            *timestamp=atoll(tsstr);
-            *evtid=atoi(eventstr);
+            // field "Data is a string representing a json object
+            result[evt_count]=process_eventData(config,data,evtid,timestamp);
+            if (result[evt_count]!=NULL) evt_count++;
         }
     }
     return result;

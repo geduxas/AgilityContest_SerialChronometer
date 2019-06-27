@@ -199,7 +199,11 @@ void *ajax_manager_thread(void *arg){
                 response[res]='\0'; // put eol at end of recvd string
                 fprintf(stdout,"Console command response: %s\n",response);
             }
+            // free message
+            free(*n);
         }
+        // free command list
+        free(cmds);
     }
     // mark thread inactive and exit
     free(request);
