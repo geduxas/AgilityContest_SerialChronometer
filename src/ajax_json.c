@@ -35,35 +35,74 @@ static char * process_eventData(configuration *config,char const * datastr, int 
     }
     if ( strcmp(typestr,"null")==0) { // null event
         // no action
-    } else if ( strcmp(typestr,"init")==0) { // connect to session
-        // no action. ( PENDING: what about sending reset? )
-    } else if ( strcmp(typestr,"login")==0) { // user login
+    }
+    else if ( strcmp(typestr,"init")==0) { // connect to session
+        // guardamos en informacion de estado datos de prueba y jornada
+        char const *pru=json_getPropertyValue( rdata, "Pru" );
+        char const *jor=json_getPropertyValue( rdata, "Jor" );
+        config->status.prueba=atoi(pru);
+        config->status.jornada=atoi(jor);
+        // other status values set to zero
+        config->status.manga=0;
+        config->status.tanda=0;
+        config->status.numero=0;
+        config->status.dorsal=0;
+        config->status.perro=0;
+        config->status.equipo=0;
+        config->status.faults=0;
+        config->status.refusals=0;
+        config->status.eliminated=0;
+        config->status.notpresent=0;
+    }
+    else if ( strcmp(typestr,"login")==0) { // user login
         // no action
-    } else if ( strcmp(typestr,"open")==0) { // tanda selection
+    }
+    else if ( strcmp(typestr,"open")==0) { // tanda selection
+        // guardamos en informacion de estado datos de manga y tanda
+        char const *mng=json_getPropertyValue( rdata, "Mng" );
+        char const *tnd=json_getPropertyValue( rdata, "Tnd" );
+        config->status.manga=atoi(mng);
+        config->status.tanda=atoi(tnd);
+        config->status.numero=0;
+        config->status.dorsal=0;
+        config->status.perro=0;
+        config->status.equipo=0;
+        config->status.faults=0;
+        config->status.refusals=0;
+        config->status.eliminated=0;
+        config->status.notpresent=0;
+    }
+    else if ( strcmp(typestr,"close")==0) { // tanda exit
         // no action
-    } else if ( strcmp(typestr,"close")==0) { // tanda exit
-        // no action
-    } else if ( strcmp(typestr,"salida")==0) { // 15 seconds countdown
+    }
+    else if ( strcmp(typestr,"salida")==0) { // 15 seconds countdown
         snprintf(result,MSG_LEN,"DOWN 15\n");
-    } else if ( strcmp(typestr,"start")==0) { // manual chrono start. Value= timestamp
+    }
+    else if ( strcmp(typestr,"start")==0) { // manual chrono start. Value= timestamp
         start_time=atoll(valuestr);
         snprintf(result,MSG_LEN,"START 0\n");
-    } else if ( strcmp(typestr,"stop")==0) { // manual chrono stop. Value=timestamp
+    }
+    else if ( strcmp(typestr,"stop")==0) { // manual chrono stop. Value=timestamp
         time_t stop_time=atoll(valuestr);
         snprintf(result,MSG_LEN,"STOP %lu\n",stop_time-start_time);
-    } else if ( strcmp(typestr,"crono_start")==0) { // electronic chrono start Value=timestamp
+    }
+    else if ( strcmp(typestr,"crono_start")==0) { // electronic chrono start Value=timestamp
         start_time=atoll(valuestr);
         snprintf(result,MSG_LEN,"START 0\n");
-    } else if ( strcmp(typestr,"crono_int")==0) { // electronic chrono intermediate time Value=timestamp
+    }
+    else if ( strcmp(typestr,"crono_int")==0) { // electronic chrono intermediate time Value=timestamp
         time_t int_time=atoll(valuestr);
         snprintf(result,MSG_LEN,"INT %lu\n",int_time-start_time);
-    } else if ( strcmp(typestr,"crono_stop")==0) {  // electronic chrono start Value=timestamp
+    }
+    else if ( strcmp(typestr,"crono_stop")==0) {  // electronic chrono start Value=timestamp
         time_t stop_time=atoll(valuestr);
         snprintf(result,MSG_LEN,"STOP %lu\n",stop_time-start_time);
-    } else if ( strcmp(typestr,"crono_rec")==0) { // course walk. start=seconds
+    }
+    else if ( strcmp(typestr,"crono_rec")==0) { // course walk. start=seconds
         time_t seconds= (startstr)?atoll(startstr):0L;
         snprintf(result,MSG_LEN,"WALK %lu\n",seconds);
-    } else if ( strcmp(typestr,"crono_dat")==0) { // dog data FRE
+    }
+    else if ( strcmp(typestr,"crono_dat")==0) { // dog data FRE
         char const *flt=json_getPropertyValue( rdata, "Flt" );
         char const *toc=json_getPropertyValue( rdata, "Toc" );
         char const *reh=json_getPropertyValue( rdata, "Reh" );
@@ -73,19 +112,47 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
         int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
         int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
+        int n=(strcmp(npr,"-1")==0)?config->status.notpresent:atoi(npr); // not present is not used but required
         snprintf(result,MSG_LEN,"DATA %d:%d:%d\n",f+t,r,e);
-    } else if ( strcmp(typestr,"crono_restart")==0) { // swicth crono from manual to electronic
+    }
+    else if ( strcmp(typestr,"crono_restart")==0) { // swicth crono from manual to electronic
         // no action: previous manual start remains active
-    } else if ( strcmp(typestr,"crono_reset")==0) { // reset crono and dog data
+    }
+    else if ( strcmp(typestr,"crono_reset")==0) { // reset crono and dog data
         snprintf(result,MSG_LEN,"RESET\n");
-    } else if ( strcmp(typestr,"crono_error")==0) { // sensor error
+    }
+    else if ( strcmp(typestr,"crono_error")==0) { // sensor error
         snprintf(result,MSG_LEN,"FAIL\n");
-    } else if ( strcmp(typestr,"crono_ready")==0) { // sensor recovery
+    }
+    else if ( strcmp(typestr,"crono_ready")==0) { // sensor recovery
         snprintf(result,MSG_LEN,"OK\n");
-    } else if ( strcmp(typestr,"llamada")==0) { // Call dog to enter in ring
+    }
+    else if ( strcmp(typestr,"llamada")==0) { // Call dog to enter in ring
+        // actualizamos informacion de estado con datos del perro
+        char const *drs=json_getPropertyValue( rdata, "Drs" );
+        char const *dog=json_getPropertyValue( rdata, "Dog" );
+        char const *eqp=json_getPropertyValue( rdata, "Eqp" );
+        config->status.dorsal=atoi(drs);
+        config->status.perro=atoi(dog);
+        config->status.equipo=atoi(eqp);
+
+        // guardamos información recibida sobre estado del perro
+        char const *flt=json_getPropertyValue( rdata, "Flt" );
+        char const *toc=json_getPropertyValue( rdata, "Toc" );
+        char const *reh=json_getPropertyValue( rdata, "Reh" );
+        char const *eli=json_getPropertyValue( rdata, "Eli" );
+        char const *npr=json_getPropertyValue( rdata, "NPr" );
+        if (strcmp("-1",flt)!=0) config->status.faults=atoi(flt);
+        if (strcmp("-1",toc)!=0) config->status.faults += atoi(toc);
+        if (strcmp("-1",reh)!=0) config->status.refusals=atoi(reh);
+        if (strcmp("-1",eli)!=0) config->status.eliminated=atoi(eli);
+        if (strcmp("-1",flt)!=0) config->status.notpresent=atoi(npr);
+
+        // generamos SerialAPI msg con el numero de turno del perro
         char const *num=json_getPropertyValue( rdata, "Numero" );
         snprintf(result,MSG_LEN,"TURN %s\n",num);
-    } else if ( strcmp(typestr,"datos")==0) { // manual dog data
+    }
+    else if ( strcmp(typestr,"datos")==0) { // manual dog data
         char const *flt=json_getPropertyValue( rdata, "Flt" );
         char const *toc=json_getPropertyValue( rdata, "Toc" );
         char const *reh=json_getPropertyValue( rdata, "Reh" );
@@ -95,16 +162,22 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
         int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
         int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
+        int n=(strcmp(npr,"-1")==0)?config->status.notpresent:atoi(npr); // not present is not used in this program
         snprintf(result,MSG_LEN,"DATA %d:%d:%d\n",f+t,r,e);
-    } else if ( strcmp(typestr,"aceptar")==0) { // validate dog data
+    }
+    else if ( strcmp(typestr,"aceptar")==0) { // validate dog data
         // no action
-    } else if ( strcmp(typestr,"cancelar")==0) { // reset dog data
+    }
+    else if ( strcmp(typestr,"cancelar")==0) { // reset dog data
         // no action
-    } else if ( strcmp(typestr,"info")==0) { // informational event. no action required
+    }
+    else if ( strcmp(typestr,"info")==0) { // informational event. no action required
         debug(DBG_NOTICE,"ajaxmgr: received event info '%s'",valuestr);
-    } else if ( strcmp(typestr,"user")==0) { // user defined event
+    }
+    else if ( strcmp(typestr,"user")==0) { // user defined event
         // no action
-    } else if ( strcmp(typestr,"command")==0) { // miscelaneous commands Value
+    }
+    else if ( strcmp(typestr,"command")==0) { // miscelaneous commands Value
         // only allowed command is Oper:7: Value: seconds:msg
         char const* operstr = json_getPropertyValue( rdata, "Oper" );
         if (strcmp("8",operstr)==0) {
@@ -114,11 +187,14 @@ static char * process_eventData(configuration *config,char const * datastr, int 
             snprintf(result,MSG_LEN,"MSG %s %s\n",secs,msg);
             free(secs);
         }
-    } else if ( strcmp(typestr,"camera")==0) { // switch camera sources for session
+    }
+    else if ( strcmp(typestr,"camera")==0) { // switch camera sources for session
         // no action
-    } else if ( strcmp(typestr,"reconfig")==0) { // server reconfiguration
+    }
+    else if ( strcmp(typestr,"reconfig")==0) { // server reconfiguration
         // no action
-    } else { // unknown event. notify and continue
+    }
+    else { // unknown event. notify and continue
         debug(DBG_ERROR,"ajaxmgr: received unknown event type '%s'",typestr);
     }
     if (strcmp(result,"")==0) {

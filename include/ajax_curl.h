@@ -18,7 +18,7 @@ EXTERN void ajax_find_server(configuration *config);
 EXTERN int ajax_connect_server (configuration *config);
 EXTERN int ajax_open_session(configuration *config,int sessionid);
 EXTERN char ** ajax_wait_for_events(configuration *config, int sessionid, int *evtid, time_t *timestamp);
-EXTERN int ajax_put_event(configuration *config, char *type, char *value);
+EXTERN int ajax_put_event(configuration *config, int sessionid, char *type, char *value);
 
 #undef EXTERN
 #endif //SERIALCHRONOMETER_AJAX_CURL_H

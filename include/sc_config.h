@@ -19,13 +19,27 @@
 #define OPMODE_FIND 16 /* find serial ports and exit */
 
 typedef struct {
+    // valores de estado utlizados en las operaciones del crono
     long long timestamp;
     float elapsed; // last stored elapsed time
     int faults;
     int refusals;
     int eliminated;
+    int notpresent;
+    // los siguientes valores, salvo "numero" no se procesan. solo se almacenan para poder
+    // reutilizarlos en las llamadas a putEvent()
+    //
+    // valores asociados al evento "llamada"
     int numero;
-
+    int dorsal;
+    int perro;
+    int equipo;
+    // valores asociados al evento "init"
+    int prueba;
+    int jornada;
+    // valores asociados al evento "open"
+    int manga;
+    int tanda;
 } sc_data_t;
 
 typedef struct {

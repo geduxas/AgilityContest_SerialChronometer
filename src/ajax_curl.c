@@ -241,14 +241,37 @@ char ** ajax_wait_for_events(configuration *config, int sessionid, int *evtid, t
 //      &Faltas={f}&Tocados={t}&Rehuses={r}&Eliminado={e}&NoPresentado={n}
 // PENDING: study if need additional info ( prueba,jornada, manga, perro, etc... ) o se obtiene de la sesion
 // static char sc_puteventurl[URL_BUFFSIZE];
-int ajax_put_event(configuration *config, char *type, char *value) {
+int ajax_put_event(configuration *config, int sessionid, char *type, char *value) {
     /* doc states that curl_easy_perform is not re-entrant, so create a curl handler on every send event */
     CURL *sc = curl_easy_init();
     if(!sc) {
         debug(DBG_ERROR,"Cannot initialize curl handler to put event");
         return -1;
     }
-
+    size_t len=0;
+    len=sprintf(sc_puteventurl,"https://%s/%s/ajax/database/eventFunctions.php?Operation=chronoEvent",config->ajax_server,BASE_URL);
+    len+=sprintf(sc_puteventurl+len,"&Session=%d",sessionid);
+    len+=sprintf(sc_puteventurl+len,"&Source=chrono");
+    len+=sprintf(sc_puteventurl+len,"&Name=%s",config->client_name);
+    len+=sprintf(sc_puteventurl+len,"&SessionName=%s",getSessionName(config,sessionid));
+    len+=sprintf(sc_puteventurl+len,"&Type=%s",type);
+    len+=sprintf(sc_puteventurl+len,"&Type=%s",type);
+    len+=sprintf(sc_puteventurl+len,"&TimeStamp=%d",sessionid);
+    len+=sprintf(sc_puteventurl+len,"&Value=%s",value);
+    len+=sprintf(sc_puteventurl+len,"&Prueba=%d",config->status.prueba);
+    len+=sprintf(sc_puteventurl+len,"&Jornada=%d",config->status.jornada);
+    len+=sprintf(sc_puteventurl+len,"&Manga=%d",config->status.manga);
+    len+=sprintf(sc_puteventurl+len,"&Tanda=%d",config->status.tanda);
+    len+=sprintf(sc_puteventurl+len,"&Numero=%d",config->status.numero);
+    len+=sprintf(sc_puteventurl+len,"&Dorsal=%d",config->status.dorsal);
+    len+=sprintf(sc_puteventurl+len,"&Perro=%d",config->status.perro);
+    len+=sprintf(sc_puteventurl+len,"&Equipo=%d",config->status.equipo);
+    len+=sprintf(sc_puteventurl+len,"&Faltas=%d",config->status.faults);
+    len+=sprintf(sc_puteventurl+len,"&Tocados=0"); // internally added to faults
+    len+=sprintf(sc_puteventurl+len,"&Rehuses=%d",config->status.refusals);
+    len+=sprintf(sc_puteventurl+len,"&Eliminado=%d",config->status.eliminated);
+    len+=sprintf(sc_puteventurl+len,"&Nopresentado=%d",config->status.notpresent);
+    // need to add Oper, start & stop ???
 
     /* cleanup */
     curl_easy_cleanup(sc);
