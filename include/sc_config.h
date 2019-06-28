@@ -10,6 +10,7 @@
 #define PATHSEP '/'
 #endif
 
+#include <stdlib.h>
 #include "libserialport.h"
 
 #define OPMODE_NORMAL 1
@@ -43,6 +44,16 @@ typedef struct {
     int manga;
     int tanda;
 } sc_data_t;
+
+/* datos extra necesitados en (alguna) llamada
+ * putEvent */
+typedef struct {
+    char *oper;
+    char *value;
+    time_t start;
+    time_t stop;
+    time_t tiempo;
+} sc_extra_data_t;
 
 typedef struct {
     char *osname; //windows/Linux/Darwin

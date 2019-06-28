@@ -70,13 +70,15 @@ static int console_mgr_msg(configuration * config, int slot, char **tokens, int 
     return 0;
 }
 static int console_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_TRACE,"WALK %s seconds",tokens[2]);
-    fprintf(stderr,"%d minutes course walk\n",atoi(tokens[2])/60);
+    int minutes=(ntokens==3)?atoi(tokens[2])/60:7;
+    debug(DBG_TRACE,"WALK %d minutes",minutes);
+    fprintf(stderr,"%d minutes course walk\n",minutes);
     return 0;
 }
 static int console_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_TRACE,"DOWN %s seconds",tokens[2]);
-    fprintf(stderr,"%s seconds course run countdown\n",tokens[2]);
+    int seconds=(ntokens==3)?atoi(tokens[2]):15;
+    debug(DBG_TRACE,"Countdown %d seconds",seconds);
+    fprintf(stderr,"%d seconds course run countdown\n",seconds);
     return 0;
 }
 static int console_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
@@ -136,6 +138,8 @@ static int console_mgr_reset(configuration * config, int slot, char **tokens, in
     config->status.faults=0;
     config->status.refusals=0;
     config->status.eliminated=0;
+    config->status.notpresent=0;
+    config->status.elapsed=0;
     // DO NOT reset "numero" nor tanda related values
     debug(DBG_TRACE,"RESET");
     fprintf(stderr,"Received RESET\n");

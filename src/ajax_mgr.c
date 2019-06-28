@@ -8,13 +8,14 @@
 #include <curl/curl.h>
 #include <errno.h>
 
-#include "../include/main.h"
-#include "../include/debug.h"
-#include "../include/ajax_mgr.h"
-#include "../include/ajax_curl.h"
-#include "../include/ajax_json.h"
-#include "../include/sc_config.h"
-#include "../include/sc_sockets.h"
+#include "main.h"
+#include "debug.h"
+#include "sc_tools.h"
+#include "ajax_mgr.h"
+#include "ajax_curl.h"
+#include "ajax_json.h"
+#include "sc_config.h"
+#include "sc_sockets.h"
 
 /*
 # Request to server are made by sending json request to:
@@ -39,31 +40,74 @@
 # Timestamp= time mark of last event parsed as received from server
 # example:
 # ?Operation=chronoEvent&Type=crono_rec&TimeStamp=150936&Source=chrono_2&Session=2&Value=150936
-
 */
+
+// cannot use config->timestamp cause it's used to control chrono running status.
+// so store timestamp here to evaluate stop when required
+
 static int ajax_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    sc_extra_data_t data= { "","0",0,0,0 }; /* oper, value, start, stop, tiempo */
+    debug(DBG_TRACE,"START: 0");
+    int res=ajax_put_event(config,"crono_start",&data);
+    return res;
 }
 static int ajax_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    char buffer[16];
+    snprintf(buffer,16,"%d",(int)(config->status.elapsed*1000));
+    sc_extra_data_t data= { "",buffer,0,0,0 }; /* oper, value, start, stop, tiempo */
+    debug(DBG_TRACE,"INT: elapsed:%s msecs\n",buffer);
+    int res=ajax_put_event(config,"crono_int",&data);
+    return res;
 }
 static int ajax_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    char buffer[16];
+    snprintf(buffer,16,"%d",(int)(config->status.elapsed*1000));
+    sc_extra_data_t data= { "",buffer,0,0,0 }; /* oper, value, start, stop, tiempo */
+    debug(DBG_TRACE,"STOP: elapsed:%s msecs\n",buffer);
+    int res=ajax_put_event(config,"crono_stop",&data);
+    return res;
 }
 static int ajax_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    sc_extra_data_t data= { "","1",0,0,0 }; /* oper, value, start, stop, tiempo */
+    int res=ajax_put_event(config,"crono_error",&data);
+    return res;
 }
 static int ajax_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    sc_extra_data_t data= { "","0",0,0,0 }; /* oper, value, start, stop, tiempo */
+    int res=ajax_put_event(config,"crono_error",&data);
+    return res;
 }
 static int ajax_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    // compose message
+    char buff[512];
+    int len=sprintf(buff,"%s:%s",tokens[2],tokens[3]);
+    for (int n=4;n<ntokens;n++) len+=sprintf(buff+len,"%%20%s",tokens[n]);
+    // send command EVTCMD_MESSAGE (8)
+    sc_extra_data_t data= { "8",buff,0,0,0 }; /* oper, value, start, stop, tiempo */
+    int res=ajax_put_event(config,"command",&data);
+    return res;
 }
 static int ajax_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    // defaults to 420 seconds (7minutes)
+    sc_extra_data_t data= { "","",420,0,0 }; /* oper, value, start, stop, tiempo */
+    if (ntokens==3) data.start=atol(tokens[2]); // else use provided value for countdown
+    int res=ajax_put_event(config,"crono_rec",&data);
+    return res;
 }
 static int ajax_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    // defaults to 15 seconds
+    sc_extra_data_t data= { "","15",0,0,0 }; /* oper, value, start, stop, tiempo */
+    if (ntokens==3) data.value=tokens[2]; // else use provided value for countdown
+    int res=ajax_put_event(config,"salida",&data);
+    return res;
 }
 static int ajax_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
@@ -78,19 +122,15 @@ static int ajax_mgr_data(configuration * config, int slot, char **tokens, int nt
     return 0;
 }
 static int ajax_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
-    int res=ajax_put_event(config,config->)
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    int res=ajax_put_event(config,"crono_reset",NULL);
+    return res;
 }
 static int ajax_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"Ajax Manager Thread exit requested");
     return -1;
 }
-static int ajax_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
-}
-static int ajax_mgr_numero(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
-}
+
 static func entries[32]= {
         ajax_mgr_start,  // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
         ajax_mgr_int,    // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
@@ -108,11 +148,11 @@ static func entries[32]= {
         NULL,            // { 13, "help",   "show command list",               "[cmd]"},
         NULL,            // { 14, "version","Show software version",           "" },
         ajax_mgr_exit,   // { 15, "exit",   "End program (from console)",      "" },
-        ajax_mgr_server, // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        NULL,            // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
         NULL,            // { 17, "ports",  "Show available serial ports",     "" },
         NULL,            // { 18, "config", "List configuration parameters",   "" },
         NULL,            // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
-        ajax_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        NULL,            // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         NULL,            // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,            // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }

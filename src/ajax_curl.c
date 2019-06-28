@@ -242,7 +242,7 @@ char ** ajax_wait_for_events(configuration *config, int *evtid, time_t *timestam
 //      &Faltas={f}&Tocados={t}&Rehuses={r}&Eliminado={e}&NoPresentado={n}
 // PENDING: study if need additional info ( prueba,jornada, manga, perro, etc... ) o se obtiene de la sesion
 // static char sc_puteventurl[URL_BUFFSIZE];
-int ajax_put_event(configuration *config, char *type, char *value) {
+int ajax_put_event(configuration *config, char *type, sc_extra_data_t *data) {
 
     // prepare buffer for response
     struct string s;
@@ -250,15 +250,14 @@ int ajax_put_event(configuration *config, char *type, char *value) {
 
     // compose GET request
     size_t len=0;
-    len=sprintf(sc_puteventurl,"https://%s/%s/ajax/database/eventFunctions.php?Operation=chronoEvent",config->ajax_server,BASE_URL);
+    len=sprintf(sc_puteventurl,"https://%s/%s/ajax/database/eventFunctions.php",config->ajax_server,BASE_URL);
+    len+=sprintf(sc_puteventurl+len,"?Operation=chronoEvent");
     len+=sprintf(sc_puteventurl+len,"&Session=%d",config->status.sessionID);
     len+=sprintf(sc_puteventurl+len,"&Source=chrono");
     len+=sprintf(sc_puteventurl+len,"&Name=%s",config->client_name); // beware of spaces and special chars
     len+=sprintf(sc_puteventurl+len,"&SessionName=%s",getSessionName(config)); // beware of spaces and special chars
     len+=sprintf(sc_puteventurl+len,"&Type=%s",type);
-    len+=sprintf(sc_puteventurl+len,"&Type=%s",type);
-    len+=sprintf(sc_puteventurl+len,"&TimeStamp=%d",pending);
-    len+=sprintf(sc_puteventurl+len,"&Value=%s",value);
+    len+=sprintf(sc_puteventurl+len,"&TimeStamp=%lu",time(NULL));
     len+=sprintf(sc_puteventurl+len,"&Prueba=%d",config->status.prueba);
     len+=sprintf(sc_puteventurl+len,"&Jornada=%d",config->status.jornada);
     len+=sprintf(sc_puteventurl+len,"&Manga=%d",config->status.manga);
@@ -272,7 +271,13 @@ int ajax_put_event(configuration *config, char *type, char *value) {
     len+=sprintf(sc_puteventurl+len,"&Rehuses=%d",config->status.refusals);
     len+=sprintf(sc_puteventurl+len,"&Eliminado=%d",config->status.eliminated);
     len+=sprintf(sc_puteventurl+len,"&Nopresentado=%d",config->status.notpresent);
-    // need to add Oper, start & stop ???
+    if (data!=NULL) {
+        len+=sprintf(sc_puteventurl+len,"&Value=%s",data->value);
+        len+=sprintf(sc_puteventurl+len,"&Tiempo=%lu",data->tiempo);
+        len+=sprintf(sc_puteventurl+len,"&Oper=%s",data->oper);
+        len+=sprintf(sc_puteventurl+len,"&stop=%lu",data->stop);
+        len+=sprintf(sc_puteventurl+len,"&start=%lu",data->start);
+    }
 
     /* doc states that curl_easy_perform is not re-entrant, so create a curl handler on every send event */
     CURL *curl = curl_easy_init();
@@ -281,7 +286,7 @@ int ajax_put_event(configuration *config, char *type, char *value) {
         return -1;
     }
     debug(DBG_TRACE,"putEvent: %s",sc_puteventurl);
-    curl_easy_setopt(curl, CURLOPT_URL, sc_geteventurl);
+    curl_easy_setopt(curl, CURLOPT_URL, sc_puteventurl);
     /* example.com is redirected, so we tell libcurl to follow redirection */
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
