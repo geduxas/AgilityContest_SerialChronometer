@@ -18,8 +18,6 @@
 // PENDING rework to be retrieved from configuration
 #define BASE_URL "agility"
 
-static char SessionName[1024]; // // source:ringsessid:view:mode:sessionaname
-
 // listado de sesiones disponibles
 // https://{ajax_server}/{baseurl}/ajax/database/sessionFunctions.php
 //      ?Operation=selectring
@@ -42,10 +40,10 @@ static char sc_geteventurl[URL_BUFFSIZE];
 // PENDING: study if need additional info ( prueba,jornada, manga, perro, etc... ) o se obtiene de la sesion
 static char sc_puteventurl[URL_BUFFSIZE];
 
-static char * getSessionName(configuration *config, int sessionID) {
+static char * getSessionName(configuration *config) {
     static char *name=NULL;
     if (!name) name =calloc(1024,sizeof(char));
-    snprintf(name,1024,"chrono:%d:0:0:%s",sessionID,config->client_name);
+    snprintf(name,1024,"chrono:%d:0:0:%s",config->status.sessionID,config->client_name);
     return name;
 }
 
@@ -86,6 +84,8 @@ static size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
     return size*nmemb;
 }
 
+/******************************** llamadas al servidor ********************/
+
 void ajax_find_server(configuration *config) {
     // obtenemos las interfaces "localhost" y de red con dirección IPv4
     // en cada interfaz iteramos
@@ -122,26 +122,26 @@ int ajax_connect_server (configuration *config) {
     /* Check for errors */
     if(res != CURLE_OK) {
         debug(DBG_ERROR, "curl_easy_perform(select) failed: %s", curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
         return -1;
     }
     debug(DBG_DEBUG,"SelectRing() returns: \n%s",s.ptr);
 
     // now, get sessionID for current ring from json response
-    int sessid= parse_select(config,s.ptr,s.len);
-    if (sessid<0) {
+    int ses= parse_select(config,s.ptr,s.len);
+    if (ses<0) {
         debug(DBG_ERROR, "There is no session ID for ring: %s", config->ring);
-        return -1;
     }
     /* always cleanup */
     end_string(&s);
     curl_easy_cleanup(curl);
-    return sessid;
+    return ses;
 }
 
 // conectarse a una sesion
 // https://{ajax_server}/{baseurl}/ajax/database/eventFunctions.php
 //      ?Operation=connect&Session={ID}&SessionName={name}
-int ajax_open_session(configuration *config,int sessionid) {
+int ajax_open_session(configuration *config) {
 
     CURL *curl=curl_easy_init();
     struct string s;
@@ -151,7 +151,7 @@ int ajax_open_session(configuration *config,int sessionid) {
     snprintf(sc_connecturl,
              URL_BUFFSIZE,
              "https://%s/%s/ajax/database/eventFunctions.php?Operation=connect&Session=%d&SessionName=%s",
-             config->ajax_server,BASE_URL,sessionid,getSessionName(config,sessionid));
+             config->ajax_server,BASE_URL,config->status.sessionID,getSessionName(config));
     debug(DBG_TRACE,"ConnectSession: %s",sc_connecturl);
     curl_easy_setopt(curl, CURLOPT_URL, sc_connecturl);
     /* example.com is redirected, so we tell libcurl to follow redirection */
@@ -172,7 +172,7 @@ int ajax_open_session(configuration *config,int sessionid) {
     }
     debug(DBG_TRACE,"ConnectSession returns: \n%s",s.ptr);
 
-    // now, get sessionID for current ring from json response
+    // now, get last init event ID for current ring from json response
     int evtid= parse_connect(config,s.ptr,s.len);
     if (evtid<0) {
         debug(DBG_ERROR, "Error retrieving last event id for ring %d", config->ring);
@@ -192,7 +192,7 @@ int ajax_open_session(configuration *config,int sessionid) {
 // https://{ajax_server}/{baseurl}/ajax/database/eventFunctions.php
 //      ?Operation=getEvents&Session={sessionID}&ID={evtid}&TimeStamp={timestamp}&Source=chrono&Name={clientname}&SessionName={sname}
 // static char sc_geteventurl[URL_BUFFSIZE];
-char ** ajax_wait_for_events(configuration *config, int sessionid, int *evtid, time_t *timestamp) {
+char ** ajax_wait_for_events(configuration *config, int *evtid, time_t *timestamp) {
 
     CURL *curl=curl_easy_init();
     struct string s;
@@ -202,7 +202,7 @@ char ** ajax_wait_for_events(configuration *config, int sessionid, int *evtid, t
     snprintf(sc_geteventurl,
              URL_BUFFSIZE,
              "https://%s/%s/ajax/database/eventFunctions.php?Operation=getEvents&Session=%d&ID=%d&TimeStamp=%lu&Source=chrono&Name=%s&SessionName=%s",
-             config->ajax_server,BASE_URL,sessionid,*evtid,*timestamp,config->client_name,getSessionName(config,sessionid));
+             config->ajax_server,BASE_URL,config->status.sessionID,*evtid,*timestamp,config->client_name,getSessionName(config));
     debug(DBG_TRACE,"getEvents: %s",sc_geteventurl);
     curl_easy_setopt(curl, CURLOPT_URL, sc_geteventurl);
     /* example.com is redirected, so we tell libcurl to follow redirection */
@@ -219,6 +219,7 @@ char ** ajax_wait_for_events(configuration *config, int sessionid, int *evtid, t
     /* Check for errors */
     if(res != CURLE_OK) {
         debug(DBG_ERROR, "curl_easy_perform(getEvents) failed: %s", curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
         return NULL;
     }
     // debug(DBG_TRACE,"getEvents() returns: \n%s",s.ptr);
@@ -241,22 +242,22 @@ char ** ajax_wait_for_events(configuration *config, int sessionid, int *evtid, t
 //      &Faltas={f}&Tocados={t}&Rehuses={r}&Eliminado={e}&NoPresentado={n}
 // PENDING: study if need additional info ( prueba,jornada, manga, perro, etc... ) o se obtiene de la sesion
 // static char sc_puteventurl[URL_BUFFSIZE];
-int ajax_put_event(configuration *config, int sessionid, char *type, char *value) {
-    /* doc states that curl_easy_perform is not re-entrant, so create a curl handler on every send event */
-    CURL *sc = curl_easy_init();
-    if(!sc) {
-        debug(DBG_ERROR,"Cannot initialize curl handler to put event");
-        return -1;
-    }
+int ajax_put_event(configuration *config, char *type, char *value) {
+
+    // prepare buffer for response
+    struct string s;
+    init_string(&s);
+
+    // compose GET request
     size_t len=0;
     len=sprintf(sc_puteventurl,"https://%s/%s/ajax/database/eventFunctions.php?Operation=chronoEvent",config->ajax_server,BASE_URL);
-    len+=sprintf(sc_puteventurl+len,"&Session=%d",sessionid);
+    len+=sprintf(sc_puteventurl+len,"&Session=%d",config->status.sessionID);
     len+=sprintf(sc_puteventurl+len,"&Source=chrono");
-    len+=sprintf(sc_puteventurl+len,"&Name=%s",config->client_name);
-    len+=sprintf(sc_puteventurl+len,"&SessionName=%s",getSessionName(config,sessionid));
+    len+=sprintf(sc_puteventurl+len,"&Name=%s",config->client_name); // beware of spaces and special chars
+    len+=sprintf(sc_puteventurl+len,"&SessionName=%s",getSessionName(config)); // beware of spaces and special chars
     len+=sprintf(sc_puteventurl+len,"&Type=%s",type);
     len+=sprintf(sc_puteventurl+len,"&Type=%s",type);
-    len+=sprintf(sc_puteventurl+len,"&TimeStamp=%d",sessionid);
+    len+=sprintf(sc_puteventurl+len,"&TimeStamp=%d",pending);
     len+=sprintf(sc_puteventurl+len,"&Value=%s",value);
     len+=sprintf(sc_puteventurl+len,"&Prueba=%d",config->status.prueba);
     len+=sprintf(sc_puteventurl+len,"&Jornada=%d",config->status.jornada);
@@ -273,7 +274,35 @@ int ajax_put_event(configuration *config, int sessionid, char *type, char *value
     len+=sprintf(sc_puteventurl+len,"&Nopresentado=%d",config->status.notpresent);
     // need to add Oper, start & stop ???
 
+    /* doc states that curl_easy_perform is not re-entrant, so create a curl handler on every send event */
+    CURL *curl = curl_easy_init();
+    if(!curl) {
+        debug(DBG_ERROR,"Cannot initialize curl handler to put event");
+        return -1;
+    }
+    debug(DBG_TRACE,"putEvent: %s",sc_puteventurl);
+    curl_easy_setopt(curl, CURLOPT_URL, sc_geteventurl);
+    /* example.com is redirected, so we tell libcurl to follow redirection */
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+
+    /* Perform the request, res will get the return code */
+    int res = curl_easy_perform(curl);
+    /* Check for errors */
+    if(res != CURLE_OK) {
+        debug(DBG_ERROR, "curl_easy_perform(putEvent) failed: %s", curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        return -1;
+    }
+    // debug(DBG_TRACE,"getEvents() returns: \n%s",s.ptr);
+    // check response for errors. Just try to locate "errorMsg" in response string
     /* cleanup */
-    curl_easy_cleanup(sc);
+    curl_easy_cleanup(curl);
+    end_string(&s);
     return 0;
 }

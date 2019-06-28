@@ -78,6 +78,7 @@ static int ajax_mgr_data(configuration * config, int slot, char **tokens, int nt
     return 0;
 }
 static int ajax_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
+    int res=ajax_put_event(config,config->)
     return 0;
 }
 static int ajax_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
@@ -118,7 +119,6 @@ static func entries[32]= {
 };
 
 void *ajax_manager_thread(void *arg){
-    int sessionID=0;
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
@@ -139,12 +139,12 @@ void *ajax_manager_thread(void *arg){
     }
 
     // retrieve session ID
-    sessionID=ajax_connect_server(config);
-    if (sessionID<0) {
+    int ses=ajax_connect_server(config);
+    if (ses<0) {
         debug(DBG_ERROR,"Cannot retrieve session id for ring %d on server %s",config->ring,config->ajax_server);
         return NULL;
     }
-
+    config->status.sessionID=ses;
     // mark thread alive before start working
     slot->index=slotIndex;
 
@@ -152,7 +152,7 @@ void *ajax_manager_thread(void *arg){
     int evtid=0;
     while ( (slot->index>=0) && (evtid==0)) {
         // call ajax connect session
-        evtid=ajax_open_session(config,sessionID);
+        evtid=ajax_open_session(config);
         if (evtid<0) {
             debug(DBG_ERROR,"Cannot open session %d at server '%s'",config->ajax_server);
             return NULL;
@@ -174,7 +174,7 @@ void *ajax_manager_thread(void *arg){
     // loop until end requested
     while(slot->index>=0) {
         int res=0;
-        char **cmds=ajax_wait_for_events(config,sessionID,&evtid,&timestamp);
+        char **cmds=ajax_wait_for_events(config,&evtid,&timestamp);
         if (!cmds) {
             debug(DBG_NOTICE,"WaitForEvent failed. retrying");
             sleep(5);

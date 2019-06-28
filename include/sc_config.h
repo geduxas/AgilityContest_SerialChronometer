@@ -34,6 +34,8 @@ typedef struct {
     int dorsal;
     int perro;
     int equipo;
+    // valores asociados al evento connect
+    int sessionID;
     // valores asociados al evento "init"
     int prueba;
     int jornada;

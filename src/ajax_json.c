@@ -234,9 +234,9 @@ int parse_select(configuration *config, char *json_str, size_t json_len){
         if ( JSON_OBJ == json_getType( session ) ) {
             char const* ringNumber = json_getPropertyValue( session, "Nombre" );
             if (strcmp(ringNumber,ring)!=0) continue;
-            char const* sessionID=json_getPropertyValue( session, "ID" );
-            debug(DBG_INFO,"Found Sesion id %s for %s",sessionID,ring);
-            return atoi(sessionID);
+            char const* sesidstr=json_getPropertyValue( session, "ID" );
+            debug(DBG_INFO,"Found Sesion id %s for %s",sesidstr,ring);
+            return atoi(sesidstr);
         }
     }
     // arriving here means session "Ring X" not found
