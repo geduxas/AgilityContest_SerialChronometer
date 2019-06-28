@@ -19,10 +19,9 @@
 
 /* start [timestamp] */
 static int console_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2)  config->status.timestamp=current_timestamp();
-    else config->status.timestamp= strtoull(tokens[2],NULL,10);
+    config->status.timestamp= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
     debug(DBG_TRACE,"START: timestamp:%llu\n",config->status.timestamp);
-    fprintf(stderr,"Received START\n");
+    fprintf(stderr,"Received START '%s' %llu\n",(ntokens==2)?"":tokens[2],config->status.timestamp);
     return 0;
 }
 static int console_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {

@@ -242,7 +242,7 @@ char ** ajax_wait_for_events(configuration *config, int *evtid, time_t *timestam
 //      &Faltas={f}&Tocados={t}&Rehuses={r}&Eliminado={e}&NoPresentado={n}
 // PENDING: study if need additional info ( prueba,jornada, manga, perro, etc... ) o se obtiene de la sesion
 // static char sc_puteventurl[URL_BUFFSIZE];
-int ajax_put_event(configuration *config, char *type, sc_extra_data_t *data) {
+int ajax_put_event(configuration *config, char *type, sc_extra_data_t *data,int flag) {
 
     // prepare buffer for response
     struct string s;
@@ -258,19 +258,21 @@ int ajax_put_event(configuration *config, char *type, sc_extra_data_t *data) {
     len+=sprintf(sc_puteventurl+len,"&SessionName=%s",getSessionName(config)); // beware of spaces and special chars
     len+=sprintf(sc_puteventurl+len,"&Type=%s",type);
     len+=sprintf(sc_puteventurl+len,"&TimeStamp=%lu",time(NULL));
-    len+=sprintf(sc_puteventurl+len,"&Prueba=%d",config->status.prueba);
-    len+=sprintf(sc_puteventurl+len,"&Jornada=%d",config->status.jornada);
-    len+=sprintf(sc_puteventurl+len,"&Manga=%d",config->status.manga);
-    len+=sprintf(sc_puteventurl+len,"&Tanda=%d",config->status.tanda);
-    len+=sprintf(sc_puteventurl+len,"&Numero=%d",config->status.numero);
-    len+=sprintf(sc_puteventurl+len,"&Dorsal=%d",config->status.dorsal);
-    len+=sprintf(sc_puteventurl+len,"&Perro=%d",config->status.perro);
-    len+=sprintf(sc_puteventurl+len,"&Equipo=%d",config->status.equipo);
-    len+=sprintf(sc_puteventurl+len,"&Faltas=%d",config->status.faults);
-    len+=sprintf(sc_puteventurl+len,"&Tocados=0"); // internally added to faults
-    len+=sprintf(sc_puteventurl+len,"&Rehuses=%d",config->status.refusals);
-    len+=sprintf(sc_puteventurl+len,"&Eliminado=%d",config->status.eliminated);
-    len+=sprintf(sc_puteventurl+len,"&Nopresentado=%d",config->status.notpresent);
+    if(flag!=0) {
+        len+=sprintf(sc_puteventurl+len,"&Prueba=%d",config->status.prueba);
+        len+=sprintf(sc_puteventurl+len,"&Jornada=%d",config->status.jornada);
+        len+=sprintf(sc_puteventurl+len,"&Manga=%d",config->status.manga);
+        len+=sprintf(sc_puteventurl+len,"&Tanda=%d",config->status.tanda);
+        len+=sprintf(sc_puteventurl+len,"&Numero=%d",config->status.numero);
+        len+=sprintf(sc_puteventurl+len,"&Dorsal=%d",config->status.dorsal);
+        len+=sprintf(sc_puteventurl+len,"&Perro=%d",config->status.perro);
+        len+=sprintf(sc_puteventurl+len,"&Equipo=%d",config->status.equipo);
+        len+=sprintf(sc_puteventurl+len,"&Faltas=%d",config->status.faults);
+        len+=sprintf(sc_puteventurl+len,"&Tocados=0"); // internally added to faults
+        len+=sprintf(sc_puteventurl+len,"&Rehuses=%d",config->status.refusals);
+        len+=sprintf(sc_puteventurl+len,"&Eliminado=%d",config->status.eliminated);
+        len+=sprintf(sc_puteventurl+len,"&Nopresentado=%d",config->status.notpresent);
+    }
     if (data!=NULL) {
         len+=sprintf(sc_puteventurl+len,"&Value=%s",data->value);
         len+=sprintf(sc_puteventurl+len,"&Tiempo=%lu",data->tiempo);

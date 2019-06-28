@@ -48,8 +48,9 @@
 static int ajax_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
     sc_extra_data_t data= { "","0",0,0,0 }; /* oper, value, start, stop, tiempo */
-    debug(DBG_TRACE,"START: 0");
-    int res=ajax_put_event(config,"crono_start",&data);
+    if (ntokens==3) data.value=tokens[2];
+    debug(DBG_TRACE,"START: %lu",data.value);
+    int res=ajax_put_event(config,"crono_start",&data,0);
     return res;
 }
 static int ajax_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
@@ -58,7 +59,7 @@ static int ajax_mgr_int(configuration * config, int slot, char **tokens, int nto
     snprintf(buffer,16,"%d",(int)(config->status.elapsed*1000));
     sc_extra_data_t data= { "",buffer,0,0,0 }; /* oper, value, start, stop, tiempo */
     debug(DBG_TRACE,"INT: elapsed:%s msecs\n",buffer);
-    int res=ajax_put_event(config,"crono_int",&data);
+    int res=ajax_put_event(config,"crono_int",&data,0);
     return res;
 }
 static int ajax_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
@@ -67,19 +68,19 @@ static int ajax_mgr_stop(configuration * config, int slot, char **tokens, int nt
     snprintf(buffer,16,"%d",(int)(config->status.elapsed*1000));
     sc_extra_data_t data= { "",buffer,0,0,0 }; /* oper, value, start, stop, tiempo */
     debug(DBG_TRACE,"STOP: elapsed:%s msecs\n",buffer);
-    int res=ajax_put_event(config,"crono_stop",&data);
+    int res=ajax_put_event(config,"crono_stop",&data,0);
     return res;
 }
 static int ajax_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
     sc_extra_data_t data= { "","1",0,0,0 }; /* oper, value, start, stop, tiempo */
-    int res=ajax_put_event(config,"crono_error",&data);
+    int res=ajax_put_event(config,"crono_error",&data,0);
     return res;
 }
 static int ajax_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
     sc_extra_data_t data= { "","0",0,0,0 }; /* oper, value, start, stop, tiempo */
-    int res=ajax_put_event(config,"crono_error",&data);
+    int res=ajax_put_event(config,"crono_error",&data,0);
     return res;
 }
 static int ajax_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
@@ -90,7 +91,7 @@ static int ajax_mgr_msg(configuration * config, int slot, char **tokens, int nto
     for (int n=4;n<ntokens;n++) len+=sprintf(buff+len,"%%20%s",tokens[n]);
     // send command EVTCMD_MESSAGE (8)
     sc_extra_data_t data= { "8",buff,0,0,0 }; /* oper, value, start, stop, tiempo */
-    int res=ajax_put_event(config,"command",&data);
+    int res=ajax_put_event(config,"command",&data,0);
     return res;
 }
 static int ajax_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
@@ -98,7 +99,7 @@ static int ajax_mgr_walk(configuration * config, int slot, char **tokens, int nt
     // defaults to 420 seconds (7minutes)
     sc_extra_data_t data= { "","",420,0,0 }; /* oper, value, start, stop, tiempo */
     if (ntokens==3) data.start=atol(tokens[2]); // else use provided value for countdown
-    int res=ajax_put_event(config,"crono_rec",&data);
+    int res=ajax_put_event(config,"crono_rec",&data,0);
     return res;
 }
 static int ajax_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
@@ -106,7 +107,7 @@ static int ajax_mgr_down(configuration * config, int slot, char **tokens, int nt
     // defaults to 15 seconds
     sc_extra_data_t data= { "","15",0,0,0 }; /* oper, value, start, stop, tiempo */
     if (ntokens==3) data.value=tokens[2]; // else use provided value for countdown
-    int res=ajax_put_event(config,"salida",&data);
+    int res=ajax_put_event(config,"salida",&data,1);
     return res;
 }
 static int ajax_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
@@ -123,7 +124,7 @@ static int ajax_mgr_data(configuration * config, int slot, char **tokens, int nt
 }
 static int ajax_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
-    int res=ajax_put_event(config,"crono_reset",NULL);
+    int res=ajax_put_event(config,"crono_reset",NULL,0);
     return res;
 }
 static int ajax_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
