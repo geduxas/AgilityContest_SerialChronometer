@@ -55,8 +55,13 @@ int ADDCALL module_read(char *buffer,size_t length){
     return ret;
 }
 
-int ADDCALL module_write(char *buffer,size_t length){
-    enum sp_return ret=sp_nonblocking_write(config->serial_port,buffer,length);
+int ADDCALL module_write(char **tokens,size_t ntokens){
+    static char *buffer=NULL;
+    if (buffer==NULL) buffer=calloc(1024,sizeof(char));
+    int len=sprintf(buffer,"%s",tokens[1]);
+    for (int n=2;n<ntokens;n++) len += sprintf(buffer+len," %s",tokens[n]);
+    len += sprintf(buffer+len,"\n");
+    enum sp_return ret=sp_nonblocking_write(config->serial_port,buffer,len);
     return ret;
 }
 

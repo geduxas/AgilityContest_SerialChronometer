@@ -109,6 +109,10 @@ static int main_mgr_elim(configuration * config, int slot, char **tokens, int nt
     return 0;
 }
 static int main_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==2) {
+        debug(DBG_ERROR,"%s -> Command: DATA missing F:R:E values",tokens[0]);
+        return -1;
+    }
     char *str=strdup(tokens[2]);
     char *pt=strchr(str,':');
     *pt++='\0';

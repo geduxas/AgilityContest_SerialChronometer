@@ -80,11 +80,11 @@ ADDAPI int ADDCALL module_read(char *buffer,size_t length);
 
 /**
  * Send data from application to module in CommAPI format
- * @param buffer data to send
- * @param length  length of data
+ * @param tokens for the command to be sent
+ * @param length number of tokens
  * @return 0:message sent to chronometer -1:error
  */
-ADDAPI int ADDCALL module_write(char *buffer,size_t length);
+ADDAPI int ADDCALL module_write(char **tokens,size_t ntokens);
 
 /**
  * Retrieve last error message string

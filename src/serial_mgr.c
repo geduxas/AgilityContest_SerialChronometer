@@ -18,78 +18,76 @@
 #include "sc_sockets.h"
 #include "modules.h"
 
-static int serial_write(configuration *config,char *cmd,char *arg1, char *arg2) {
-    static char *msg;
-    if (!msg) msg=calloc(1024,sizeof(char));
-    if (arg2) snprintf(msg,1024,"%s %s %s",cmd,arg1,arg2);
-    else if (arg1) snprintf(msg,1024,"%s %s",cmd,arg1);
-    else  snprintf(msg,1024,"%s",cmd);
-    debug(DBG_TRACE,"Serial msg '%s'",msg);
-    strncat(msg,"\n",1024); // add newline
-    enum sp_return ret=sp_nonblocking_write(config->serial_port,msg,strlen(msg));
-    return ret;
-}
+
+static struct {
+    int (*module_init)(configuration *config);
+    int (*module_end)();
+    int (*module_open)();
+    int (*module_close)();
+    int (*module_read)(char *buffer,size_t length);
+    int (*module_write)(char **tokens,size_t ntokens);
+    char *(*module_error)();
+} entry_points;
 
 static int serial_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2) return serial_write(config,tokens[1], "0",NULL);
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    if (ntokens==2) tokens[ntokens++]="0"; // up to 32 tokens available
+    return  entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
     // fail msg is not to be sent to chrono (read only)
-    debug(DBG_TRACE,"Serial msg 'FAIL' (do not send)");
+    debug(DBG_TRACE,"Serial command 'FAIL' (do not send)");
     return 0;
 }
 static int serial_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
     // fail msg is not to be sent to chrono (read only)
-    debug(DBG_TRACE,"Serial msg 'OK' (do not send)");
+    debug(DBG_TRACE,"Serial command 'OK' (do not send)");
     return 0;
 }
 static int serial_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
-    // PENDING; properly handle multi word messages
-    return 0;
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2) return serial_write(config,tokens[1], "420",NULL); // default 7 minutes
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    if (ntokens==2) tokens[ntokens++]="420"; // up to 32 tokens available
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2) return serial_write(config,tokens[1], "15",NULL); // default 15 seconds
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    if (ntokens==2) tokens[ntokens++]="15"; // up to 32 tokens available
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2) return serial_write(config,tokens[1], "+",NULL); // default increase fault
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2) return serial_write(config,tokens[1], "+",NULL); // default increase refusals
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2) return serial_write(config,tokens[1], "+",NULL); // default: eliminate
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
-    return serial_write(config,tokens[1],NULL,NULL );
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"Serial manager thread exit requested");
     return -1;
 }
 static int serial_mgr_numero(configuration * config, int slot, char **tokens, int ntokens) {
-    return serial_write(config,tokens[1],NULL,NULL );
+    if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
+    return entry_points.module_write(tokens,ntokens);
 }
 static int serial_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==2) return serial_write(config,tokens[1], "",NULL); // default use internal clock time
-    return serial_write(config,tokens[1],tokens[2],NULL );
+    return entry_points.module_write(tokens,ntokens);
 }
 
 static func entries[32]= {
@@ -121,19 +119,12 @@ static func entries[32]= {
 
 void *serial_manager_thread(void *arg){
 
-    int (*module_init)(configuration *config) = NULL;
-    int (*module_end)() = NULL;
-    int (*module_open)() = NULL;
-    int (*module_close)() = NULL;
-    int (*module_read)(char *buffer,size_t length) = NULL;
-    int (*module_write)(char *buffer,size_t length) = NULL;
-    char *(*module_error)() = NULL;
-
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
     slot->entries=entries;
-
+    // clear pointers
+    memset(&entry_points,0,sizeof(entry_points));
     // create sock
     char tmpstr[1024];
     snprintf(tmpstr,1024,"%d",config->local_port);
@@ -160,14 +151,16 @@ void *serial_manager_thread(void *arg){
     }
     // verify module
     debug(DBG_TRACE,"verifying library module");
-    module_init=dlsym(library,"module_init");
-    module_end=dlsym(library,"module_end");
-    module_open=dlsym(library,"module_open");
-    module_close=dlsym(library,"module_close");
-    module_read=dlsym(library,"module_read");
-    module_write=dlsym(library,"module_write");
-    module_error=dlsym(library,"module_error");
-    if (!module_init || !module_end || !module_open || !module_close || !module_read || !module_write || !module_error) {
+    entry_points.module_init=dlsym(library,"module_init");
+    entry_points.module_end=dlsym(library,"module_end");
+    entry_points.module_open=dlsym(library,"module_open");
+    entry_points.module_close=dlsym(library,"module_close");
+    entry_points.module_read=dlsym(library,"module_read");
+    entry_points.module_write=dlsym(library,"module_write");
+    entry_points.module_error=dlsym(library,"module_error");
+    if (!entry_points.module_init || !entry_points.module_end ||
+        !entry_points.module_open || !entry_points.module_close ||
+        !entry_points.module_read || !entry_points.module_write || !entry_points.module_error) {
         debug(DBG_ERROR,"SerialMgr: missing symbol() in module %s",config->module);
         dlclose(library);
         config->comm_port=NULL;
@@ -177,7 +170,7 @@ void *serial_manager_thread(void *arg){
 
     // init module
     debug(DBG_TRACE,"initialize library module");
-    if ( module_init(config) < 0) {
+    if ( entry_points.module_init(config) < 0) {
         debug(DBG_TRACE,"SerialMgr: module_init() failed");
         dlclose(library);
         config->comm_port=NULL;
@@ -187,8 +180,8 @@ void *serial_manager_thread(void *arg){
 
     // open module port
     debug(DBG_TRACE,"openin library module device");
-    if ( module_open(config) < 0) {
-        module_end();
+    if ( entry_points.module_open(config) < 0) {
+        entry_points.module_end();
         dlclose(library);
         debug(DBG_TRACE,"SerialMgr: module_open() failed");
         config->comm_port=NULL;
@@ -205,7 +198,7 @@ void *serial_manager_thread(void *arg){
     int offset=strlen(request);
     char response[1024];
     while(res>=0) {
-        res=sp_blocking_read(config->serial_port,&request[offset],sizeof(request)-offset,5000); // 5seg timeout
+        res=entry_points.module_read(&request[offset],sizeof(request)-offset);
         if (res<0) {
             debug(DBG_ERROR,"Serial read() returns %d",res);
             res=0;
@@ -234,9 +227,9 @@ void *serial_manager_thread(void *arg){
     }
 
     // close port
-    module_close();
+    entry_points.module_close();
     // deinit module
-    module_end();
+    entry_points.module_end();
     // unload module
     dlclose(library);
     // exit thread
