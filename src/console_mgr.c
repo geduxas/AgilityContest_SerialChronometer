@@ -19,15 +19,17 @@
 
 /* start [timestamp] */
 static int console_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    fprintf(stderr,"Course run START '%s'\n",(ntokens==2)?"0":tokens[2]);
+    fprintf(stderr,"Course run START %s\n",(ntokens==2)?"":tokens[2]);
     return 0;
 }
 static int console_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
-    fprintf(stderr,"Course run INT Intermediate time: %f seconds\n",config->status.elapsed);
+    float elapsed=(float)(config->status.int_time - config->status.start_time)/1000.0f;
+    fprintf(stderr,"Course run INT %s\nIntermediate time: %f seconds\n",tokens[2],elapsed);
     return 0;
 }
 static int console_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
-    fprintf(stderr,"Course run STOP Course time: %f seconds\n",config->status.elapsed);
+    float elapsed=(float)(config->status.stop_time - config->status.start_time)/1000.0f;
+    fprintf(stderr,"Course run STOP %s\nCourse time: %f seconds\n",tokens[2],elapsed);
     return 0;
 }
 static int console_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
@@ -41,19 +43,19 @@ static int console_mgr_ok(configuration * config, int slot, char **tokens, int n
 }
 /* source msg <duration> <message> <...> */
 static int console_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
-    fprintf(stderr,"Received message:");
+    fprintf(stderr,"Received message:\n");
     for (int n=3;n<ntokens;n++) fprintf(stderr," %s",tokens[n]);
     fprintf(stderr,"\n");
     return 0;
 }
 static int console_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
     int minutes=(ntokens==3)?atoi(tokens[2])/60:7;
-    fprintf(stderr,"%d minutes course walk\n",minutes);
+    fprintf(stderr,"Rquested %d minutes course walk\n",minutes);
     return 0;
 }
 static int console_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
     int seconds=(ntokens==3)?atoi(tokens[2]):15;
-    fprintf(stderr,"%d seconds course run countdown\n",seconds);
+    fprintf(stderr,"Starting %d seconds countdown for start running\n",seconds);
     return 0;
 }
 static int console_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {

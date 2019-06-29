@@ -11,6 +11,7 @@
 
 #include "debug.h"
 #include "sc_config.h"
+#include "sc_tools.h"
 #include "ajax_curl.h"
 #include "ajax_json.h"
 
@@ -39,13 +40,6 @@ static char sc_geteventurl[URL_BUFFSIZE];
 //      &Faltas={f}&Tocados={t}&Rehuses={r}&Eliminado={e}&NoPresentado={n}
 // PENDING: study if need additional info ( prueba,jornada, manga, perro, etc... ) o se obtiene de la sesion
 static char sc_puteventurl[URL_BUFFSIZE];
-
-static char * getSessionName(configuration *config) {
-    static char *name=NULL;
-    if (!name) name =calloc(1024,sizeof(char));
-    snprintf(name,1024,"chrono:%d:0:0:%s",config->status.sessionID,config->client_name);
-    return name;
-}
 
 /****************** guarrerias usadas para almacenar la respuesta de curl en un string */
 struct string {

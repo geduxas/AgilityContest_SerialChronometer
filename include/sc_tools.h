@@ -16,6 +16,7 @@
 EXTERN int stripos(char* haystack, char* needle );
 EXTERN char **explode(char* line, char separator,int *nelem );
 EXTERN long long current_timestamp();
+EXTERN char *getSessionName(configuration *config);
 
 #undef EXTERN
 #endif //SERIALCHRONOMETER_SC_TOOLS_H

@@ -21,8 +21,9 @@
 
 typedef struct {
     // valores de estado utlizados en las operaciones del crono
-    long long timestamp;
-    float elapsed; // last stored elapsed time
+    long start_time; // chrono start value (mseconds)
+    long stop_time;  // chrono end value (mseconds
+    long int_time; // chrono intermediate time
     int faults;
     int refusals;
     int eliminated;

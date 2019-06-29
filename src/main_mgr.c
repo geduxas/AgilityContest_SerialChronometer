@@ -18,30 +18,36 @@
 
 /* start [timestamp] */
 static int main_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    config->status.timestamp= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    debug(DBG_TRACE,"%s -> Command: START timestamp:%llu\n",tokens[0],config->status.timestamp);
+    config->status.start_time= (ntokens==2)?0:strtol(tokens[2],NULL,10);
+    debug(DBG_TRACE,"%s -> Command: START timestamp:%llu\n",tokens[0],config->status.start_time);
     return 0;
 }
 static int main_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
-    if (config->status.timestamp<0) {
-        debug(DBG_NOTICE,"INT: chrono is not running");
+    if (config->status.start_time<0) {
+        debug(DBG_ERROR,"INT: chrono is not running");
         return -1;
     }
-    long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    float elapsed=(float)(end - config->status.timestamp)/1000.0f;
-    debug(DBG_NOTICE,"%s -> Command: INT elapsed time:%f",tokens[0],elapsed);
+    if (ntokens==2) {
+        debug(DBG_ERROR,"INT: Intermediate timestamp is not provided");
+        return -1;
+    }
+    config->status.int_time= strtol(tokens[2],NULL,10);
+    float elapsed=(float)(config->status.int_time - config->status.start_time)/1000.0f;
+    debug(DBG_NOTICE,"%s -> Command: INT elapsed time:%f seconds",tokens[0],elapsed);
     return 0;
 }
 static int main_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
-    if (config->status.timestamp<0) {
-        debug(DBG_NOTICE,"STOP: chrono is not running");
+    if (config->status.start_time<0) {
+        debug(DBG_ERROR,"STOP: chrono is not running");
         return -1;
     }
-    long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    float elapsed=(float)(end - config->status.timestamp)/1000.0f;
-    debug(DBG_TRACE,"%s -> Command: STOP elapsed time:%f",tokens[0],elapsed);
-    config->status.timestamp=-1;
-    config->status.elapsed= elapsed;
+    if (ntokens==2) {
+        debug(DBG_ERROR,"STOP: Final timestamp is not provided");
+        return -1;
+    }
+    config->status.stop_time= strtol(tokens[2],NULL,10);
+    float elapsed=(float)(config->status.stop_time - config->status.start_time)/1000.0f;
+    debug(DBG_NOTICE,"%s -> Command: STOP elapsed time:%f",tokens[0],elapsed);
     return 0;
 }
 static int main_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
@@ -115,12 +121,13 @@ static int main_mgr_data(configuration * config, int slot, char **tokens, int nt
     return 0;
 }
 static int main_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
-    config->status.timestamp=-1L;
+    config->status.start_time=-1L;
+    config->status.int_time=0L;
+    config->status.stop_time=0L;
     config->status.faults=0;
     config->status.refusals=0;
     config->status.eliminated=0;
     config->status.notpresent=0;
-    config->status.elapsed=0;
     // DO NOT reset "numero" nor tanda related values
     debug(DBG_INFO,"%s -> Command: RESET",tokens[0]);
     return 0;

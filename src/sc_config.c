@@ -44,29 +44,22 @@ configuration * default_options(configuration * config) {
     config->status.eliminated=0;
     config->status.faults=0;
     config->status.refusals=0;
-    config->status.timestamp=-1L;
+    config->status.start_time=-1L;
+    config->status.int_time=0L;
+    config->status.stop_time=0;
     config->status.numero=0;
-    config->status.elapsed=0.0f;
     return config;
 }
 
 void print_status(configuration *config) {
     debug(DBG_DEBUG,"Status info:");
     debug(DBG_DEBUG,"Numero %d",      config->status.numero);
-    debug(DBG_DEBUG,"Timestamp %lld",   config->status.timestamp);
-    debug(DBG_DEBUG,"LastTime %f",   config->status.elapsed);
     debug(DBG_DEBUG,"Faults %d",    config->status.faults);
     debug(DBG_DEBUG,"Refusals %d",    config->status.refusals);
     debug(DBG_DEBUG,"Eliminated %d",      config->status.eliminated);
     if (config->opmode & OPMODE_CONSOLE) {
         fprintf(stderr,"Status information:\n");
         fprintf(stderr,"Numero %d\n",    config->status.numero);
-        fprintf(stderr,"Timestamp %lld\n",   config->status.timestamp);
-        fprintf(stderr,"LastTime %f\n",   config->status.elapsed);
-        if (config->status.timestamp>=0) {
-            float elapsed=(float)(current_timestamp()-config->status.timestamp)/1000.0;
-            fprintf(stderr,"Elapsed Time %f\n",elapsed);
-        }
         fprintf(stderr,"Faults %d\n",    config->status.faults);
         fprintf(stderr,"Refusals %d\n",    config->status.refusals);
         fprintf(stderr,"Eliminated %d\n",      config->status.eliminated);

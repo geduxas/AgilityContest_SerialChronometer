@@ -42,32 +42,32 @@
 # ?Operation=chronoEvent&Type=crono_rec&TimeStamp=150936&Source=chrono_2&Session=2&Value=150936
 */
 
-// cannot use config->timestamp cause it's used to control chrono running status.
-// so store timestamp here to evaluate stop when required
+// NOTE:
+// a ¿bug or javascript feature? in AgilityContest, makes zero as invalid value for "start" command
+// as SerialAPI states zero as default, we need a dirty trick: add "1" to every sent start/int/and stop values
+// no problem as back event will be rejected due to being originated here
 
 static int ajax_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
-    sc_extra_data_t data= { "","0",0,0,0 }; /* oper, value, start, stop, tiempo */
-    if (ntokens==3) data.value=tokens[2];
-    debug(DBG_TRACE,"START: %lu",data.value);
+    char buffer[32];
+    snprintf(buffer,32,"%lu",1+config->status.start_time);
+    sc_extra_data_t data= { "",buffer,0,0,0 }; /* oper, value, start, stop, tiempo */
     int res=ajax_put_event(config,"crono_start",&data,0);
     return res;
 }
 static int ajax_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
-    char buffer[16];
-    snprintf(buffer,16,"%d",(int)(config->status.elapsed*1000));
+    char buffer[32];
+    snprintf(buffer,32,"%lu",1+config->status.int_time);
     sc_extra_data_t data= { "",buffer,0,0,0 }; /* oper, value, start, stop, tiempo */
-    debug(DBG_TRACE,"INT: elapsed:%s msecs\n",buffer);
     int res=ajax_put_event(config,"crono_int",&data,0);
     return res;
 }
 static int ajax_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
-    char buffer[16];
-    snprintf(buffer,16,"%d",(int)(config->status.elapsed*1000));
+    char buffer[32];
+    snprintf(buffer,32,"%lu",1+config->status.stop_time);
     sc_extra_data_t data= { "",buffer,0,0,0 }; /* oper, value, start, stop, tiempo */
-    debug(DBG_TRACE,"STOP: elapsed:%s msecs\n",buffer);
     int res=ajax_put_event(config,"crono_stop",&data,0);
     return res;
 }
@@ -170,19 +170,19 @@ void *ajax_manager_thread(void *arg){
     snprintf(portstr,16,"%d",config->local_port+config->ring);
     slot->sock=connectUDP("localhost",portstr);
     if (slot->sock <0) {
-        debug(DBG_ERROR,"AjaxMgr: Cannot create local socket");
+        debug(DBG_ERROR,"%s: Cannot create local socket",SC_AJAXSRV);
         return NULL;
     }
 
     // if ajax server is "find", or "0.0.0.0" try to locate before entering loop
     if (strcasecmp(config->ajax_server,"find")==0 || strcasecmp(config->ajax_server,"0.0.0.0")==0) {
-        debug(DBG_INFO,"Trying to locate AgilityContest server IP address");
+        debug(DBG_INFO,"%s: Trying to locate AgilityContest server IP address",SC_AJAXSRV);
     }
 
     // retrieve session ID
     int ses=ajax_connect_server(config);
     if (ses<0) {
-        debug(DBG_ERROR,"Cannot retrieve session id for ring %d on server %s",config->ring,config->ajax_server);
+        debug(DBG_ERROR,"%s Cannot retrieve session id for ring %d on server %s",SC_AJAXSRV,config->ring,config->ajax_server);
         return NULL;
     }
     config->status.sessionID=ses;
@@ -195,7 +195,7 @@ void *ajax_manager_thread(void *arg){
         // call ajax connect session
         evtid=ajax_open_session(config);
         if (evtid<0) {
-            debug(DBG_ERROR,"Cannot open session %d at server '%s'",config->ajax_server);
+            debug(DBG_ERROR,"%s: Cannot open session %d at server '%s'",SC_AJAXSRV,ses,config->ajax_server);
             return NULL;
         }
         if (evtid==0) sleep(5); // retry in 5 seconds
@@ -208,7 +208,7 @@ void *ajax_manager_thread(void *arg){
     char *request=calloc(1024,sizeof(char));
     char *response=calloc(1024,sizeof(char));
     if (!request || !response) {
-        debug(DBG_ERROR, "ajax manager: Cannot enter main loop:calloc()");
+        debug(DBG_ERROR, "%s: Cannot enter main loop:calloc()",SC_AJAXSRV);
         return NULL;
     }
 
@@ -217,7 +217,7 @@ void *ajax_manager_thread(void *arg){
         int res=0;
         char **cmds=ajax_wait_for_events(config,&evtid,&timestamp);
         if (!cmds) {
-            debug(DBG_NOTICE,"WaitForEvent failed. retrying");
+            debug(DBG_NOTICE,"%s WaitForEvent() failed. retrying",SC_AJAXSRV);
             sleep(5);
             continue;
         }
@@ -229,16 +229,16 @@ void *ajax_manager_thread(void *arg){
 
             // send via local udp socket received
             if (strlen(*n)==0) continue; // empty string received
-            debug(DBG_TRACE,"Console: sending to local socket: '%s'",request);
+            debug(DBG_TRACE,"%s sending to local socket: '%s'",SC_AJAXSRV,request);
             res=send(slot->sock,request,strlen(request),0);
             if (res<0){
-                debug(DBG_ERROR,"Console send(): error sending request: %s",strerror(errno));
+                debug(DBG_ERROR,"%s send(): error sending request: %s",SC_AJAXSRV,strerror(errno));
                 continue;
             }
             // retrieve response from main server
             res=recv(slot->sock,response,1024,0);
             if (res<0) {
-                debug(DBG_ERROR,"Console recv(): error waiting response: %s",strerror(errno));
+                debug(DBG_ERROR,"%s recv(): error waiting response: %s",SC_AJAXSRV,strerror(errno));
                 continue;
             } else {
                 response[res]='\0'; // put eol at end of recvd string
@@ -254,6 +254,6 @@ void *ajax_manager_thread(void *arg){
     free(request);
     free(response);
     slot->index=-1;
-    debug(DBG_TRACE,"Exiting ajax thread");
+    debug(DBG_TRACE,"Exiting %s thread",SC_AJAXSRV);
     return &slot->index;
 }

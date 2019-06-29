@@ -55,3 +55,10 @@ long long current_timestamp() {
     // printf("milliseconds: %lld\n", milliseconds);
     return milliseconds;
 }
+
+char * getSessionName(configuration *config) {
+    static char *name=NULL;
+    if (!name) name =calloc(1024,sizeof(char));
+    snprintf(name,1024,"chrono:%d:0:0:%s",config->status.sessionID,config->client_name);
+    return name;
+}
