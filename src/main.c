@@ -14,20 +14,21 @@
 #include <sys/socket.h>
 #endif
 
-#include "../include/sc_tools.h"
-#include "../include/sc_sockets.h"
-#include "../include/getopt.h"
-#include "../include/ini.h"
+#include "sc_tools.h"
+#include "sc_sockets.h"
+#include "getopt.h"
+#include "ini.h"
 
 #include "libserialport.h"
-#include "../include/web_mgr.h"
-#include "../include/ajax_mgr.h"
-#include "../include/serial_mgr.h"
-#include "../include/console_mgr.h"
-#include "../include/debug.h"
-#include "../include/sc_config.h"
-#include "../include/main.h"
-#include "../include/parser.h"
+#include "main_mgr.h"
+#include "web_mgr.h"
+#include "ajax_mgr.h"
+#include "serial_mgr.h"
+#include "console_mgr.h"
+#include "debug.h"
+#include "sc_config.h"
+#include "main.h"
+#include "parser.h"
 
 
 int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
@@ -243,6 +244,18 @@ int main (int argc, char *argv[]) {
             goto free_and_response;
         }
         debug(DBG_TRACE,"Received command %d -> '%s' from %s\n", index, buffer,tokens[0]);
+        // send received data to main control mgr
+        if (main_mgr_entries[index]!=NULL) {
+            // if function pointer is not null fire up code
+            func handler=main_mgr_entries[index];
+            int res=handler(config,-1,tokens,ntokens); // slot is not used in main controller thread
+            if (res<0) {
+                debug(DBG_ERROR,"Error sending command: '%s' from %s to main mgr\n", buffer,tokens[0]);
+                // en caso de error no continuamos:
+                response="main_mgr ERROR";
+                goto free_and_response;
+            }
+        }
         // send received data to every active threads
         int alive=0;
         for (int n=0;n<4;n++) {

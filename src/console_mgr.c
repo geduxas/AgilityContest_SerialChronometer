@@ -19,39 +19,18 @@
 
 /* start [timestamp] */
 static int console_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    config->status.timestamp= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    debug(DBG_TRACE,"START: timestamp:%llu\n",config->status.timestamp);
-    fprintf(stderr,"Received START '%s' %llu\n",(ntokens==2)?"":tokens[2],config->status.timestamp);
+    fprintf(stderr,"Course run START '%s'\n",(ntokens==2)?"0":tokens[2]);
     return 0;
 }
 static int console_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
-    if (config->status.timestamp<0) {
-        debug(DBG_NOTICE,"INT: chrono is not running");
-        fprintf(stderr,"Received INT but chrono is not running\n");
-        return -1;
-    }
-    long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    float elapsed=(float)(end - config->status.timestamp)/1000.0f;
-    debug(DBG_NOTICE,"INT: elapsed time:%f",elapsed);
-    fprintf(stderr,"RECEIVED INT. Intermediate time: %f seconds\n",elapsed);
+    fprintf(stderr,"Course run INT Intermediate time: %f seconds\n",config->status.elapsed);
     return 0;
 }
 static int console_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
-    if (config->status.timestamp<0) {
-        debug(DBG_NOTICE,"STOP: chrono is not running");
-        fprintf(stderr,"Received STOP but chrono is not running\n");
-        return -1;
-    }
-    long long end= (ntokens==2)?current_timestamp():strtoull(tokens[2],NULL,10);
-    float elapsed=(float)(end - config->status.timestamp)/1000.0f;
-    debug(DBG_TRACE,"STOP: elapsed time:%f",elapsed);
-    fprintf(stderr,"Received STOP. Course time: %f seconds\n",elapsed);
-    config->status.timestamp=-1;
-    config->status.elapsed= elapsed;
+    fprintf(stderr,"Course run STOP Course time: %f seconds\n",config->status.elapsed);
     return 0;
 }
 static int console_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_TRACE,"sensor(s) FAIL");
     fprintf(stderr,"Sensor(s) failure noticed\n");
     return 0;
 }
@@ -62,7 +41,6 @@ static int console_mgr_ok(configuration * config, int slot, char **tokens, int n
 }
 /* source msg <duration> <message> <...> */
 static int console_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_TRACE,"MSG: %s duration %s",tokens[3],tokens[2]);
     fprintf(stderr,"Received message:");
     for (int n=3;n<ntokens;n++) fprintf(stderr," %s",tokens[n]);
     fprintf(stderr,"\n");
@@ -70,77 +48,31 @@ static int console_mgr_msg(configuration * config, int slot, char **tokens, int 
 }
 static int console_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
     int minutes=(ntokens==3)?atoi(tokens[2])/60:7;
-    debug(DBG_TRACE,"WALK %d minutes",minutes);
     fprintf(stderr,"%d minutes course walk\n",minutes);
     return 0;
 }
 static int console_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
     int seconds=(ntokens==3)?atoi(tokens[2]):15;
-    debug(DBG_TRACE,"Countdown %d seconds",seconds);
     fprintf(stderr,"%d seconds course run countdown\n",seconds);
     return 0;
 }
 static int console_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==3) {
-        if (strcmp(tokens[2],"+")==0) config->status.faults++;
-        else if (strcmp(tokens[2],"-")==0) config->status.faults--;
-        else config->status.faults=atoi(tokens[2]);
-    } else {
-        config->status.faults++;
-    }
-    if (config->status.faults<0) config->status.faults=0;
-    debug(DBG_TRACE,"FAULT: %d",config->status.faults);
     fprintf(stderr,"Fault count is: %d",config->status.faults);
     return 0;
 }
 static int console_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==3) {
-        if (strcmp(tokens[2],"+")==0) config->status.refusals++;
-        else if (strcmp(tokens[2],"-")==0) config->status.refusals--;
-        else config->status.refusals=atoi(tokens[2]);
-    } else {
-        config->status.refusals++;
-    }
-    if (config->status.refusals<0) config->status.refusals=0;
-    debug(DBG_TRACE,"REFUSAL: %d",config->status.refusals);
     fprintf(stderr,"Refusal count is: %d\n",config->status.refusals);
     return 0;
 }
 static int console_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==3) {
-        if (strcmp(tokens[2],"+")==0) config->status.eliminated=1;
-        else if (strcmp(tokens[2],"-")==0) config->status.eliminated=0;
-        else config->status.eliminated= ( atoi(tokens[2])==0)?0:1;
-    } else {
-        config->status.eliminated=1;
-    }
-    debug(DBG_TRACE,"ELIM: %d",config->status.eliminated);
     fprintf(stderr,"Eliminated status is: %d",config->status.eliminated);
     return 0;
 }
 static int console_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
-    char *str=strdup(tokens[2]);
-    char *pt=strchr(str,':');
-    *pt++='\0';
-    char *pt2=strchr(pt,':');
-    *pt2++='\0';
-    config->status.faults=atoi(str);
-    config->status.refusals=atoi(pt);
-    config->status.eliminated=(atoi(pt2)==0)?0:1;
-
-    debug(DBG_TRACE,"DATA: %s",tokens[2]);
     fprintf(stderr,"Received DATA. F:%d R:%d E:%d\n",config->status.faults,config->status.refusals,config->status.eliminated);
     return 0;
 }
 static int console_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
-    config->status.timestamp=-1L;
-    config->status.faults=0;
-    config->status.refusals=0;
-    config->status.eliminated=0;
-    config->status.notpresent=0;
-    config->status.elapsed=0;
-    // DO NOT reset "numero" nor tanda related values
-    debug(DBG_TRACE,"RESET");
     fprintf(stderr,"Received RESET\n");
     return 0;
 }
@@ -148,15 +80,15 @@ static int console_mgr_help(configuration * config, int slot, char **tokens, int
     return sc_help(config,ntokens,tokens);
 }
 static int console_mgr_version(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_INFO,"Console_manager version:%s",CONSOLE_MGR_VERSION);
     fprintf(stdout,"Console_manager version:%s\n",CONSOLE_MGR_VERSION);
     return 0;
 }
 static int console_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_INFO,"Console Manager Thread exit requested");
+    fprintf(stderr,"Exit requested");
     return 0; // command results ok, not error
 }
 static int console_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
+    fprintf(stderr,"Tryng to connect to AgilityContest server at: %s\n",config->ajax_server);
     return 0;
 }
 static int console_mgr_ports(configuration * config, int slot, char **tokens, int ntokens) {
@@ -169,30 +101,17 @@ static int console_mgr_status(configuration * config, int slot, char **tokens, i
     return sc_print_status(config,ntokens,tokens);
 }
 static int console_mgr_numero(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==3) {
-        if (strcmp(tokens[2],"+")==0) config->status.numero++;
-        else if (strcmp(tokens[2],"-")==0) config->status.numero--;
-        else config->status.numero=atoi(tokens[2]);
-    } else {
-        config->status.numero++;
-    }
-    if (config->status.numero<0) config->status.numero=0;
-    debug(DBG_TRACE,"Numero: %d",config->status.numero);
     fprintf(stderr,"Entering dog number: %d\n",config->status.numero);
     return 0;
 }
 
 static int console_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_INFO,"Enter clock mode requested");
+    fprintf(stderr,"Entering clock mode");
     return 0;
 }
 
 static int console_mgr_debug(configuration * config, int slot, char **tokens, int ntokens) {
-    if (ntokens==3) {
-        set_debug_level(atoi(tokens[2]));
-    }
-    debug(DBG_TRACE,"DEBUG: %d",config->status.numero);
-    fprintf(stderr,"Debug level is: %d\n",get_debug_level());
+    fprintf(stderr,"New debug level is: %d\n",get_debug_level());
     return 0;
 }
 
