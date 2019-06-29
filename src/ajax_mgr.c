@@ -110,17 +110,12 @@ static int ajax_mgr_down(configuration * config, int slot, char **tokens, int nt
     int res=ajax_put_event(config,"salida",&data,1);
     return res;
 }
-static int ajax_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
-}
-static int ajax_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
-}
-static int ajax_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
-}
+// faults/refusals/eliminated and so are already prcessed in main loop, so just send
+// stored values. No extra data required
 static int ajax_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
-    return 0;
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    int res=ajax_put_event(config,"crono_dat",NULL,1);
+    return res;
 }
 static int ajax_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
@@ -141,9 +136,9 @@ static func entries[32]= {
         ajax_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
         ajax_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
         ajax_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
-        ajax_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
-        ajax_mgr_refusal,// { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
-        ajax_mgr_elim,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
+        ajax_mgr_data,   // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
+        ajax_mgr_data,   // { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num >"},
+        ajax_mgr_data,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
         ajax_mgr_data,   // { 11, "data",   "Set faults/refusal/disq info",    "<flt>:<reh>:<disq>"},
         ajax_mgr_reset,  // { 12, "reset",  "Reset chronometer and countdown", "" },
         NULL,            // { 13, "help",   "show command list",               "[cmd]"},

@@ -13,10 +13,15 @@ include_directories(libserialport/include)
 file(GLOB SOURCES "src/*.c")
 file(GLOB INCLUDES "libserialport/include/*.h include/*.h")
 
-# module libraries definition
+# module libraries definition for "generic" module
 add_library(generic SHARED src/modules/generic.c src/debug.c)
 target_compile_options(generic PRIVATE -DADD_EXPORTS)
 set_target_properties(generic PROPERTIES PREFIX "")
+
+# module libraries definition for "digican" module
+add_library(digican SHARED src/modules/digican.c src/debug.c)
+target_compile_options(digican PRIVATE -DADD_EXPORTS)
+set_target_properties(digican PROPERTIES PREFIX "")
 
 #executable declaration
 add_executable(SerialChronometer ${SOURCES} ${INCLUDES})
@@ -55,6 +60,12 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             dlfcn-win32::dl
             setupapi
     )
+    target_link_libraries(
+            digican
+            ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
+            dlfcn-win32::dl
+            setupapi
+    )
 else()
     find_package (Threads REQUIRED)
     target_link_libraries(
@@ -66,6 +77,10 @@ else()
     )
     target_link_libraries(
             generic
+            ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
+    )
+    target_link_libraries(
+            digican
             ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
     )
 endif()
