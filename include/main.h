@@ -17,10 +17,10 @@
 #define vmkdir(d,m) mkdir((d),(m))
 #endif
 
-#define SC_CONSOLE "console"
+#define SC_CONSOLE "user_server"
 #define SC_WEBSRV "web_server"
 #define SC_AJAXSRV "ac_server"
-#define SC_SERIAL "serial"
+#define SC_SERIAL "comm_server"
 typedef int (*func)(configuration *config,int slot,char *tokens[],int ntokens);
 typedef struct {
     int index; // thread index

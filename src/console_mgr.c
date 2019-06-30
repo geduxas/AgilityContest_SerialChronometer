@@ -183,7 +183,7 @@ void *console_manager_thread(void *arg){
             res=strlen(request);
         }
         if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
-        if (strlen(request)==0) continue; // empty string received
+        if (strlen(&request[offset])==0) continue; // empty string received
         debug(DBG_TRACE,"Console: sending to local socket: '%s'",request);
         res=send(slot->sock,request,strlen(request),0);
         if (res<0){
