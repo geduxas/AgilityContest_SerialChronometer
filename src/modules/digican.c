@@ -51,8 +51,30 @@ int ADDCALL module_close(){
 }
 
 int ADDCALL module_read(char *buffer,size_t length){
-    enum sp_return ret = sp_blocking_read(config->serial_port,buffer,length,0);
-    return ret;
+    enum sp_return ret;
+    static char *inbuff=NULL;
+    if (inbuff==NULL) inbuff=malloc(1024*sizeof(char));
+    do {
+        ret = sp_blocking_read(config->serial_port,inbuff,1024,2000); // timeout 2 seconds
+    } while(ret==0);
+    if (ret <0 ) {
+        debug(DBG_ERROR,"libserial_read() error %s",sp_last_error_message());
+        snprintf(buffer,length,"");
+        return strlen(buffer);
+    }
+    inbuff[ret]='\0';
+    debug(DBG_TRACE,"module_read() received '%s'",inbuff);
+    // At this moment, Digican only sends 2 comands "START" and "PARAR". So just a simple parser
+    if (strncmp(inbuff,"START",5)==0) {
+        snprintf(buffer,length,"start 0\n");
+    }
+    else if (strncmp(inbuff,"START",5)==0) {
+        int elapsed= 10* atoi(inbuff+7);
+        snprintf(buffer,length,"stop %d\n",elapsed);
+    }
+    else snprintf(buffer,length,"");
+    debug(DBG_TRACE,"module_read() sending to serial manager '%s'",buffer);
+    return strlen(buffer);
 }
 
 static int digican_faltas=0;

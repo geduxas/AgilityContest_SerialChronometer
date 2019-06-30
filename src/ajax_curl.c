@@ -273,6 +273,8 @@ int ajax_put_event(configuration *config, char *type, sc_extra_data_t *data,int 
         len+=sprintf(sc_puteventurl+len,"&Oper=%s",data->oper);
         len+=sprintf(sc_puteventurl+len,"&stop=%lu",data->stop);
         len+=sprintf(sc_puteventurl+len,"&start=%lu",data->start);
+    } else {
+        len+=sprintf(sc_puteventurl+len,"&Value=0"); // allways send a value
     }
 
     /* doc states that curl_easy_perform is not re-entrant, so create a curl handler on every send event */
