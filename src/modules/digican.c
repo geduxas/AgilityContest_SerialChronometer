@@ -55,7 +55,7 @@ int ADDCALL module_read(char *buffer,size_t length){
     static char *inbuff=NULL;
     if (inbuff==NULL) inbuff=malloc(1024*sizeof(char));
     do {
-        ret = sp_blocking_read(config->serial_port,inbuff,1024,2000); // timeout 2 seconds
+        ret = sp_blocking_read(config->serial_port,inbuff,1024,500); // timeout 0.5 seconds
     } while(ret==0);
     if (ret <0 ) {
         debug(DBG_ERROR,"libserial_read() error %s",sp_last_error_message());

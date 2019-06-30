@@ -179,7 +179,7 @@ void *serial_manager_thread(void *arg){
     }
 
     // open module port
-    debug(DBG_TRACE,"openin library module device");
+    debug(DBG_TRACE,"opening library module device");
     if ( entry_points.module_open(config) < 0) {
         entry_points.module_end();
         dlclose(library);
@@ -203,7 +203,7 @@ void *serial_manager_thread(void *arg){
             debug(DBG_ERROR,"Serial read() returns %d",res);
             res=0;
         }
-        request[res]='\0';
+        request[offset+res]='\0';
         if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
         if (strlen(request)==0) continue; // empty string received
         debug(DBG_TRACE,"Serial: sending to local socket: '%s'",request);

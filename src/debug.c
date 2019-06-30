@@ -94,6 +94,7 @@ void debug_print(int level, char *file, int line, char *format, ...) {
         vfprintf(debug_file,format, ap); // message
         va_end(ap);
         fprintf(debug_file,"\n"); // postamble
+        fflush(debug_file);
     }
 }
 
