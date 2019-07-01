@@ -10,8 +10,9 @@ include_directories(include)
 include_directories(libserialport/include)
 
 # source files
+#libcsoap includes libsoap and libnanohttp. libsoap is not used
 file(GLOB SOURCES "src/*.c")
-file(GLOB INCLUDES "libserialport/include/*.h include/*.h")
+file(GLOB INCLUDES "libserialport/include/*.h libcsoap-1.1.0/include/nanohttp/*.h include/*.h")
 
 # module libraries definition for "generic" module
 add_library(generic SHARED src/modules/generic.c src/debug.c)
@@ -40,7 +41,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
     target_compile_options(SerialChronometer PRIVATE -static -DCURL_STATICLIB)
     target_link_libraries(
             SerialChronometer
-            ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
+            ${CMAKE_SOURCE_DIR}/libserialport/lib/mingw32/libserialport.a
             dlfcn-win32::dl
             curl
             idn2
@@ -56,13 +57,13 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
     )
     target_link_libraries(
             generic
-            ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
+            ${CMAKE_SOURCE_DIR}/libserialport/lib/mingw32/libserialport.a
             dlfcn-win32::dl
             setupapi
     )
     target_link_libraries(
             digican
-            ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
+            ${CMAKE_SOURCE_DIR}/libserialport/lib/mingw32/libserialport.a
             dlfcn-win32::dl
             setupapi
     )
@@ -70,17 +71,10 @@ else()
     find_package (Threads REQUIRED)
     target_link_libraries(
             SerialChronometer
-            ${CMAKE_SOURCE_DIR}/libserialport/linux/libserialport.a
+            ${CMAKE_SOURCE_DIR}/libserialport/lib/linux/libserialport.a
             pthread
             curl
             dl
     )
-    target_link_libraries(
-            generic
-            ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
-    )
-    target_link_libraries(
-            digican
-            ${CMAKE_SOURCE_DIR}/libserialport/mingw32/libserialport.a
-    )
+    # no need to declare extra libs for digican and generic dll's in linux
 endif()

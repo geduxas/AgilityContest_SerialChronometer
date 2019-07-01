@@ -80,7 +80,7 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
     debug(DBG_DEBUG,"ring %d",  config->ring);
     debug(DBG_DEBUG,"web port %d",  config->web_port);
-    debug(DBG_DEBUG,"local_port %d",  config->web_port);
+    debug(DBG_DEBUG,"local_port %d",  config->local_port);
     if (config->opmode & OPMODE_CONSOLE) {
         fprintf(stderr,"Configuration parameters:\n");
         fprintf(stderr,"osname %s\n",   config->osname);
@@ -95,7 +95,7 @@ void print_configuration(configuration *config) {
         fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
         fprintf(stderr,"ring %d\n",  config->ring);
         fprintf(stderr,"web port %d\n",  config->web_port);
-        fprintf(stderr,"local_port %d\n",  config->web_port);
+        fprintf(stderr,"local_port %d\n",  config->local_port);
     }
 }
 
