@@ -56,13 +56,10 @@ int ADDCALL module_read(char *buffer,size_t length){
     static char *inbuff=NULL;
     if (inbuff==NULL) inbuff=malloc(1024*sizeof(char));
     memset(inbuff,0,1024*sizeof(char));
-    return 0;
-    /*
+
     do {
-        fprintf(stderr,"before read\n");
         ret = sp_blocking_read(config->serial_port,inbuff,1024,500); // timeout 0.5 seconds
         if (ret>=0)inbuff[ret]='\0';
-        fprintf(stderr,"after read: '%s'\n",(ret<0)?"(fail)":inbuff);
     } while(ret==0);
     if (ret <0 ) {
         debug(DBG_ERROR,"libserial_read() error %s",sp_last_error_message());
@@ -74,14 +71,13 @@ int ADDCALL module_read(char *buffer,size_t length){
     if (strncmp(inbuff,"START",5)==0) {
         snprintf(buffer,length,"start 0\n");
     }
-    else if (strncmp(inbuff,"START",5)==0) {
+    else if (strncmp(inbuff,"PARAR",5)==0) {
         int elapsed= 10* atoi(inbuff+7);
         snprintf(buffer,length,"stop %d\n",elapsed);
     }
     else snprintf(buffer,length,"");
     debug(DBG_TRACE,"module_read() sending to serial manager '%s'",buffer);
     return strlen(buffer);
-     */
 }
 
 static int digican_faltas=0;
@@ -198,9 +194,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // so that's allmost all done, just sending command to serial port....
     // notice "blocking" mode. needed as digican does not support full duplex communications
     debug(DBG_TRACE,"module_write(), send: '%s'",buffer);
-    fprintf(stderr,"before write() '%s'\n",buffer);
     enum sp_return ret=sp_blocking_write(config->serial_port,buffer,strlen(buffer),0);
-    fprintf(stderr,"after write()\n");
     return ret;
 }
 

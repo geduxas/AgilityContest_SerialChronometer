@@ -204,6 +204,7 @@ int main (int argc, char *argv[]) {
         // socket address used to store client address
         struct sockaddr_in client_address;
         socklen_t client_address_len = sizeof(client_address);
+        memset(&client_address,0,client_address_len);
         char buffer[500];
         int ntokens=0;
         // read content into buffer from an incoming client

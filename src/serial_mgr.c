@@ -143,7 +143,7 @@ void *serial_manager_thread(void *arg){
     memset(&entry_points,0,sizeof(entry_points));
     // create sock
     char tmpstr[1024];
-    snprintf(tmpstr,1024,"%d",config->local_port);
+    snprintf(tmpstr,1024,"%d",config->local_port+config->ring);
     slot->sock=connectUDP("localhost",tmpstr);
     if (slot->sock <0) {
         debug(DBG_ERROR,"SerialMgr: Cannot create local socket");
@@ -216,28 +216,28 @@ void *serial_manager_thread(void *arg){
     while(res>=0) {
         res=entry_points.module_read(&request[offset],sizeof(request)-offset);
         if (res<0) {
-            debug(DBG_ERROR,"Serial read() returns %d",res);
+            debug(DBG_ERROR,"SerialMgr read() returns %d",res);
             res=0;
         }
         request[offset+res]='\0';
         if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
         if (strlen(&request[offset])==0) continue; // empty string received
-        debug(DBG_TRACE,"Serial: sending to local socket: '%s'",request);
+        debug(DBG_TRACE,"SerialMgr: sending to local socket: '%s'",request);
         res=send(slot->sock,request,strlen(request),0);
         if (res<0){
-            debug(DBG_ERROR,"Serial send(): error sending request: %s",strerror(errno));
+            debug(DBG_ERROR,"SerialMgr send(): error sending request: %s",strerror(errno));
             continue;
         }
         res=recv(slot->sock,response,1024,0);
         if (res<0) {
-            debug(DBG_ERROR,"Serial recv(): error waiting response: %s",strerror(errno));
+            debug(DBG_ERROR,"SerialMgr recv(): error waiting response: %s",strerror(errno));
             continue;
         } else {
             response[res]='\0';
-            fprintf(stdout,"Serial command response: %s\n",response);
+            fprintf(stdout,"SerialMgr command response: %s\n",response);
         }
         if (slot->index<0) {
-            debug(DBG_TRACE,"Serial thread: 'exit' command invoked");
+            debug(DBG_TRACE,"SerialMgr thread: 'exit' command invoked");
             res=-1;
         }
     }
@@ -249,7 +249,7 @@ void *serial_manager_thread(void *arg){
     // unload module
     dlclose(library);
     // exit thread
-    debug(DBG_TRACE,"Exiting serial thread");
+    debug(DBG_TRACE,"Exiting SerialMgr thread");
     slot->index=-1;
     return &slot->index;
 }
