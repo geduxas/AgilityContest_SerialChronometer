@@ -22,6 +22,7 @@ int ADDCALL module_init(configuration *cfg){
     }
     return 0;
 }
+
 int ADDCALL module_end() {
     if (config->serial_port) {
         sp_free_port(config->serial_port);
@@ -39,6 +40,7 @@ int ADDCALL module_open(){
             return -1;
         }
     }
+    sp_set_rts(config->serial_port,SP_RTS_ON);
     sp_set_baudrate(config->serial_port, config->baud_rate);
     return 0;
 }
@@ -51,17 +53,33 @@ int ADDCALL module_close(){
 }
 
 int ADDCALL module_read(char *buffer,size_t length){
-    enum sp_return ret = sp_blocking_read(config->serial_port,buffer,length,0);
+    enum sp_return ret;
+    static char *inbuff=NULL;
+    if (inbuff==NULL) inbuff=malloc(1024*sizeof(char));
+    memset(inbuff,0,1024*sizeof(char));
+    do {
+        ret = sp_blocking_read(config->serial_port,inbuff,1024,500); // timeout 0.5 seconds
+        if (ret>=0)inbuff[ret]='\0';
+    } while(ret==0);
+    if (ret <0 ) {
+        debug(DBG_ERROR,"libserial_read() error %s",sp_last_error_message());
+        snprintf(buffer,length,""); // empty return
+        return strlen(buffer);
+    };
+    debug(DBG_TRACE,"module_read() received '%s'",inbuff);
     return ret;
 }
 
 int ADDCALL module_write(char **tokens,size_t ntokens){
     static char *buffer=NULL;
     if (buffer==NULL) buffer=calloc(1024,sizeof(char));
+    // compose message by adding tokens
     int len=sprintf(buffer,"%s",tokens[1]);
     for (int n=2;n<ntokens;n++) len += sprintf(buffer+len," %s",tokens[n]);
     len += sprintf(buffer+len,"\n");
-    enum sp_return ret=sp_nonblocking_write(config->serial_port,buffer,len);
+    // notice "blocking" mode. needed as most modules do not support full duplex communications
+    debug(DBG_TRACE,"module_write(), send %d bytes: '%s'",len,buffer);
+    enum sp_return ret=sp_blocking_write(config->serial_port,buffer,strlen(buffer),0);
     return ret;
 }
 
