@@ -1,6 +1,24 @@
 //
 // Created by jantonio on 20/06/19.
+// Copyright 2019 by Juan Antonio Martínez Castaño <info@agilitycontest.es>
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+// and associated documentation files (the "Software"), to deal in the Software without restriction,
+// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
 //
+// The above copyright notice and this permission notice shall be included in all copies
+// or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+// PURPOSE AND NONINFRINGEMENT.
+// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+
 #include <stdio.h>
 #include <string.h>
 
@@ -75,6 +93,7 @@ int ADDCALL module_read(char *buffer,size_t length){
         int elapsed= 10* atoi(inbuff+7);
         snprintf(buffer,length,"stop %d\n",elapsed);
     }
+    // PENDING: parse and handle additional comands sent from digican chrono ( ask oitoinnova )
     else snprintf(buffer,length,"");
     debug(DBG_TRACE,"module_read() sending to serial manager '%s'",buffer);
     return strlen(buffer);
@@ -97,6 +116,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
     else if (strcasecmp("int",cmd)==0) {
         // on intermediate time cannot provide timestamp to digican, so just call to show intermediate time
+        // this may lead in some precission errors due to communications lag
         sprintf(buffer,"TEMPI$");
     }
     // { 2, "stop",    "End of course run",               "<miliseconds>"},
@@ -106,16 +126,19 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         sprintf(buffer,"PARAR%04d$",cents);
     }
     // { 3, "fail",    "Sensor faillure detected",        ""},
+    // unsupported in digican chrono
     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
+    // unsupported in digican chrono
     // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+    // unsupported in digican chrono
     // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
     else if (strcasecmp("walk",cmd)==0) {
-        // digican course walk has no option to provide duration
+        // PENDING: ask digican how to provide course walk duration in seconds ( or minutes )
         sprintf(buffer,"RECON$");
     }
     // { 7, "down",    "Start 15 seconds countdown",      ""},
     else if (strcasecmp("walk",cmd)==0) {
-        // digican start countdown has no option to provide duration
+        // PENDING: Ask digican how to provide countdown duration instead of 15 seconds
         sprintf(buffer,"INICI$");
     }
     /*
@@ -169,14 +192,23 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         sprintf(buffer,"RESET$");
     }
     // { 13, "help",   "show command list",               "[cmd]"},
+    //  useless outside console
     // { 14, "version","Show software version",           "" },
+    //  useless outside console
     // { 15, "exit",   "End program (from console)",      "" },
+    // useless outside console
     // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+    //  useless outside console
     // { 17, "ports",  "Show available serial ports",     "" },
+    //  useless outside console
     // { 18, "config", "List configuration parameters",   "" },
+    //  useless outside console
     // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
+    //  useless outside console
     // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+    //  useless outside console
     // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+    // PENDING: ask oito-innova how to specify current time
     else if (strcasecmp("clock",cmd)==0) {
         // PENDING: check if setting hh/mm is available in digican crono
         digican_faltas=0;
@@ -184,6 +216,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         sprintf(buffer,"RELOJ$");
     }
     // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
+    // only for console
     // { -1, NULL,     "",                                "" }
     else {
         // arriving here means unrecognized or not supported command.
