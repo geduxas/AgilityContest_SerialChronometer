@@ -14,14 +14,21 @@
             display:inline-block;
             padding:10px 0px 10px 0px;
         }
-
-        .logo {
-            background:url('AgilityContest.png') center no-repeat;
-            background-size: 120px 100px;
-            border:none;
-            width:100px;
-            height:80px;
-            padding:5px
+        .chrono_fondo {
+            border: 5px solid black;
+            border-radius: 10px;
+        }
+        .title {
+            color: white;
+            text-align:right;
+            font-style: italic;
+            font-weight: bold;
+        }
+        .display {
+            font-family: monospace;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12.5vw;
         }
     </style>
     <script type="text/javascript">
@@ -48,31 +55,36 @@
             readData();
             setInterval(function() {readData();},5000);
             var layout= {'rows':55,'cols':145};
-            doLayout(layout,"#Logo",5,5,25,15);
-            doLayout(layout,"#Banner",35,5,105,5);
-            doLayout(layout,"#Clock",35,15,45,25);
-            doLayout(layout,"#FaltasLbl",85,15,15,5);
-            doLayout(layout,"#Faltas",105,15,15,5);
-            doLayout(layout,"#FaltasUp",125,15,5,5);
-            doLayout(layout,"#FaltasDown",135,15,5,5);
-            doLayout(layout,"#RehusesLbl",85,25,15,5);
-            doLayout(layout,"#Rehuses",105,25,15,5);
-            doLayout(layout,"#RehusesUp",125,25,5,5);
-            doLayout(layout,"#RehusesDown",135,25,5,5);
-            doLayout(layout,"#EliminadoLbl",85,35,15,5);
-            doLayout(layout,"#Eliminado",105,35,15,5);
-            doLayout(layout,"#EliminadoUp",125,35,5,5);
-            doLayout(layout,"#EliminadoDown",135,35,5,5);
-            doLayout(layout,"#TurnoLbl",5,25,15,5);
-            doLayout(layout,"#Turno",25,25,15,5);
-            doLayout(layout,"#RingLbl",5,35,15,5);
-            doLayout(layout,"#Ring",25,35,5,5);
+            doLayout(layout,"#Logo",7,5,20,10);
+            doLayout(layout,"#Copyright",35,3,107,3);
+            doLayout(layout,"#Banner",35,5,107,5);
+            doLayout(layout,"#fondo_clock",34,14,62,27);
+            doLayout(layout,"#Clock",35,15,60,25);
+            doLayout(layout,"#fondo_datos",99,14,43,27);
+            doLayout(layout,"#FaltasLbl",103,17,10,5);
+            doLayout(layout,"#Faltas",115,16,5,5);
+            doLayout(layout,"#FaltasUp",122,16,8,5);
+            doLayout(layout,"#FaltasDown",132,16,8,5);
+            doLayout(layout,"#RehusesLbl",103,27,10,5);
+            doLayout(layout,"#Rehuses",115,25,5,5);
+            doLayout(layout,"#RehusesUp",122,25,8,5);
+            doLayout(layout,"#RehusesDown",132,25,8,5);
+            doLayout(layout,"#EliminadoLbl",103,36,10,5);
+            doLayout(layout,"#Eliminado",115,34,5,5);
+            doLayout(layout,"#EliminadoUp",122,34,8,5);
+            doLayout(layout,"#EliminadoDown",132,34,8,5);
+            doLayout(layout,"#fondo_info",4,26,27,15);
+            doLayout(layout,"#RingLbl",8,29,10,5);
+            doLayout(layout,"#Ring",19,28,10,5);
+            doLayout(layout,"#TurnoLbl",8,35,10,5);
+            doLayout(layout,"#Turno",19,34,10,5);
+            doLayout(layout,"#fondo_buttons",4,44,138,7);
             doLayout(layout,"#ResetBtn",5,45,15,5);
             doLayout(layout,"#StartBtn" ,25,45,15,5);
             doLayout(layout,"#IntBtn",45,45,15,5);
             doLayout(layout,"#StopBtn",65,45,15,5);
-            doLayout(layout,"#SalidaBtn",105,45,15,5);
-            doLayout(layout,"#ReconocimientoBtn",125,45,15,5);
+            doLayout(layout,"#SalidaBtn",106,45,15,5);
+            doLayout(layout,"#ReconocimientoBtn",126,45,15,5);
         }
 
         function readData() {
@@ -124,41 +136,53 @@
 
     </script>
 </head>
-<body onload="initialize();">
-<form id="parameters" autocomplete="off">
+<body onload="initialize();" style="background:blue">
+<div style="width:100%">
+
+    <form id="parameters" autocomplete="off">
+    <!-- entrada oculta para componer comandos -->
     <input type="hidden" name="message" id="message" value=""/>
-    <span id="Logo"><a target="info" href="/getInfo"><img src="/AgilityContest.png" alt="logo"></a></span>
-    <span id="Banner" class="title">AgilityContest Serial Chronometer Web Interface<</span>
-    <span id="Clock"><a target="clock" href="/clock"><span class="clock">00:00</span></a>
+        <!-- logotipo -->
+    <label id="Logo" name="Logo" class="logo"><a target="info" href="/getInfo"><img src="/AgilityContest.png" alt="logo" width="100%"></a></label>
+        <!-- titulo de cabecera -->
+    <label id="Banner" class="title" for="Clock" class="title"><h2>AgilityContest Serial Chronometer Web Interface</h2></label>
+        <!-- ventana del reloj -->
+    <span class="chrono_fondo" style="background: red;"id="fondo_clock">&nbsp;</span>
+    <a target="clock" href="/clock" >
+        <input id="Clock" class="display" type="text" readonly="readonly" name="Clock" value="43:21">
+    </a>
+        <!-- ventana de faltas y rehuses -->
+        <span class="chrono_fondo " id="fondo_datos" style="background: #87CEEB">&nbsp;</span>
     <label id="FaltasLbl" for="Faltas" class="data">Faltas:</label>
     <input id="Faltas"  class="data" type="text" readonly="readonly" name="F" value="Faltas">
-    <input id="FaltasUp" class="data" type="button" name="FaltasUp" value="F+" onclick="falta(1)"/>
-    <input id="FaltasDown"  class="data" type="button" name="FaltasDown" value="F-" onclick="falta(-1)">
+    <input id="FaltasUp" class="data" type="button" name="FaltasUp" value="Flt+" onclick="falta(1)"/>
+    <input id="FaltasDown"  class="data" type="button" name="FaltasDown" value="Flt-" onclick="falta(-1)">
     <label id="RehusesLbl" for="Rehuses" class="data">Rehuses:</label>
     <input id="Rehuses"  class="data" type="text" readonly="readonly" name="R" value="Rehuses">
-    <input id="RehusesUp" class="data" type="button" name="RehusesUp" value="R+" onclick="rehuse(1);"/>
-    <input id="RehusesDown"  class="data" type="button" name="RehusesDown" value="R-" onclick="rehuse(-1);">
+    <input id="RehusesUp" class="data" type="button" name="RehusesUp" value="Reh+" onclick="rehuse(1);"/>
+    <input id="RehusesDown"  class="data" type="button" name="RehusesDown" value="Reh-" onclick="rehuse(-1);">
     <label id="EliminadoLbl" for="Eliminado" class="data">Eliminado:</label>
     <input id="Eliminado"  class="data" type="text" readonly="readonly" name="F" value="Eliminado">
-    <input id="EliminadoUp" class="data" type="button" name="EliminadoUp" value="F+" onclick="eliminado(1);"/>
-    <input id="EliminadoDown"  class="data" type="button" name="EliminadoDown" value="F-" onclick="eliminado(-1);">
+    <input id="EliminadoUp" class="data" type="button" name="EliminadoUp" value="El+" onclick="eliminado(1);"/>
+    <input id="EliminadoDown"  class="data" type="button" name="EliminadoDown" value="El-" onclick="eliminado(-1);">
 
-
-    <label id="TurnoLbl" for="Turno" class="data">Turno:</label>
+    <!-- ventana de turno y ring -->
+        <span class="chrono_fondo " id="fondo_info" style="background: #87CEEB">&nbsp;</span>
+    <label id="TurnoLbl" for="Turno" class="data">En pista:</label>
     <input id="Turno"  class="data" type="text" readonly="readonly" name="Turno" value="Turno">
-
     <label id="RingLbl" for="Ring" class="data">Ring:</label>
     <input id="Ring"  class="data" type="text" readonly="readonly" name="Ring" value="Ring">
 
+    <!-- botonera de abajo -->
+        <span class="chrono_fondo" id="fondo_buttons" style="background:#a6ff7c">&nbsp;</span>
     <input id="ResetBtn" class="data" type="button" name="Reset" value="Reset" onclick="reset();"/>
     <input id="StartBtn" class="data" type="button" name="Start" value="Start" onclick="start_run();"/>
     <input id="IntBtn" class="data" type="button" name="Intermediate" value="T. Int." onclick="int_run();"/>
     <input id="StopBtn" class="data" type="button" name="Stop" value="Stop" onclick="stop_run();"/>
     <input id="SalidaBtn" class="data" type="button" name="Salida" value="15 Secs." onclick="salida();"/>
     <input id="ReconocimientoBtn" class="data" type="button" name="CourseWalk" value="CourseWalk" onclick="reconocimiento();"/>
-
-    </span>
-</form>
-<span style="width:100%;display:block;text-align:right;font-style:italic;font-size:10px"><br/>Copyright &copy; 2019 by JAMC para AgilityContest 3.9.1</span>
+    </form>
+</div>
+<span id="Copyright" style="color:white;width:100%;display:block;text-align:right;font-style:italic;font-size:10px"><br/>Copyright &copy; 2019 by JAMC para AgilityContest 3.9.1</span>
 </body>
 </html>
