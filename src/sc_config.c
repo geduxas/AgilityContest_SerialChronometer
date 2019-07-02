@@ -38,7 +38,7 @@ configuration * default_options(configuration * config) {
     config->module="generic";
     config->client_name="generic";
     config->serial_port = NULL;
-    config->opmode = 0; //bitmask 1:serial 2:console 4:web 8:agilitycontest
+    config->opmode = 0; //bitmask 1:serial 2:console 4:html 8:agilitycontest
     config->local_port = 8880;
     // internal status tracking
     config->status.eliminated=0;
@@ -79,7 +79,7 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"comm_port %s",  config->comm_port);
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
     debug(DBG_DEBUG,"ring %d",  config->ring);
-    debug(DBG_DEBUG,"web port %d",  config->web_port);
+    debug(DBG_DEBUG,"html port %d",  config->web_port);
     debug(DBG_DEBUG,"local_port %d",  config->local_port);
     if (config->opmode & OPMODE_CONSOLE) {
         fprintf(stderr,"Configuration parameters:\n");
@@ -94,7 +94,7 @@ void print_configuration(configuration *config) {
         fprintf(stderr,"comm_port %s\n",  config->comm_port);
         fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
         fprintf(stderr,"ring %d\n",  config->ring);
-        fprintf(stderr,"web port %d\n",  config->web_port);
+        fprintf(stderr,"html port %d\n",  config->web_port);
         fprintf(stderr,"local_port %d\n",  config->local_port);
     }
 }

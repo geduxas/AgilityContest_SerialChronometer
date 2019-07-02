@@ -7,11 +7,12 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "../include/debug.h"
-#include "../include/main.h"
-#include "../include/web_mgr.h"
-#include "../include/sc_config.h"
-#include "../include/sc_sockets.h"
+#include "debug.h"
+#include "main.h"
+#include "web_mgr.h"
+#include "sc_config.h"
+#include "sc_sockets.h"
+#include "web_server.h"
 
 static int web_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
     return 0;
@@ -53,7 +54,7 @@ static int web_mgr_reset(configuration * config, int slot, char **tokens, int nt
     return 0;
 }
 static int web_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
-    debug(DBG_INFO,"Internal web interface thread: exit requested");
+    debug(DBG_INFO,"Internal html interface thread: exit requested");
     return -1;
 }
 static int web_mgr_server(configuration * config, int slot, char **tokens, int ntokens) {
@@ -93,6 +94,7 @@ static func entries[32]= {
 };
 
 void *web_manager_thread(void *arg){
+    int res=0;
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
     configuration *config=slot->config;
@@ -103,13 +105,17 @@ void *web_manager_thread(void *arg){
     snprintf(portstr,16,"%d",config->local_port+config->ring);
     slot->sock=connectUDP("localhost",portstr);
     if (slot->sock <0) {
-        debug(DBG_ERROR,"SerialMgr: Cannot create local socket");
+        debug(DBG_ERROR,"%s: Cannot create local socket",SC_WEBSRV);
+        return NULL;
+    }
+
+    if ( (res=init_webServer(config)) <0 ) {
+        debug(DBG_ERROR,"%s: Cannot create html server",SC_WEBSRV);
         return NULL;
     }
 
     // mark thread alive before entering loop
     slot->index=slotIndex;
-    int res=0;
     while(res>=0) {
         sleep(1);
         if (slot->index<0) {
@@ -117,7 +123,7 @@ void *web_manager_thread(void *arg){
             res=-1;
         }
     }
-    debug(DBG_TRACE,"Exiting web server thread");
+    debug(DBG_TRACE,"Exiting html server thread");
     slot->index=-1;
     return &slot->index;
 }

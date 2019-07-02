@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="application-name" content="Agility Contest's Now Running Web Console" />
+    <meta name="copyright" content="© 2013-2018 Juan Antonio Martinez" />
+    <meta name="author" lang="en" content="Juan Antonio Martinez" />
+    <title>Now Running Web console</title>
+    <script src="jquery-2.2.4.min.js" type="text/javascript" charset="utf-8"></script>
+    <link rel="stylesheet" type="text/css" href="toogle-switch.css" />
+    <style type="text/css">
+        .input_number {
+            width:50px;
+            display:inline-block;
+            padding:10px 0px 10px 0px;
+        }
+
+        .logo {
+            background:url('AgilityContest.png') center no-repeat;
+            background-size: 120px 100px;
+            border:none;
+            width:100px;
+            height:80px;
+            padding:5px
+        }
+    </style>
+    <script type="text/javascript">
+
+        function initialize() {
+            $('#btn_turno').prop('checked',true);
+            $('#sel_rec').val("0").prop('enabled',true);
+            readData();
+            setInterval(function() {readData();},5000);
+        }
+
+        function readData() {
+            $.ajax({
+                url: '/readData',
+                dataType: 'json',
+                method: 'GET',
+                data: { 'Operation':'readData' }, // not really needed, but...
+                success: function(data){
+                    var sturno=$('#sel_turno');
+                    // alert(JSON.stringify(data));
+                    // if sel_turno has focus, do not update value
+                    if (! sturno.is(':focus')) {
+                        sturno.val(data.Numero);
+                    }
+                    $('#sel_ring').val(data.Ring);
+                    $('#sel_cat').val(data.Categoria);
+                    $('#sel_grad').val(data.Grado);
+                    $('#sel_brillo').val(data.Brillo);
+                    $('#sel_rec').val(data.Reconocimiento);
+                    $('#host_ip').val(data.HostIP);
+                    $('#server_ip').val(data.ServerIP);
+                    if (data.Mode==='Reloj') {
+                        sturno.prop("disabled",true);
+                        $('#btn_clock').prop("checked",true);
+                    }
+                    else if (data.Mode==='Reconocimiento') {
+                        $('#sel_turno').prop("disabled",true);
+                        $('#btn_rec').prop("checked",true);
+                    }
+                    else{
+                        sturno.prop("disabled",false);
+                        $('#btn_turno').prop("checked",true);
+                    }
+                },
+                error: function(){
+                    alert('Error');
+                }
+            });
+            return false;
+        }
+
+        function sendPost(url) {
+            $.ajax({
+                type: 'POST',
+                url: url,
+                dataType: 'json',
+                data: $('#parameters').serialize()
+            }).done(function(data) {
+                // alert(JSON.stringify(data));
+            }).fail(function(data) {
+                alert("Error");
+            });
+            $('#sel_stop').val("0");
+        }
+
+        function writeData() {
+            sendPost('/writeData');
+        }
+
+        function reconnect(){
+            sendPost('/connectServer');
+        }
+
+        function toogle(element) {
+            var button=element.value;
+            var checked=element.checked;
+            if (button==='Turno' && checked===true) {
+                $('#sel_turno').prop("disabled",false);
+            } else {
+                $('#sel_turno').prop("disabled",true);
+            }
+            writeData();
+        }
+
+        function stopCourseWalk() {
+            $('#sel_stop').val("1");
+            $('#btn_turno').attr('checked',true).click();
+        }
+
+        function setDog(dog) { writeData(); }
+        function selectRing(obj) { writeData(); }
+        function selectRound(obj) { writeData(); }
+        function selectCategoria(obj) { writeData(); }
+        function selectGrado(obj) { writeData(); }
+        function selectBrillo(obj) { writeData(); }
+        function selectRecTime(obj) { writeData(); }
+
+    </script>
+</head>
+<body onload="initialize();">
+
+<form id="parameters" autocomplete="off">
+
+<table width="100%">
+
+    <tr>
+        <td colspan="2" style="text-align:left;"><h2>Panel de control "Su Turno"</h2></td>
+        <td style="text-align:right">
+            <input type="text" id="logo" name="Logo" value="" class="logo" onclick="readData();">
+        </td>
+    </tr>
+    <tr> <th colspan="3" align="left"> Modo de funcionamiento</th></tr>
+    <tr>
+        <td>
+            <!-- boton de perro en pista -->
+            <label class="switch switch-slide">
+                <input name="Mode" id="btn_turno" class="switch-input" type="radio" value="Turno" onchange="toogle(this);" checked="checked"/>
+                <span class="switch-label" data-on="Perro en pista" data-off="Perro en pista"></span>
+                <span class="switch-handle"></span>
+            </label>
+            <!-- indicador de perro en pista -->
+            <input class="input_number"  type="number" id="sel_turno" name="Numero" onchange="setDog(this.value);" min="0" max="999" step="1" value="0"/>
+        </td><td style="text-align:center">
+            <!-- boton de reconocimiento de pista -->
+            <label class="switch switch-slide">
+                <input name="Mode" id="btn_rec" class="switch-input" type="radio" value="Reconocimiento" onchange="toogle(this);" />
+                <span class="switch-label" data-on="Reconocimiento" data-off="Reconocimiento"></span>
+                <span class="switch-handle"></span>
+            </label>
+        </td><td style="text-align:right">
+            <!-- boton para mostrar el reloj -->
+            <label class="switch switch-slide">
+                <input name="Mode" id="btn_clock" class="switch-input" type="radio" value="Reloj" onchange="toogle(this);" />
+                <span class="switch-label" data-on="Reloj" data-off="Reloj"></span>
+                <span class="switch-handle"></span>
+            </label>
+        </td>
+    </tr>
+    <tr> <td colspan="3"><hr/></td> </tr>
+    <tr> <th colspan="3" align="left"> Configuraci&oacute;n</th></tr>
+    <tr>
+        <td>
+            <label for="sel_ring" style="display:inline-block;width:120px;">Ring: </label>
+            <select id="sel_ring" name="Ring" onchange="selectRing(this);">
+                <option value="0" selected="selected">Ring 1</option>
+                <option value="1">Ring 2</option>
+                <option value="2">Ring 3</option>
+                <option value="3">Ring 4</option>
+            </select>
+            <br/>&nbsp;
+        </td>
+        <td style="width:100px">&nbsp;</td>
+        <td>
+            <label for="sel_round" style="display:inline-block;width:120px;">Manga: </label>
+            <select id="sel_round" name="Round" onchange="selectRound(this);">
+                <option value="Agility" selected="selected">Agility</option>
+                <option value="Jumping">Jumping</option>
+                <option value="Tunnel Cup">Tunnel Cup</option>
+                <option value="Snooker">Snooker</option>
+                <option value="Gambler">Gambler</option>
+                <option value="Ronda K.O.">Ronda K.O.</option>
+                <option value="Manga Especial">M. Especial</option>
+            </select>
+            <br/>&nbsp;
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label for="sel_cat" style="display:inline-block;width:120px;">Categoria: </label>
+            <select id="sel_cat" name="Categoria" onchange="selectCategoria(this);">
+                <option value="ExtraLarge">Extra Large</option>
+                <option value="Large" selected="selected">Large</option>
+                <option value="Medium">Medium</option>
+                <option value="Small">Small</option>
+                <option value="Toy">Toy</option>
+            </select>
+            <br/>&nbsp;
+        </td>
+        <td style="width:75px">&nbsp;</td>
+        <td>
+            <label for="sel_grad" style="display:inline-block;width:120px;">Grado: </label>
+            <select id="sel_grad" name="Grado" onchange="selectGrado(this);">
+                <option value="Grado 1" selected="selected">Grado 1</option>
+                <option value="Grado 2">Grado 2</option>
+                <option value="Grado 3">Grado 3</option>
+                <option value="Pre-Agility">Pre-Agility</option>
+                <option value="Junior">Junior</option>
+                <option value="Senior">Senior</option>
+            </select>
+            <br/>&nbsp;
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label for="sel_rec" style="display:inline-block;width:120px;">Rec. pista: </label>
+            <select id="sel_rec" name="Reconocimiento" onchange="selectRecTime(this);">
+                <option value="6">6 Minutos</option>
+                <option value="7" selected="selected">7 Minutos</option>
+                <option value="8">8 Minutos</option>
+                <option value="9">9 Minutos</option>
+            </select>
+            <br/>
+        </td>
+        <td style="width:75px;text-align:left">
+            <input type="button" id="sel_stopBtn" name="StopBtn" value="Detener" onclick="stopCourseWalk();">
+            <input type="hidden" id="sel_stop" name="Stop" value="0">
+        </td>
+        <td>
+            <label for="sel_brillo" style="display:inline-block;width:120px;">Brillo: </label>
+            <input id="sel_brillo" name="Brillo" type="number" class="input_number" value="6" min="0" max="9" step="1" onchange="selectBrillo(this);"/>
+            <br/>
+        </td>
+    </tr>
+
+
+    <tr><td colspan="3"><hr/></td></tr>
+    <tr> <th colspan="3" align="left">Informaci&oacute;n adicional</th></tr>
+    <tr>
+        <td>
+            <label for="host_ip">Direcciones IP:</label>
+        </td>
+        <td colspan="2" >
+            <input type="text" name="HostIP" id="host_ip" disabled="disabled" readonly="readonly" value="0.0.0.0" style="width:350px;">
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label for="server_ip">AgilityContest server IP:</label>
+        </td>
+        <td>
+            <input type="text" name="ServerIP" id="server_ip" disabled="disabled"  value="0.0.0.0" style="width:200px;">
+        </td>
+        <td>
+            <input type="button" id="btn_reconnect" value="Reconectar" onclick="reconnect()"/>
+        </td>
+    </tr>
+</table>
+</form>
+<span style="width:100%;display:block;text-align:right;font-style:italic;font-size:10px"><br/>Copyright &copy; 2019 by JAMC para AgilityContest 3.9.1</span>
+</body>
+</html>

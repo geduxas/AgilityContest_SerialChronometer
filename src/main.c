@@ -57,7 +57,7 @@ static int usage() {
     fprintf(stderr,"\t -d comport || --device=com_port    Communication port to attach to (required) \n");
     fprintf(stderr,"\t -b baud    || --baud=baudrate      Set baudrate for comm port. Defaults 9600\n");
     fprintf(stderr,"Web interface:\n");
-    fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for web interface. 0:disable . Default 8080\n");
+    fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for html interface. 0:disable . Default 8080\n");
     fprintf(stderr,"AgilityContest  interface:\n");
     fprintf(stderr,"\t -s ipaddr  || --server=ip_address  Location (IP) of AgilityContest server.\n");
     fprintf(stderr,"                                      Values: \"none\":disable - \"find\":search - Default: \"localhost\"\n");
@@ -174,7 +174,7 @@ int main (int argc, char *argv[]) {
     // thread 2: gestion de mini-servidor we 0b
     if (config->web_port !=0 ) {
         config->opmode |= OPMODE_WEB;
-        debug(DBG_TRACE,"Starting internal web server thread");
+        debug(DBG_TRACE,"Starting internal html server thread");
         sc_thread_create(2,SC_WEBSRV,config,web_manager_thread);
     }
     // thread 3: comunicaciones ajax con servidor AgilityContest

@@ -12,7 +12,8 @@ include_directories(libserialport/include)
 # source files
 #libcsoap includes libsoap and libnanohttp. libsoap is not used
 file(GLOB SOURCES "src/*.c")
-file(GLOB INCLUDES "libserialport/include/*.h libcsoap-1.1.0/include/nanohttp/*.h include/*.h")
+file(GLOB INCLUDES "include/*.h")
+include_directories( libserialport/include/ libcsoap-1.1.0/include/ )
 
 # module libraries definition for "generic" module
 add_library(generic SHARED src/modules/generic.c src/debug.c)
@@ -42,6 +43,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/lib/mingw32/libserialport.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libnanohttp.a
             dlfcn-win32::dl
             curl
             idn2
@@ -72,6 +74,7 @@ else()
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/lib/linux/libserialport.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libnanohttp.a
             pthread
             curl
             dl

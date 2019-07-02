@@ -69,7 +69,7 @@ typedef struct {
     char *ajax_server;
     char *client_name;
 
-    // web server parameters
+    // html server parameters
     int web_port;
 
     // serial port parameters
