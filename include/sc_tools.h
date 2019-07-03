@@ -8,6 +8,18 @@
 #include<stdio.h>
 #include "../include/sc_config.h"
 
+typedef struct qitem_st {
+    time_t expire;
+    int id;
+    char *msg;
+    struct qitem_st *next;
+} qitem_t;
+
+typedef struct queue_st {
+    qitem_t *first;
+    qitem_t *last;
+} queue_t;
+
 #ifndef SERIALCHRONOMETER_SC_TOOLS_C
 #define EXTERN extern
 #else
@@ -17,6 +29,15 @@ EXTERN int stripos(char* haystack, char* needle );
 EXTERN char **explode(char* line, char separator,int *nelem );
 EXTERN long long current_timestamp();
 EXTERN char *getSessionName(configuration *config);
+
+/* fifo queue management */
+EXTERN queue_t *queue_create();
+EXTERN void queue_destroy(queue_t *queue);
+EXTERN qitem_t *queue_put(queue_t*queue, char * msg);
+EXTERN char *queue_get(queue_t *queue);
+EXTERN char *queue_pick(queue_t *queue,int id);
+EXTERN size_t queue_size(queue_t *queue);
+EXTERN void queue_expire(queue_t *queue);
 
 #undef EXTERN
 #endif //SERIALCHRONOMETER_SC_TOOLS_H

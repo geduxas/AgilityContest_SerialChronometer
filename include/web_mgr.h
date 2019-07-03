@@ -5,7 +5,7 @@
 #ifndef AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_H
 #define AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_H
 
-#include "../include/sc_config.h"
+#include "sc_config.h"
 
 #ifdef  AGILITYCONTEST_SERIALCHRONOMETER_WEB_MGR_C
 #define EXTERN extern

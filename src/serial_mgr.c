@@ -230,11 +230,12 @@ void *serial_manager_thread(void *arg){
         }
         res=recv(slot->sock,response,1024,0);
         if (res<0) {
-            debug(DBG_ERROR,"SerialMgr recv(): error waiting response: %s",strerror(errno));
+            debug(DBG_NOTICE,"SerialMgr recv(): error waiting response: %s",strerror(errno));
+            res=0; // not really a fatal error. try to continue
             continue;
         } else {
             response[res]='\0';
-            fprintf(stdout,"SerialMgr command response: %s\n",response);
+            debug(DBG_DEBUG,"SerialMgr command response: %s\n",response);
         }
         if (slot->index<0) {
             debug(DBG_TRACE,"SerialMgr thread: 'exit' command invoked");

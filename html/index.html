@@ -32,6 +32,13 @@
         }
     </style>
     <script type="text/javascript">
+
+
+        // used to store last command id parsed
+        var lastID=0;
+        var start_timestamp=0;
+        var run_timestamp=0;
+
         function doLayout(dg,id,x,y,w,h) {
             var elem=$(id);
             elem.css('display','inline-block');
@@ -50,10 +57,14 @@
         }
 
         function initialize() {
+            start_ts=Date.now();
             $('#btn_turno').prop('checked',true);
             $('#sel_rec').val("0").prop('enabled',true);
+            lastID=0;
+            start_timestamp=0;
+            run_timestamp=0;
             readData();
-            setInterval(function() {readData();},5000);
+            setInterval(function() { readData(); },5000);
             var layout= {'rows':55,'cols':145};
             doLayout(layout,"#Logo",7,5,20,10);
             doLayout(layout,"#Copyright",35,3,107,3);
@@ -87,32 +98,42 @@
             doLayout(layout,"#ReconocimientoBtn",126,45,15,5);
         }
 
+
+        function parseCommand(command) {
+            alert("Command "+lastID+" received: "+command);
+            lastID +=1;
+        }
+
         function readData() {
             $.ajax({
                 url: '/readData',
                 dataType: 'json',
                 method: 'GET',
-                data: { 'Operation':'readData' }, // not really needed, but...
+                data: { 'ID': lastID },
                 success: function(data){
                     $('#Faltas').val(data.F);
                     $('#Rehuses').val(data.R);
                     $('#Eliminado').val(data.E);
                     $('#Turno').val(data.D);
+                    lastID= parseInt(data.ID);
                     // if any event, parse it
+                    if (data.Command) {
+                        setTimeout(function(){ parseCommand(data.Command);},0);
+                    }
                 },
                 error: function(){
-                    alert('Error');
+                    alert('Error in readData');
                 }
             });
             return false;
         }
 
-        function sendPost(url) {
+        function writeData(msg) {
             $.ajax({
-                type: 'POST',
-                url: url,
+                type: 'GET',
+                url: "/writeData",
                 dataType: 'json',
-                data: $('#parameters').serialize()
+                data: { Command : msg }
             }).done(function(data) {
                 // alert(JSON.stringify(data));
             }).fail(function(data) {
@@ -120,19 +141,46 @@
             });
             $('#sel_stop').val("0");
         }
-        function writeData() {
-            sendPost('/writeData');
-        }
 
-        function falta(val) { writeData(); }
-        function rehuse(val) { writeData(); }
-        function eliminado(val) { writeData(); }
-        function reset(obj) { writeData(); }
-        function start_run(obj) { writeData(); }
-        function int_run(obj) { writeData(); }
-        function stop_run(obj) { writeData(); }
-        function reconocimiento() {}
-        function salida() { }
+        function falta(inc) {
+            var f= inc+parseInt( $('#Faltas').val() ) ;
+            if (f<0) f=0;
+            writeData("fault "+f);
+        }
+        function rehuse(inc) {
+            var r= inc+parseInt( $('#Rehuses').val() ) ;
+            if(r<0) r=0;
+            writeData("refusal "+r);
+        }
+        function eliminado(inc) {
+            var e= inc+parseInt( $('#Eliminado').val() ) ;
+            if (e<0) e=0;
+            if (e>1) e=1;
+            writeData("elim "+f);
+        }
+        function reset() {
+            writeData("reset");
+        }
+        function start_run() {
+            run_timestamp = Date.now()-start_timestamp; // miliseconds since webapp started
+            writeData("start "+run_timestamp);
+        }
+        function int_run() {
+            var current= Date.now()-start_timestamp; // miliseconds since webapp started
+            var elapsed=current-run_timestamp;
+            writeData("int "+elapsed);
+        }
+        function stop_run() {
+            var current = Date.now() - start_timestamp;
+            var elapsed = current - run_timestamp;
+            writeData("stop " + elapsed);
+        }
+        function reconocimiento() {
+            writeData("walk 420");
+        }
+        function salida() {
+            writeData("down 15");
+        }
 
     </script>
 </head>

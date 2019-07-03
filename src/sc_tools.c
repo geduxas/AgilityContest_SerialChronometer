@@ -62,3 +62,86 @@ char * getSessionName(configuration *config) {
     snprintf(name,1024,"chrono:%d:0:0:%s",config->status.sessionID,config->client_name);
     return name;
 }
+
+/*************************************** fifo queue management */
+queue_t *queue_create() {
+    return calloc(1,sizeof(queue_t));
+}
+void queue_destroy(queue_t *q) {
+    if (!q || !q->first) return;
+    while (q->first!=q->last) {
+        free(q->first->msg);
+        q->first=q->first->next;
+        free(q->first);
+    }
+}
+qitem_t *queue_put(queue_t *q,char * msg) {
+    qitem_t *item=calloc(1,sizeof(qitem_t));
+    if (!item) return NULL;
+    char *m=strdup(msg); // duplicate string to keep queue without external manipulation
+    if (!m) {
+        free(item);
+        return NULL;
+    }
+    item->msg=m;
+    item->expire=15000+current_timestamp(); // mark expire in 15 seconds
+    if (!q->last) { // empty queue
+        item->id=0;
+        q->first=item;
+        q->last=item;
+    } else {
+        item->id=1+q->last->id;
+        q->last->next=item;
+        q->last=item;
+    }
+    return item;
+}
+
+char *queue_get(queue_t *q) {
+    char *msg=NULL;
+    qitem_t *item=q->first;
+    if (!item) return NULL;
+    msg=item->msg;
+    q->first=item->next;
+    if (!q->first) q->last=NULL; // last item
+    free(item);
+    return msg;
+}
+
+// pick requested element from queue. DO NOT remove
+// when id=-1 get *first item
+// else search for first id greater or equal than requested
+char *queue_pick(queue_t *q,int id) {
+    qitem_t *last=NULL;
+    if (!q->last) return NULL;
+    if (id<0) return strdup(q->first->msg); // use strdup to avoid external manipulation
+    for (qitem_t *pt=q->last; pt ; pt=pt->next) {
+        last=pt;
+        if (last->id<id) return NULL;
+        if (last->id == id) return strdup(last->msg);
+    }
+    if (last) return strdup(last->msg);
+    return NULL;
+}
+
+size_t queue_size(queue_t *q) {
+    if (!q) return 0;
+    size_t count=0;
+    qitem_t *item=q->first;
+    if (!q->first) return 0;
+    return 1 + q->last->id - q->first->id;
+}
+
+void queue_expire(queue_t *q) {
+    if (!q) return;
+    qitem_t *item=q->first;
+    // retrieve last item
+    while ( item ) {
+        // not expired, return
+        if (item->expire > current_timestamp()) return;
+        // expired: remove content and go for next element
+        char *msg= queue_get(q);
+        if (msg) free(msg); // don't need message: remove it
+        item = q->first;
+    }
+}

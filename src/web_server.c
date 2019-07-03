@@ -32,6 +32,8 @@
 
 #include "debug.h"
 #include "sc_config.h"
+#include "sc_tools.h"
+#include "web_mgr.h"
 #include "web_server.h"
 
 static configuration *config;
@@ -78,11 +80,24 @@ static void headers_service(httpd_conn_t *conn, hrequest_t *req) {
  * add events if any
  */
 static void readData(httpd_conn_t *conn, hrequest_t *req) {
+    extern queue_t *output_queue;
     char line[1024];
     int len=0;
+    struct hpair *item=req->query;
+    char *id_key=item->key; // should be "ID"
+    char *id_value=item->value;
+    int cmdid=atoi(id_value);
     len=sprintf(line,"{\"F\":\"%d\",\"R\":\"%d\",\"E\":\"%d\",\"D\":\"%d\"",
             config->status.faults,config->status.refusals,config->status.eliminated,config->status.numero);
     // PENDING if event: add it
+    // parse htmlquery to extract last commandID
+    char *msg=queue_pick(output_queue,cmdid);
+    if (msg) { // add to json data as ",Command":message"
+        len += sprintf(line+len,",\"Command\":\"%s\"",msg);
+        free(msg); //strdup()'d from queue
+    }
+    // add cmdid
+    len += sprintf(line+len,",\"ID\":\"%d\"",cmdid);
     len += sprintf(line+len,"}");
     httpd_add_header(conn,"Content-Type","application/json");
     httpd_send_header(conn, 200, "OK");
@@ -91,11 +106,24 @@ static void readData(httpd_conn_t *conn, hrequest_t *req) {
 
 /**
  * get and process commands from browser
+ * arguments: ?Command=X&Value=X
  * @param conn
  * @param req
  */
 static void writeData(httpd_conn_t *conn, hrequest_t *req) {
-
+    extern queue_t *input_queue;
+    struct hpair *item=req->query;
+    char *cmd_key=item->key; // should be "Command"
+    char *cmd_value=item->value; // command value
+    char buffer[128];
+    // compose incoming message and enqueue it
+    sprintf(buffer,"%s",cmd_value);
+    debug(DBG_TRACE,"writeData() received %s",buffer);
+    queue_put(input_queue,buffer);
+    // send back json OK response
+    httpd_add_header(conn,"Content-Type","application/json");
+    httpd_send_header(conn, 200, "OK");
+    hsocket_send (conn->sock,"{\"Result\":\"OK\"}");
 }
 
 static void default_service(httpd_conn_t *conn, hrequest_t *req) {
