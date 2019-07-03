@@ -154,12 +154,13 @@ int main (int argc, char *argv[]) {
     }
 
     // start requested threads
-    sc_threads = calloc(4,sizeof(sc_thread_slot));
+    // we need 4+1 threads (console,serial,ajax,web) managers plus webserver
+    sc_threads = calloc(5,sizeof(sc_thread_slot));
     if (!sc_threads) {
         debug(DBG_ERROR,"Error allocating thread data space");
         return 1;
     }
-    for (int n=0;n<4;n++) sc_threads[n].index=-1;
+    for (int n=0;n<5;n++) sc_threads[n].index=-1;
     // Thread 0: interactive console
     if (config->opmode & OPMODE_CONSOLE) {
         debug(DBG_TRACE,"Starting interactive console thread");
@@ -261,7 +262,7 @@ int main (int argc, char *argv[]) {
         }
         // send received data to every active threads
         int alive=0;
-        for (int n=0;n<4;n++) {
+        for (int n=0;n<4;n++) { // notice: thread 5 is not a manager, but webserver task,
             if (sc_threads[n].index<0) {
                 debug(DBG_TRACE,"Thread %d is not active",n);
                 continue; // skip non active threads

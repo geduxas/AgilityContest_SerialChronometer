@@ -13,7 +13,7 @@
 #define EXTERN
 #endif
 
-EXTERN int init_webServer(configuration *config);
+EXTERN void * init_webServer(void *config); // started as a thread.
 EXTERN int end_webServer();
 #undef EXTERN
 

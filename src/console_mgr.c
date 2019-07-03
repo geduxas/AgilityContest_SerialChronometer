@@ -59,7 +59,7 @@ static int console_mgr_down(configuration * config, int slot, char **tokens, int
     return 0;
 }
 static int console_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
-    fprintf(stderr,"Fault count is: %d",config->status.faults);
+    fprintf(stderr,"Fault count is: %d\n",config->status.faults);
     return 0;
 }
 static int console_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {

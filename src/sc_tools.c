@@ -64,8 +64,11 @@ char * getSessionName(configuration *config) {
 }
 
 /*************************************** fifo queue management */
-queue_t *queue_create() {
-    return calloc(1,sizeof(queue_t));
+queue_t *queue_create(char *name) {
+    queue_t *q=calloc(1,sizeof(queue_t));
+    if (!q) return NULL;
+    q->name=strdup(name);
+    return q;
 }
 void queue_destroy(queue_t *q) {
     if (!q) return;
@@ -76,10 +79,14 @@ void queue_destroy(queue_t *q) {
         pt=pt->next;
         free(cur);
     }
+    free(q->name); // strdup()'d
     free(q);
 }
 
 qitem_t *queue_put(queue_t *q,char * msg) {
+    if (!q) return NULL;
+    if (!msg) return NULL;
+    // fprintf(stderr,"(%s) queue_put\n",q->name);
     qitem_t *item=calloc(1,sizeof(qitem_t));
     if (!item) return NULL;
     char *m=strdup(msg); // duplicate string to keep queue without external manipulation
@@ -93,19 +100,19 @@ qitem_t *queue_put(queue_t *q,char * msg) {
     item->next=q->last_out;
     q->last_out=item;
     if (!item->next) q->first_out=item; // on empty queue set first to out on new item
-    // fprintf(stderr,"queue put index:%d msg:'%s'\n",item->index,item->msg);
+    // fprintf(stderr,"(%s) queue put index:%d msg:'%s'\n",q->name,item->index,item->msg);
     return item;
 }
 
 char *queue_get(queue_t *q) {
-    char *msg=NULL;
+    if (!q) return NULL; // no queue
+    if (!q->first_out) return NULL; // empty queue
+    // fprintf(stderr,"(%s) queue_get\n",q->name);
     qitem_t *item=q->first_out;
-    if (!item) return NULL;
-    msg=item->msg;
-    q->first_out=item->next;
-    if (!q->first_out) q->last_out=NULL; // on last item set both pointers to null
-    // fprintf(stderr,"queue get index:%d msg:'%s'\n",item->index,item->msg);
-    // do not free item->msg as is the returned value
+    char *msg=q->first_out->msg;
+    q->first_out=q->first_out->next;
+    if (!q->first_out) q->last_out=NULL; // on no more elements in queue clean last_out pointer
+    // fprintf(stderr,"(%s)queue get index:%d msg:'%s'\n",q->name,item->index,item->msg);
     free(item);
     return msg;
 }
@@ -146,6 +153,7 @@ void queue_expire(queue_t *q) {
     while ( item ) {
         // not expired, return
         if (item->expire > current_timestamp()) return;
+        // fprintf(stderr,"(%s) expire index:%d\n",q->name,item->index);
         // expired: remove content and go for next element
         char *msg= queue_get(q);
         if (msg) free(msg); // don't need message: remove it

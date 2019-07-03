@@ -80,29 +80,25 @@ void *web_manager_thread(void *arg){
     }
 
     // initialize queue structures for data I/O
-    input_queue= queue_create();
-    output_queue= queue_create();
+    input_queue= queue_create("input_queue");
+    output_queue= queue_create("output_queue");
     if (!input_queue || !output_queue) {
         debug(DBG_ERROR,"%s: Cannot create web server data queues",SC_WEBSRV);
         return NULL;
     }
 
-    // initialize web server
-    if ( (res=init_webServer(config)) <0 ) {
-        debug(DBG_ERROR,"%s: Cannot create html server",SC_WEBSRV);
-        return NULL;
-    }
+    // initialize web server in a separate thread. slot index 4 wont be used for managers
+    sc_thread_create(4,"Web Server",config,init_webServer);
 
-    // mark thread alive before entering loop
+    // mark web_manager thread alive before entering loop
     slot->index=slotIndex;
 
-
+    // prepare data before enter loop
     char *p;
     char request[1024];
     sprintf(request,"%s ",SC_SERIAL);
-    int offset=strlen(request);
     char response[1024];
-
+    res=0;
     while(res>=0) {
         char *msg=queue_get(input_queue);
         if (!msg) {

@@ -103,8 +103,9 @@
             doLayout(layout,"#StartBtn" ,25,45,15,5);
             doLayout(layout,"#IntBtn",45,45,15,5);
             doLayout(layout,"#StopBtn",65,45,15,5);
-            doLayout(layout,"#SalidaBtn",106,45,15,5);
-            doLayout(layout,"#ReconocimientoBtn",126,45,15,5);
+            doLayout(layout,"#SalidaBtn",98,45,15,5);
+            doLayout(layout,"#ReconocimientoBtn",118,45,15,5);
+            doLayout(layout,"#WalkTime",134,45,7,5);
             $('#MessageBox').css("display","none");
         }
 
@@ -183,7 +184,7 @@
             var e= inc+parseInt( $('#Eliminado').val() ) ;
             if (e<0) e=0;
             if (e>1) e=1;
-            writeData("elim "+f);
+            writeData("elim "+e);
         }
         function c_reset() {
             writeData("reset");
@@ -194,7 +195,7 @@
         }
         function int_run() {
             var int_timestamp= Date.now()-alive_timestamp; // miliseconds since webapp started
-            var elapsed=int_timestapm-start_timestamp;
+            var elapsed=int_timestamp-start_timestamp;
             writeData("int "+elapsed);
         }
         function stop_run() {
@@ -203,7 +204,8 @@
             writeData("stop " + elapsed);
         }
         function reconocimiento() {
-            writeData("walk 420");
+            var seconds=60 * parseInt($('#WalkTime').val());
+            writeData("walk "+seconds);
         }
         function salida() {
             writeData("down 15");
@@ -256,7 +258,9 @@
     <input id="IntBtn" class="data" type="button" name="Intermediate" value="T. Int." onclick="int_run();"/>
     <input id="StopBtn" class="data" type="button" name="Stop" value="Stop" onclick="stop_run();"/>
     <input id="SalidaBtn" class="data" type="button" name="Salida" value="15 Secs." onclick="salida();"/>
-    <input id="ReconocimientoBtn" class="data" type="button" name="CourseWalk" value="CourseWalk" onclick="reconocimiento();"/>
+        <input id="ReconocimientoBtn" class="data" type="button" name="CourseWalk" value="CourseWalk" onclick="reconocimiento();"/>
+        <input id="WalkTime" class="data" type="number" name="WalkTime" value="7" min="6" max="10" step="1"/>
+
     </form>
 </div>
 <span id="Copyright" style="color:white;width:100%;display:block;text-align:right;font-style:italic;font-size:10px"><br/>Copyright &copy; 2019 by JAMC para AgilityContest 3.9.1</span>

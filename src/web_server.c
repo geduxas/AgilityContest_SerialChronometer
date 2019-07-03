@@ -36,6 +36,7 @@
 #include "web_mgr.h"
 #include "web_server.h"
 
+#include "main.h"
 static configuration *config;
 
 /** not used, just to preserve code from original example */
@@ -193,8 +194,13 @@ int end_webServer() {
     return 0;
 }
 
-int init_webServer(configuration *cfg) {
-    config=cfg;
+void *init_webServer(void *arg) {
+
+    int slotIndex= * ((int *)arg);
+    sc_thread_slot *slot=&sc_threads[slotIndex];
+    config=slot->config;
+    slot->entries=NULL; // non sense as this is not a manager thread
+
     char *buffer=calloc(16,sizeof(char));
     snprintf(buffer,16,"%d",config->ring+config->web_port);
     char *args[4]= {
@@ -205,19 +211,19 @@ int init_webServer(configuration *cfg) {
     };
 	if (httpd_init(4, args)) {
 		debug(DBG_ERROR, "Can not init httpd service");
-		return -11;
+		return NULL;
 	}
     if (!httpd_register("/", root_service)) {
         debug(DBG_ERROR, "Can not register service");
-        return -11;
+        return NULL;
     }
     if (!httpd_register("/readData", readData)) {
         debug(DBG_ERROR, "Can not register service 'readData'");
-        return -11;
+        return NULL;
     }
     if (!httpd_register("/writeData", writeData)) {
         debug(DBG_ERROR, "Can not register service 'writeData'");
-        return -11;
+        return NULL;
     }
 	/*
 	if (!httpd_register_secure("/secure", secure_service, simple_authenticator)) {
@@ -230,11 +236,11 @@ int init_webServer(configuration *cfg) {
 	}*/
 	if (!httpd_register_default("/error", default_service)) {
 		debug(DBG_ERROR, "Can not register default service");
-		return -11;
+		return NULL;
 	}
 	if (httpd_run()) {
 		debug(DBG_ERROR, "can not run httpd");
-		return -11;
+		return NULL;
 	}
 	return 0;
 }

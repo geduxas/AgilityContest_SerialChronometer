@@ -16,6 +16,7 @@ typedef struct qitem_st {
 } qitem_t;
 
 typedef struct queue_st {
+    char *name;
     int last_index;
     qitem_t *first_out; // first element to fetch on get()
     qitem_t *last_out; // last item inserted in queue with put()
@@ -32,7 +33,7 @@ EXTERN long long current_timestamp();
 EXTERN char *getSessionName(configuration *config);
 
 /* fifo queue management */
-EXTERN queue_t *queue_create();
+EXTERN queue_t *queue_create(char *name);
 EXTERN void queue_destroy(queue_t *queue);
 EXTERN qitem_t *queue_put(queue_t*queue, char * msg);
 EXTERN char *queue_get(queue_t *queue);
