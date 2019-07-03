@@ -69,6 +69,7 @@
             doLayout(layout,"#Logo",7,5,20,10);
             doLayout(layout,"#Copyright",35,3,107,3);
             doLayout(layout,"#Banner",35,5,107,5);
+            doLayout(layout,"#MessageBox",35,2,60,7);
             doLayout(layout,"#fondo_clock",34,14,62,27);
             doLayout(layout,"#Clock",35,15,60,25);
             doLayout(layout,"#fondo_datos",99,14,43,27);
@@ -96,12 +97,20 @@
             doLayout(layout,"#StopBtn",65,45,15,5);
             doLayout(layout,"#SalidaBtn",106,45,15,5);
             doLayout(layout,"#ReconocimientoBtn",126,45,15,5);
+            $('#MessageBox').css("display","none");
         }
 
+        // MSG: timeout text of message
+        function showMessage(msg) {
+            var a=msg.split(" ",2);
+            $('#MessageBox').html("<br/>"+a[1]).css("display","inline-block");
+            setTimeout(function(){$('#MessageBox').css("display","none");},1000*parseInt(a[0]))
+        }
 
         function parseCommand(command) {
             lastID +=1;
             cmd=command.toLowerCase();
+            console.log("Command "+lastID+" received: "+command);
             if (cmd.indexOf("reset")===0) {
                 $('#Faltas').val(0);
                 $('#Rehuses').val(0);
@@ -109,11 +118,10 @@
                 // stop crono and coundown
                 return;
             }
-            if (cmd.indexOf("msg")===0) {
-                alert(command.substring(4));
+            if (cmd.indexOf("msg ")===0) {
+                showMessage(command.substring(4));
                 return;
             }
-            alert("Command "+lastID+" received: "+command);
         }
 
         function readData() {
@@ -134,7 +142,7 @@
                     }
                 },
                 error: function(){
-                    alert('Error in readData');
+                    console.log('Error in readData');
                 }
             });
             return false;
@@ -149,7 +157,7 @@
             }).done(function(data) {
                 // alert(JSON.stringify(data));
             }).fail(function(data) {
-                alert("Error");
+                console.log("Error in writeData");
             });
         }
 
@@ -210,6 +218,7 @@
     <a target="clock" href="/clock" >
         <input id="Clock" class="display" type="text" readonly="readonly" name="Clock" value="43:21">
     </a>
+        <span class="chrono_fondo" id="MessageBox" style="display:none;text-align:center;vertical-align:middle;background: #f4e579"></span>
         <!-- ventana de faltas y rehuses -->
         <span class="chrono_fondo " id="fondo_datos" style="background: #87CEEB">&nbsp;</span>
     <label id="FaltasLbl" for="Faltas" class="data">Faltas:</label>

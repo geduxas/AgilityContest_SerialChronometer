@@ -233,11 +233,13 @@ int main (int argc, char *argv[]) {
             response="OK"; // empty command is ok ( i.e: just return on console
             goto free_and_response;
         }
+        // convert command into lowercase
+        for(char *pt=tokens[1];*pt;pt++) *pt=tolower(*pt);
         // search command from list to retrieve index
         int index=-1;
         for (int n=0;command_list[n].index>=0;n++) {
             // debug(DBG_TRACE,"Check command '%s' against index %d -> '%s'",tokens[1],index,command_list[index].cmd);
-            if (stripos(command_list[n].cmd,tokens[1])>=0) { index=n; break; }
+            if (strcmp(command_list[n].cmd,tokens[1])==0) { index=n; break; }
         }
         if (command_list[index].index<0) {
             debug(DBG_ERROR,"Unknown command received: '%s' from %s\n", buffer,tokens[0]);
