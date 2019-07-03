@@ -36,8 +36,8 @@
 
         // used to store last command id parsed
         var lastID=0;
+        var alive_timestamp=0;
         var start_timestamp=0;
-        var run_timestamp=0;
 
         function doLayout(dg,id,x,y,w,h) {
             var elem=$(id);
@@ -61,8 +61,8 @@
             $('#btn_turno').prop('checked',true);
             $('#sel_rec').val("0").prop('enabled',true);
             lastID=0;
+            alive_timestamp=0;
             start_timestamp=0;
-            run_timestamp=0;
             readData();
             setInterval(function() { readData(); },5000);
             var layout= {'rows':55,'cols':145};
@@ -100,8 +100,20 @@
 
 
         function parseCommand(command) {
-            alert("Command "+lastID+" received: "+command);
             lastID +=1;
+            cmd=command.toLowerCase();
+            if (cmd.indexOf("reset")===0) {
+                $('#Faltas').val(0);
+                $('#Rehuses').val(0);
+                $('#Eliminado').val(0);
+                // stop crono and coundown
+                return;
+            }
+            if (cmd.indexOf("msg")===0) {
+                alert(command.substring(4));
+                return;
+            }
+            alert("Command "+lastID+" received: "+command);
         }
 
         function readData() {
@@ -139,7 +151,6 @@
             }).fail(function(data) {
                 alert("Error");
             });
-            $('#sel_stop').val("0");
         }
 
         function falta(inc) {
@@ -158,21 +169,21 @@
             if (e>1) e=1;
             writeData("elim "+f);
         }
-        function reset() {
+        function c_reset() {
             writeData("reset");
         }
         function start_run() {
-            run_timestamp = Date.now()-start_timestamp; // miliseconds since webapp started
-            writeData("start "+run_timestamp);
+            start_timestamp = Date.now()-alive_timestamp; // miliseconds since webapp started
+            writeData("start 0");
         }
         function int_run() {
-            var current= Date.now()-start_timestamp; // miliseconds since webapp started
-            var elapsed=current-run_timestamp;
+            var int_timestamp= Date.now()-alive_timestamp; // miliseconds since webapp started
+            var elapsed=int_timestapm-start_timestamp;
             writeData("int "+elapsed);
         }
         function stop_run() {
-            var current = Date.now() - start_timestamp;
-            var elapsed = current - run_timestamp;
+            var end_timestamp = Date.now() - alive_timestamp;
+            var elapsed = end_timestamp - start_timestamp;
             writeData("stop " + elapsed);
         }
         function reconocimiento() {
@@ -223,7 +234,7 @@
 
     <!-- botonera de abajo -->
         <span class="chrono_fondo" id="fondo_buttons" style="background:#a6ff7c">&nbsp;</span>
-    <input id="ResetBtn" class="data" type="button" name="Reset" value="Reset" onclick="reset();"/>
+    <input id="ResetBtn" class="data" type="button" name="Reset" value="Reset" onclick="c_reset();"/>
     <input id="StartBtn" class="data" type="button" name="Start" value="Start" onclick="start_run();"/>
     <input id="IntBtn" class="data" type="button" name="Intermediate" value="T. Int." onclick="int_run();"/>
     <input id="StopBtn" class="data" type="button" name="Stop" value="Stop" onclick="stop_run();"/>

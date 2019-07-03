@@ -118,6 +118,8 @@ static void writeData(httpd_conn_t *conn, hrequest_t *req) {
     char buffer[128];
     // compose incoming message and enqueue it
     sprintf(buffer,"%s",cmd_value);
+    // replace every "+" with space
+    for (char *pt=buffer;*pt;pt++) if (*pt=='+') *pt=' ';
     debug(DBG_TRACE,"writeData() received %s",buffer);
     queue_put(input_queue,buffer);
     // send back json OK response

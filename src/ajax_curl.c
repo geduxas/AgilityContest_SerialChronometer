@@ -197,7 +197,7 @@ char ** ajax_wait_for_events(configuration *config, int *evtid, time_t *timestam
              URL_BUFFSIZE,
              "https://%s/%s/ajax/database/eventFunctions.php?Operation=getEvents&Session=%d&ID=%d&TimeStamp=%lu&Source=chrono&Name=%s&SessionName=%s",
              config->ajax_server,BASE_URL,config->status.sessionID,*evtid,*timestamp,config->client_name,getSessionName(config));
-    debug(DBG_TRACE,"getEvents: %s",sc_geteventurl);
+    // debug(DBG_TRACE,"getEvents: %s",sc_geteventurl);
     curl_easy_setopt(curl, CURLOPT_URL, sc_geteventurl);
     /* example.com is redirected, so we tell libcurl to follow redirection */
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);

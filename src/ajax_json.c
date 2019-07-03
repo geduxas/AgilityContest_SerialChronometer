@@ -88,24 +88,24 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         snprintf(result,MSG_LEN,"DOWN 15\n");
     }
     else if ( strcmp(typestr,"start")==0) { // manual chrono start. Value= timestamp
-        snprintf(result,MSG_LEN,"START %s\n",valuestr);
+        snprintf(result,MSG_LEN,"start %s\n",valuestr);
     }
     else if ( strcmp(typestr,"stop")==0) { // manual chrono stop. Value=timestamp
-        snprintf(result,MSG_LEN,"STOP %s\n",valuestr);
+        snprintf(result,MSG_LEN,"stop %s\n",valuestr);
     }
     else if ( strcmp(typestr,"crono_start")==0) { // electronic chrono start Value=timestamp
-        snprintf(result,MSG_LEN,"START %s\n",valuestr);
+        snprintf(result,MSG_LEN,"start %s\n",valuestr);
     }
     else if ( strcmp(typestr,"crono_int")==0) { // electronic chrono intermediate time Value=timestamp
         time_t int_time=atoll(valuestr);
-        snprintf(result,MSG_LEN,"INT %s\n",valuestr);
+        snprintf(result,MSG_LEN,"int %s\n",valuestr);
     }
     else if ( strcmp(typestr,"crono_stop")==0) {  // electronic chrono start Value=timestamp
-        snprintf(result,MSG_LEN,"STOP %s\n",valuestr);
+        snprintf(result,MSG_LEN,"stop %s\n",valuestr);
     }
     else if ( strcmp(typestr,"crono_rec")==0) { // course walk. start=seconds
         time_t seconds= (startstr)?atoll(startstr):0L;
-        snprintf(result,MSG_LEN,"WALK %lu\n",seconds);
+        snprintf(result,MSG_LEN,"walk %lu\n",seconds);
     }
     else if ( strcmp(typestr,"crono_dat")==0) { // dog data FRE
         char const *flt=json_getPropertyValue( rdata, "Flt" );
@@ -118,19 +118,19 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
         int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
         int n=(strcmp(npr,"-1")==0)?config->status.notpresent:atoi(npr); // not present is not used but required
-        snprintf(result,MSG_LEN,"DATA %d:%d:%d\n",f+t,r,e);
+        snprintf(result,MSG_LEN,"data %d:%d:%d\n",f+t,r,e);
     }
     else if ( strcmp(typestr,"crono_restart")==0) { // swicth crono from manual to electronic
         // no action: previous manual start remains active
     }
     else if ( strcmp(typestr,"crono_reset")==0) { // reset crono and dog data
-        snprintf(result,MSG_LEN,"RESET\n");
+        snprintf(result,MSG_LEN,"reset\n");
     }
     else if ( strcmp(typestr,"crono_error")==0) { // sensor error
-        snprintf(result,MSG_LEN,"FAIL\n");
+        snprintf(result,MSG_LEN,"fail\n");
     }
     else if ( strcmp(typestr,"crono_ready")==0) { // sensor recovery
-        snprintf(result,MSG_LEN,"OK\n");
+        snprintf(result,MSG_LEN,"ok\n");
     }
     else if ( strcmp(typestr,"llamada")==0) { // Call dog to enter in ring
         // actualizamos informacion de estado con datos del perro
@@ -155,7 +155,7 @@ static char * process_eventData(configuration *config,char const * datastr, int 
 
         // generamos SerialAPI msg con el numero de turno del perro
         char const *num=json_getPropertyValue( rdata, "Numero" );
-        snprintf(result,MSG_LEN,"TURN %s\n",num);
+        snprintf(result,MSG_LEN,"turn %s\n",num);
     }
     else if ( strcmp(typestr,"datos")==0) { // manual dog data
         char const *flt=json_getPropertyValue( rdata, "Flt" );
@@ -168,7 +168,7 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
         int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
         int n=(strcmp(npr,"-1")==0)?config->status.notpresent:atoi(npr); // not present is not used in this program
-        snprintf(result,MSG_LEN,"DATA %d:%d:%d\n",f+t,r,e);
+        snprintf(result,MSG_LEN,"data %d:%d:%d\n",f+t,r,e);
     }
     else if ( strcmp(typestr,"aceptar")==0) { // validate dog data
         // no action
@@ -189,7 +189,7 @@ static char * process_eventData(configuration *config,char const * datastr, int 
             char *secs=strdup(valuestr);
             char *msg=strchr(secs,':');
             if (msg) *msg++='\0';
-            snprintf(result,MSG_LEN,"MSG %s %s\n",secs,msg);
+            snprintf(result,MSG_LEN,"msg %s %s\n",secs,msg);
             free(secs);
         }
     }

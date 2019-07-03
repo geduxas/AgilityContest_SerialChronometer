@@ -105,10 +105,12 @@ void *web_manager_thread(void *arg){
 
     while(res>=0) {
         char *msg=queue_get(input_queue);
-        if (msg) {
-            snprintf(request,1024,"%s %s",SC_WEBSRV,msg);
-            free(msg);
+        if (!msg) {
+            debug(DBG_TRACE,"queue_get(): queue is empty");
         }
+        debug(DBG_TRACE,"queue_get(): received '%s",msg);
+        snprintf(request,1024,"%s %s",SC_WEBSRV,msg);
+        free(msg); // msg comes strdup()'d from queue
         res=send(slot->sock,request,strlen(request),0);
         if (res<0){
             debug(DBG_ERROR,"%s send(): error sending request: %s",SC_WEBSRV,strerror(errno));
