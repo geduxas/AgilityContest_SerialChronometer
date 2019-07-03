@@ -14,6 +14,7 @@
 #endif
 
 EXTERN int init_webServer(configuration *config);
+EXTERN int end_webServer();
 #undef EXTERN
 
 #endif //AGILITYCONTEST_SERIALCHRONOMETER_WEB_SERVER_H

@@ -68,13 +68,17 @@ queue_t *queue_create() {
     return calloc(1,sizeof(queue_t));
 }
 void queue_destroy(queue_t *q) {
-    if (!q || !q->first) return;
-    while (q->first!=q->last) {
-        free(q->first->msg);
-        q->first=q->first->next;
-        free(q->first);
+    if (!q) return;
+    qitem_t *pt=q->first_out;
+    while(pt) {
+        qitem_t *cur=pt;
+        free(pt->msg);
+        pt=pt->next;
+        free(cur);
     }
+    free(q);
 }
+
 qitem_t *queue_put(queue_t *q,char * msg) {
     qitem_t *item=calloc(1,sizeof(qitem_t));
     if (!item) return NULL;
@@ -83,27 +87,25 @@ qitem_t *queue_put(queue_t *q,char * msg) {
         free(item);
         return NULL;
     }
+    item->index=q->last_index++;
     item->msg=m;
     item->expire=15000+current_timestamp(); // mark expire in 15 seconds
-    if (!q->last) { // empty queue
-        item->id=0;
-        q->first=item;
-        q->last=item;
-    } else {
-        item->id=1+q->last->id;
-        q->last->next=item;
-        q->last=item;
-    }
+    item->next=q->last_out;
+    q->last_out=item;
+    if (!item->next) q->first_out=item; // on empty queue set first to out on new item
+    // fprintf(stderr,"queue put index:%d msg:'%s'\n",item->index,item->msg);
     return item;
 }
 
 char *queue_get(queue_t *q) {
     char *msg=NULL;
-    qitem_t *item=q->first;
+    qitem_t *item=q->first_out;
     if (!item) return NULL;
     msg=item->msg;
-    q->first=item->next;
-    if (!q->first) q->last=NULL; // last item
+    q->first_out=item->next;
+    if (!q->first_out) q->last_out=NULL; // on last item set both pointers to null
+    // fprintf(stderr,"queue get index:%d msg:'%s'\n",item->index,item->msg);
+    // do not free item->msg as is the returned value
     free(item);
     return msg;
 }
@@ -112,29 +114,34 @@ char *queue_get(queue_t *q) {
 // when id=-1 get *first item
 // else search for first id greater or equal than requested
 char *queue_pick(queue_t *q,int id) {
-    qitem_t *last=NULL;
-    if (!q->last) return NULL;
-    if (id<0) return strdup(q->first->msg); // use strdup to avoid external manipulation
-    for (qitem_t *pt=q->last; pt ; pt=pt->next) {
-        last=pt;
-        if (last->id<id) return NULL;
-        if (last->id == id) return strdup(last->msg);
+    if (!q) return NULL; // null
+    if (!q->first_out) return NULL; // empty
+    // if id < 0 fetch first item to get out
+    if ( id<0 ) {
+        return strdup(q->first_out->msg);
     }
-    if (last) return strdup(last->msg);
-    return NULL;
+    // else iterate
+    qitem_t *nearest= q->last_out;
+    if (nearest->index<id) return NULL; // first element is already older than requested
+    for (qitem_t *pt=q->last_out; pt ; pt=pt->next) {
+        if (pt->index >= id) nearest=pt;
+    }
+    // fprintf(stderr,"queue pick(%d) returns index:%d msg:'%s'\n",id,nearest->index,nearest->msg);
+    return strdup(nearest->msg);
 }
 
+// indexes are allways correlative, so just substract
 size_t queue_size(queue_t *q) {
     if (!q) return 0;
     size_t count=0;
-    qitem_t *item=q->first;
-    if (!q->first) return 0;
-    return 1 + q->last->id - q->first->id;
+    qitem_t *item=q->first_out;
+    if (!q->first_out) return 0;
+    return 1 + q->last_out->index - q->first_out->index;
 }
 
 void queue_expire(queue_t *q) {
     if (!q) return;
-    qitem_t *item=q->first;
+    qitem_t *item=q->first_out;
     // retrieve last item
     while ( item ) {
         // not expired, return
@@ -142,6 +149,6 @@ void queue_expire(queue_t *q) {
         // expired: remove content and go for next element
         char *msg= queue_get(q);
         if (msg) free(msg); // don't need message: remove it
-        item = q->first;
+        item = q->first_out;
     }
 }

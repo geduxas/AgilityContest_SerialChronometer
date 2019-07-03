@@ -188,6 +188,11 @@ static void root_service(httpd_conn_t *conn, hrequest_t *req) {
     return;
 }
 
+int end_webServer() {
+    httpd_destroy();
+    return 0;
+}
+
 int init_webServer(configuration *cfg) {
     config=cfg;
     char *buffer=calloc(16,sizeof(char));
@@ -231,6 +236,5 @@ int init_webServer(configuration *cfg) {
 		debug(DBG_ERROR, "can not run httpd");
 		return -11;
 	}
-	httpd_destroy();
 	return 0;
 }

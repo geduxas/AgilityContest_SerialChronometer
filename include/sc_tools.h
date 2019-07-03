@@ -10,14 +10,15 @@
 
 typedef struct qitem_st {
     time_t expire;
-    int id;
+    int index;
     char *msg;
     struct qitem_st *next;
 } qitem_t;
 
 typedef struct queue_st {
-    qitem_t *first;
-    qitem_t *last;
+    int last_index;
+    qitem_t *first_out; // first element to fetch on get()
+    qitem_t *last_out; // last item inserted in queue with put()
 } queue_t;
 
 #ifndef SERIALCHRONOMETER_SC_TOOLS_C

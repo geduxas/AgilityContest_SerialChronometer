@@ -131,7 +131,9 @@ void *web_manager_thread(void *arg){
             res=-1;
         }
     }
-
+    end_webServer();
+    queue_destroy(input_queue);
+    queue_destroy(output_queue);
     debug(DBG_TRACE,"Exiting html server thread");
     slot->index=-1;
     return &slot->index;

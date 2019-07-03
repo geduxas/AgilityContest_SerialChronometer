@@ -39,6 +39,14 @@
         var alive_timestamp=0;
         var start_timestamp=0;
 
+        String.prototype.explode = function (separator, limit) {
+            const array = this.split(separator);
+            if (limit !== undefined && array.length >= limit)  {
+                array.push(array.splice(limit - 1).join(separator));
+            }
+            return array;
+        };
+
         function doLayout(dg,id,x,y,w,h) {
             var elem=$(id);
             elem.css('display','inline-block');
@@ -102,7 +110,7 @@
 
         // MSG: timeout text of message
         function showMessage(msg) {
-            var a=msg.split(" ",2);
+            var a=msg.explode(" ",2);
             $('#MessageBox').html("<br/>"+a[1]).css("display","inline-block");
             setTimeout(function(){$('#MessageBox').css("display","none");},1000*parseInt(a[0]))
         }

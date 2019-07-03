@@ -85,7 +85,7 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         // no action
     }
     else if ( strcmp(typestr,"salida")==0) { // 15 seconds countdown
-        snprintf(result,MSG_LEN,"DOWN 15\n");
+        snprintf(result,MSG_LEN,"down 15\n");
     }
     else if ( strcmp(typestr,"start")==0) { // manual chrono start. Value= timestamp
         snprintf(result,MSG_LEN,"start %s\n",valuestr);
