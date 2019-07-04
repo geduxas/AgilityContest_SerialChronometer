@@ -10,6 +10,7 @@
     <script src="jquery-chronometer.js" type="text/javascript" charset="utf-8"></script>
     <script src="countdown.js" type="text/javascript" charset="utf-8"></script>
     <script src="sprintf.js" type="text/javascript" charset="utf-8"></script>
+    <script src="crono.js" type="text/javascript" charset="utf-8"></script>
     <link rel="stylesheet" type="text/css" href="toogle-switch.css" />
     <style type="text/css">
         .input_number {
@@ -49,6 +50,36 @@
             }
             return array;
         };
+        /**
+         * Replacement for toFixed, but trunk instead of round
+         * @param {float} value Value to be parsed,
+         * @param {int} numdecs Number of decimal numbers to be shown
+         * no, cannot use sprintf library, as internally uses toFixed() rounding
+         */
+        function toFixedT(value,numdecs) {
+            // first approach. may fail with some numbers due to internal handling of floating point
+            // numbers in javascript: ie: toFixedT(4.27 , 2 ) return 4.26 due to js internal handling
+            if (typeof(value)==="undefined") return "";
+            if (value==null) return "";
+            if (value==="") return "";
+            if (isNaN(value)) return value;
+            if (value<0) value=0; // PENDING should not happen. need to study
+            var str="";
+            switch (parseInt(numdecs)) {
+                case 0: return parseInt(value);
+                case 1: str= value.toString().match(/^\d+(?:\.\d{0,1})?/); break;
+                case 2: str= value.toString().match(/^\d+(?:\.\d{0,2})?/); break;
+                case 3: str= value.toString().match(/^\d+(?:\.\d{0,3})?/); break;
+                case 4: str= value.toString().match(/^\d+(?:\.\d{0,4})?/); break;
+                default: return value.toFixed(numdecs); // use default javascript routine
+            }
+            // now complete number of decimals reqired
+            if (str=="0") str="0.00001"; // very, very, very stupid javascript
+            if (str.toString().indexOf(".")<0) str=str+".00001";
+            else str=str+"00001";
+            var res=str.split(".");
+            return res[0]+"."+res[1].substr(0,numdecs);
+        }
 
         var c_llamada = new Countdown({
             seconds:15,  // number of seconds to count down
@@ -69,6 +100,20 @@
                 $('#Clock').val( time );
             }, // callback for each tenth of second
             onCounterEnd: function(){ /* empty */ }
+        });
+
+        // create a Chronometer instance
+        $('#cronoauto').Chrono( {
+            seconds_sel: '#chrono_timestamp',
+            auto: false,
+            interval: 50,
+            showMode: 2,
+            onBeforePause: function() { return true; },
+            onBeforeResume: function() {  return true; },
+            onUpdate: function(elapsed,running,paused) {
+                $('#Clock').val(toFixedT(parseFloat(elapsed/1000.0),(running)?1:2));
+                return true;
+            }
         });
 
         function doLayout(dg,id,x,y,w,h) {
@@ -98,7 +143,7 @@
             c_reconocimiento.reset(420); // default. will change later
             c_llamada.reset(15);
             readData();
-            setInterval(function() { readData(); },5000);
+            setInterval(function() { readData(); },1000);
             var layout= {'rows':55,'cols':145};
             doLayout(layout,"#Logo",7,5,20,10);
             doLayout(layout,"#Copyright",35,3,107,3);
@@ -133,152 +178,6 @@
             doLayout(layout,"#ReconocimientoBtn",118,45,15,5);
             doLayout(layout,"#WalkTime",134,45,7,5);
             $('#MessageBox').css("display","none");
-        }
-
-        // MSG: timeout text of message
-        function showMessage(msg) {
-            var a=msg.explode(" ",2);
-            $('#MessageBox').html("<br/>"+a[1]).css("display","inline-block");
-            setTimeout(function(){$('#MessageBox').css("display","none");},1000*parseInt(a[0]))
-        }
-
-        function parseCommand(command) {
-            lastID +=1;
-            cmd=command.toLowerCase();
-            console.log("Command "+lastID+" received: "+command);
-            if (cmd.indexOf("reset")===0) {
-                $('#Faltas').val(0);
-                $('#Rehuses').val(0);
-                $('#Eliminado').val(0);
-                // stop crono and coundown
-                return;
-            }
-            // fault, refusal and eliminated commands are ignored here
-            if (cmd.indexOf("reset ")===0) {
-                return c_reset(false);
-            }
-            if (cmd.indexOf("start ")===0) {
-                return start_run(parseInt(command.substring(6)),false);
-            }
-            if (cmd.indexOf("int ")===0) {
-                return int_run(parseInt(command.substring(4)),false);
-            }
-            if (cmd.indexOf("stop ")===0) {
-                return stop_run(parseInt(command.substring(5)),false);
-            }
-            if (cmd.indexOf("msg ")===0) {
-                showMessage(command.substring(4));
-                return;
-            }
-            if (cmd.indexOf("walk ")===0) {
-                return reconocimiento(parseInt(command.substring(5)),false);
-            }
-            if (cmd.indexOf("down ")===0) {
-                return llamada(parseInt(command.substring(5)),false);
-            }
-            if (cmd.indexOf("turn ")===0) {
-                $('#Turno').val(command.substring(5));
-                return;
-            }
-            console.log("unknown command received: "+command);
-        }
-
-        function readData() {
-            $.ajax({
-                url: '/readData',
-                dataType: 'json',
-                method: 'GET',
-                data: { 'ID': lastID },
-                success: function(data){
-                    $('#Faltas').val(data.F);
-                    $('#Rehuses').val(data.R);
-                    $('#Eliminado').val(data.E);
-                    $('#Turno').val(data.D);
-                    lastID= parseInt(data.ID);
-                    // if any event, parse it
-                    if (data.Command) {
-                        setTimeout(function(){ parseCommand(data.Command);},0);
-                    }
-                },
-                error: function(){
-                    console.log('Error in readData');
-                }
-            });
-            return false;
-        }
-
-        function writeData(msg) {
-            $.ajax({
-                type: 'GET',
-                url: "/writeData",
-                dataType: 'json',
-                data: { Command : msg }
-            }).done(function(data) {
-                // alert(JSON.stringify(data));
-            }).fail(function(data) {
-                console.log("Error in writeData");
-            });
-        }
-
-        function falta(inc) {
-            var f= inc+parseInt( $('#Faltas').val() ) ;
-            if (f<0) f=0;
-            writeData("fault "+f);
-        }
-        function rehuse(inc) {
-            var r= inc+parseInt( $('#Rehuses').val() ) ;
-            if(r<0) r=0;
-            writeData("refusal "+r);
-        }
-        function eliminado(inc) {
-            var e= inc+parseInt( $('#Eliminado').val() ) ;
-            if (e<0) e=0;
-            if (e>1) e=1;
-            writeData("elim "+e);
-        }
-        function c_reset(local) {
-            c_llamada.stop();
-            c_reconocimiento.stop();
-            $('#Clock').val("00:00");
-            // do not update FTR, will be done in main program
-            // also turn number should not be affected by reset
-            if (local) writeData("reset");
-        }
-        function start_run(val,local) {
-            start_timestamp = Date.now()-alive_timestamp; // miliseconds since webapp started
-            // call crono functions
-
-            if (local) writeData("start 0");
-        }
-        function int_run(elapsed,local) {
-            if (local) {
-                var int_timestamp= Date.now()-alive_timestamp; // miliseconds since webapp started
-                elapsed=int_timestamp-start_timestamp;
-            }
-            // call crono funtions
-
-            if (local) writeData("int "+elapsed);
-        }
-        function stop_run(elapsed,local) {
-            if (local) {
-                var end_timestamp = Date.now() - alive_timestamp;
-                elapsed = end_timestamp - start_timestamp;
-            }
-            if(local) writeData("stop " + elapsed);
-        }
-        function reconocimiento(seconds,local) {
-            if (local) seconds = 60 * parseInt($('#WalkTime').val());
-            if (c_reconocimiento.started()) c_reconocimiento.stop();
-            c_reconocimiento.reset(seconds);
-            if (seconds!=0)c_reconocimiento.start();
-            if(local) writeData("walk "+seconds);
-        }
-        function llamada(seconds,local) {
-            if (local) seconds=15;
-            if (c_llamada.started()) c_llamada.stop();
-            c_llamada.reset(seconds);
-            if (seconds!=0)c_llamada.start();
-            if (local) writeData("down "+seconds);
         }
 
     </script>
