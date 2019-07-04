@@ -28,7 +28,7 @@
             font-weight: bold;
         }
         .display {
-            font-family: monospace;
+            font-family: cmonospace monospace;
             text-align: center;
             font-weight: bold;
             font-size: 12.5vw;
@@ -153,10 +153,34 @@
                 // stop crono and coundown
                 return;
             }
+            // fault, refusal and eliminated commands are ignored here
+            if (cmd.indexOf("reset ")===0) {
+                return c_reset(false);
+            }
+            if (cmd.indexOf("start ")===0) {
+                return start_run(parseInt(command.substring(6)),false);
+            }
+            if (cmd.indexOf("int ")===0) {
+                return int_run(parseInt(command.substring(4)),false);
+            }
+            if (cmd.indexOf("stop ")===0) {
+                return stop_run(parseInt(command.substring(5)),false);
+            }
             if (cmd.indexOf("msg ")===0) {
                 showMessage(command.substring(4));
                 return;
             }
+            if (cmd.indexOf("walk ")===0) {
+                return reconocimiento(parseInt(command.substring(5)),false);
+            }
+            if (cmd.indexOf("down ")===0) {
+                return llamada(parseInt(command.substring(5)),false);
+            }
+            if (cmd.indexOf("turn ")===0) {
+                $('#Turno').val(command.substring(5));
+                return;
+            }
+            console.log("unknown command received: "+command);
         }
 
         function readData() {
@@ -212,49 +236,50 @@
             if (e>1) e=1;
             writeData("elim "+e);
         }
-        function c_reset() {
+        function c_reset(local) {
             c_llamada.stop();
             c_reconocimiento.stop();
             $('#Clock').val("00:00");
             // do not update FTR, will be done in main program
             // also turn number should not be affected by reset
-            writeData("reset");
+            if (local) writeData("reset");
         }
-        function start_run() {
+        function start_run(val,local) {
             start_timestamp = Date.now()-alive_timestamp; // miliseconds since webapp started
-            writeData("start 0");
-        }
-        function int_run() {
-            var int_timestamp= Date.now()-alive_timestamp; // miliseconds since webapp started
-            var elapsed=int_timestamp-start_timestamp;
-            writeData("int "+elapsed);
-        }
-        function stop_run() {
-            var end_timestamp = Date.now() - alive_timestamp;
-            var elapsed = end_timestamp - start_timestamp;
-            writeData("stop " + elapsed);
-        }
-        function reconocimiento() {
-            var seconds = 60 * parseInt($('#WalkTime').val());
-            if (c_reconocimiento.started()) {
-                seconds=0;
-                c_reconocimiento.stop();
-            } else {
-                c_reconocimiento.reset(seconds);
-                c_reconocimiento.start();
-            }
-            writeData("walk "+seconds);
-        }
-        function salida(val) {
-            if (c_llamada.started()) {
-                c_llamada.stop();
-            } else {
-                c_llamada.reset(15);
-                c_llamada.start();
-            }
-            writeData("down 15");
-        }
+            // call crono functions
 
+            if (local) writeData("start 0");
+        }
+        function int_run(elapsed,local) {
+            if (local) {
+                var int_timestamp= Date.now()-alive_timestamp; // miliseconds since webapp started
+                elapsed=int_timestamp-start_timestamp;
+            }
+            // call crono funtions
+
+            if (local) writeData("int "+elapsed);
+        }
+        function stop_run(elapsed,local) {
+            if (local) {
+                var end_timestamp = Date.now() - alive_timestamp;
+                elapsed = end_timestamp - start_timestamp;
+            }
+            if(local) writeData("stop " + elapsed);
+        }
+        function reconocimiento(seconds,local) {
+            if (local) seconds = 60 * parseInt($('#WalkTime').val());
+            if (c_reconocimiento.started()) c_reconocimiento.stop();
+            c_reconocimiento.reset(seconds);
+            if (seconds!=0)c_reconocimiento.start();
+            if(local) writeData("walk "+seconds);
+        }
+        function llamada(seconds,local) {
+            if (local) seconds=15;
+            if (c_llamada.started()) c_llamada.stop();
+            c_llamada.reset(seconds);
+            if (seconds!=0)c_llamada.start();
+            if (local) writeData("down "+seconds);
+        }
 
     </script>
 </head>
@@ -297,12 +322,12 @@
 
     <!-- botonera de abajo -->
         <span class="chrono_fondo" id="fondo_buttons" style="background:#a6ff7c">&nbsp;</span>
-    <input id="ResetBtn" class="data" type="button" name="Reset" value="Reset" onclick="c_reset();"/>
-    <input id="StartBtn" class="data" type="button" name="Start" value="Start" onclick="start_run();"/>
-    <input id="IntBtn" class="data" type="button" name="Intermediate" value="T. Int." onclick="int_run();"/>
-    <input id="StopBtn" class="data" type="button" name="Stop" value="Stop" onclick="stop_run();"/>
-    <input id="SalidaBtn" class="data" type="button" name="Salida" value="15 Secs." onclick="salida();"/>
-        <input id="ReconocimientoBtn" class="data" type="button" name="CourseWalk" value="CourseWalk" onclick="reconocimiento();"/>
+    <input id="ResetBtn" class="data" type="button" name="Reset" value="Reset" onclick="c_reset(true);"/>
+    <input id="StartBtn" class="data" type="button" name="Start" value="Start" onclick="start_run(0,true);"/>
+    <input id="IntBtn" class="data" type="button" name="Intermediate" value="T. Int." onclick="int_run(0,true);"/>
+    <input id="StopBtn" class="data" type="button" name="Stop" value="Stop" onclick="stop_run(0,true);"/>
+    <input id="SalidaBtn" class="data" type="button" name="Salida" value="15 Secs." onclick="llamada(15,true);"/>
+        <input id="ReconocimientoBtn" class="data" type="button" name="CourseWalk" value="CourseWalk" onclick="reconocimiento(420,true);"/>
         <input id="WalkTime" class="data" type="number" name="WalkTime" value="7" min="6" max="10" step="1"/>
 
     </form>
