@@ -57,17 +57,22 @@ int ADDCALL module_read(char *buffer,size_t length){
     static char *inbuff=NULL;
     if (inbuff==NULL) inbuff=malloc(1024*sizeof(char));
     memset(inbuff,0,1024*sizeof(char));
+    char *pt=inbuff;
     do {
-        ret = sp_blocking_read(config->serial_port,inbuff,1024,500); // timeout 0.5 seconds
-        if (ret>=0)inbuff[ret]='\0';
-    } while(ret==0);
+        ret = sp_blocking_read(config->serial_port,pt,1,0); // read single char. wait forever
+        if (*pt=='\r') continue; // ignore carriage return ( stupid windows )
+        if (*pt=='\n')  ret=0;
+        if (pt==&inbuff[1022]) { *pt='\n'; ret=0; } // avoid buffer overflow
+        pt++;
+    } while( ret>0);
     if (ret <0 ) {
-        debug(DBG_ERROR,"libserial_read() error %s",sp_last_error_message());
-        snprintf(buffer,length,""); // empty return
-        return strlen(buffer);
-    };
+        debug(DBG_ERROR,"module_read() error: '%s'",sp_last_error_message());
+        snprintf(inbuff,1024,"");
+        return ret;
+    }
     debug(DBG_TRACE,"module_read() received '%s'",inbuff);
-    return ret;
+    snprintf(buffer,length,"%s",inbuff);
+    return strlen(inbuff);
 }
 
 int ADDCALL module_write(char **tokens,size_t ntokens){
@@ -76,7 +81,7 @@ int ADDCALL module_write(char **tokens,size_t ntokens){
     // compose message by adding tokens
     int len=sprintf(buffer,"%s",tokens[1]);
     for (int n=2;n<ntokens;n++) len += sprintf(buffer+len," %s",tokens[n]);
-    len += sprintf(buffer+len,"\n");
+    len += sprintf(buffer+len,"\r\n");
     // notice "blocking" mode. needed as most modules do not support full duplex communications
     debug(DBG_TRACE,"module_write(), send %d bytes: '%s'",len,buffer);
     enum sp_return ret=sp_blocking_write(config->serial_port,buffer,strlen(buffer),0);
