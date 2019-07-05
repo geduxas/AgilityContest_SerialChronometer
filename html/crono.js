@@ -58,6 +58,12 @@ function readData() {
             $('#Rehuses').val(data.R);
             $('#Eliminado').val(data.E);
             $('#Turno').val(data.D);
+            if(clockDisplay && (!clockDisplay.closed)) {
+                clockDisplay.document.getElementById("Faltas").value=data.F;
+                clockDisplay.document.getElementById("Rehuses").value=data.R;
+                clockDisplay.document.getElementById("Eliminado").value=data.E;
+                clockDisplay.document.getElementById("Turno").value=data.D;
+            }
             lastID= parseInt(data.ID);
             // if any event, parse it
             if (data.Command) {
@@ -112,6 +118,11 @@ function c_reset(local) {
     $('#Faltas').val(0);
     $('#Rehuses').val(0);
     $('#Eliminado').val(0);
+    if(clockDisplay && (!clockDisplay.closed)) {
+        clockDisplay.document.getElementById("Faltas").value=0;
+        clockDisplay.document.getElementById("Rehuses").value=0;
+        clockDisplay.document.getElementById("Eliminado").value=0;
+    }
     c_llamada.stop();
     c_reconocimiento.stop();
     var crono=$('#cronoauto');
