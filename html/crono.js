@@ -118,6 +118,9 @@ function c_reset(local) {
     if(crono.Chrono('started')) crono.Chrono('stop',1+start_timestamp);
     crono.Chrono( 'reset');
     $('#Clock').val("00:00");
+    if(clockDisplay && (!clockDisplay.closed)) {
+        clockDisplay.document.getElementById("Clock").value="00:00";
+    }
     // do not update FTR, will be done in main program
     // also turn number should not be affected by reset
     if (local) writeData("reset");

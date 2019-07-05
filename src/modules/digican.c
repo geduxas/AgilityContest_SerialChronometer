@@ -178,7 +178,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         if (digican_faltas < ft) {
             for (;digican_faltas <ft;digican_faltas++) len+=sprintf(buffer+len,"FALT+$");
         } else {
-            for (;ft;digican_faltas--) len+=sprintf(buffer+len,"FALT-$");
+            for (;digican_faltas>ft;digican_faltas--) len+=sprintf(buffer+len,"FALT-$");
         }
         if (digican_rehuses < config->status.refusals) {
             for (;digican_rehuses < config->status.refusals; digican_rehuses++) len+=sprintf(buffer+len,"REHU+$");

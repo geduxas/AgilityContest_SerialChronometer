@@ -11,7 +11,6 @@
     <script src="countdown.js" type="text/javascript" charset="utf-8"></script>
     <script src="sprintf.js" type="text/javascript" charset="utf-8"></script>
     <script src="crono.js" type="text/javascript" charset="utf-8"></script>
-    <link rel="stylesheet" type="text/css" href="toogle-switch.css" />
     <style type="text/css">
         .input_number {
             width:50px;
@@ -44,6 +43,8 @@
         var start_timestamp=0;
         var last_time=0;
 
+        var clockDisplay=null;
+
         String.prototype.explode = function (separator, limit) {
             const array = this.split(separator);
             if (limit !== undefined && array.length >= limit)  {
@@ -51,6 +52,7 @@
             }
             return array;
         };
+
         /**
          * Replacement for toFixed, but trunk instead of round
          * @param {float} value Value to be parsed,
@@ -87,6 +89,9 @@
             onUpdateStatus: function(tsec){
                 var dta=sprintf('%d.%d', Math.floor(tsec/10),tsec%10);
                 $('#Clock').val(dta);
+                if(clockDisplay && (!clockDisplay.closed)) {
+                    clockDisplay.document.getElementById("Clock").value=dta;
+                }
             }, // callback for each second
             onCounterEnd: function(){ /*empty*/ } // what about firing "start" ?
         });
@@ -99,6 +104,9 @@
                 var sec=tsec/10; // remove tenths of seconds
                 var time=sprintf('%02d:%02d', Math.floor(sec/60),sec%60);
                 $('#Clock').val( time );
+                if(clockDisplay && (!clockDisplay.closed)) {
+                    clockDisplay.document.getElementById("Clock").value=time;
+                }
             }, // callback for each tenth of second
             onCounterEnd: function(){ /* empty */ }
         });
@@ -113,10 +121,22 @@
             onBeforePause: function() { return true; },
             onBeforeResume: function() {  return true; },
             onUpdate: function(elapsed,running,paused) {
-                $('#Clock').val(toFixedT(parseFloat(elapsed/1000.0),(running)?1:2));
+                value=toFixedT(parseFloat(elapsed/1000.0),(running)?1:2);
+                $('#Clock').val(value);
+                if(clockDisplay && (!clockDisplay.closed)) {
+                    clockDisplay.document.getElementById("Clock").value=value;
+                }
                 return true;
             }
         });
+
+        function openClockDisplay() {
+            if (clockDisplay==null || clockDisplay.closed ) {
+                clockDisplay= window.open("clock.html","clock",
+                    "titlebar=no,toolbar=no,status=no,scrolbars=no,menubar=no,location=no"
+                );
+            }
+        }
 
         function doLayout(dg,id,x,y,w,h) {
             var elem=$(id);
@@ -154,7 +174,7 @@
             readData();
             setInterval(function() { readData(); },1000);
             var layout= {'rows':55,'cols':145};
-            doLayout(layout,"#Logo",7,5,20,10);
+            doLayout(layout,"#Logo",7,5,25,20);
             doLayout(layout,"#Copyright",35,3,107,3);
             doLayout(layout,"#Banner",35,5,107,5);
             doLayout(layout,"#MessageBox",35,2,60,7);
@@ -198,12 +218,12 @@
 
     <form id="parameters" autocomplete="off">
         <!-- logotipo -->
-    <label id="Logo" name="Logo" class="logo"><a target="info" href="/getInfo"><img src="AgilityContest.png" alt="logo" width="100%"></a></label>
+    <label id="Logo" name="Logo" class="logo"><a target="info" href="/getInfo"><img src="AgilityContest.png" alt="logo" height="100%"></a></label>
         <!-- titulo de cabecera -->
     <label id="Banner" class="title" for="Clock" class="title"><h2>AgilityContest Serial Chronometer Web Interface</h2></label>
         <!-- ventana del reloj -->
     <span class="chrono_fondo" style="background: red;"id="fondo_clock">&nbsp;</span>
-    <a target="clock" href="/clock" >
+    <a href="#" onclick="openClockDisplay();" >
         <input id="Clock" class="display" type="text" readonly="readonly" name="Clock" value="43:21">
     </a>
     <span class="chrono_fondo" id="MessageBox" style="display:none;text-align:center;vertical-align:middle;background: #f4e579"></span>

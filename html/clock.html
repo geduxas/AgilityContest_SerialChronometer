@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="application-name" content="Agility Contest's Serial Chronometer Web Console" />
+    <meta name="copyright" content="© 2019 Juan Antonio Martinez" />
+    <meta name="author" lang="en" content="Juan Antonio Martinez" />
+    <title>Now Running Web console</title>
+    <script src="jquery-2.2.4.min.js" type="text/javascript" charset="utf-8"></script>
+    <style type="text/css">
+        .data{
+            display:block;
+            padding-top: 0.8vw;
+            text-align:right;
+        }
+        .chrono_fondo {
+            border: 1vw solid blue;
+            border-radius: 10px;
+            border-spacing: 5px;
+        }
+        .copy {
+            color:white;
+            width:100%;
+            text-align:right;
+            font-style:italic;
+            font-size:0.8vw;
+        }
+        .banner {
+            color: white;
+            text-align:right;
+            font-style: italic;
+            font-weight: bold;
+        }
+        .display {
+            border: 3px ridge gray;
+            font-family: cmonospace monospace;
+            text-align: center;
+            font-weight: bold;
+            font-size: 28vw;
+        }
+    </style>
+    <script type="text/javascript">
+
+        function doLayout(dg,id,x,y,w,h) {
+            var elem=$(id);
+            elem.css('display','inline-block');
+            elem.css('position','absolute');
+            elem.css('float','left');
+            // elem.css('padding','5px');
+            elem.css('-webkit-box-sizing','border-box');
+            elem.css('-moz-box-sizing','border-box');
+            elem.css('box-sizing','border-box');
+            elem.css('left',  ((25+x*100)/dg.cols)+'%');
+            elem.css('top',   ((100+y*100)/dg.rows)+'%');
+            elem.css('width', ((w*100)/dg.cols)+'%');
+            elem.css('height',((h*100)/dg.rows)+'%');
+            // elem.css('line-height',((h*100)/dg.rows)+'%');
+            // elem.css('vertical-align','bottom');
+        }
+
+        function initialize() {
+            var layout= {'rows':24,'cols':32};
+            doLayout(layout,"#Logo",1,19,4,3);
+            doLayout(layout,"#Banner",2,21,19,1);
+            doLayout(layout,"#Copyright",21,21,10,1);
+            doLayout(layout,"#fondo_clock",0,0,31,18);
+            doLayout(layout,"#Clock",1,1,29,16);
+            doLayout(layout,"#fondo_datos",8,18,23,3);
+            doLayout(layout,"#TurnoLbl",9,19,3,2);
+            doLayout(layout,"#Turno",12,19,1,1);
+            doLayout(layout,"#FaltasLbl",16,19,3,2);
+            doLayout(layout,"#Faltas",19,19,1,1);
+            doLayout(layout,"#RehusesLbl",20,19,3,2);
+            doLayout(layout,"#Rehuses",23,19,1,1);
+            doLayout(layout,"#EliminadoLbl",24,19,3,2);
+            doLayout(layout,"#Eliminado",27,19,1,1);
+        }
+
+    </script>
+</head>
+<body onload="initialize();" style="background:blue">
+<div style="width:100%">
+
+    <form id="parameters" autocomplete="off">
+
+        <!-- logotipo -->
+    <label id="Logo" name="Logo" class="logo"><a target="info" href="/getInfo"><img src="AgilityContest.png" alt="logo" height="100%"></a></label>
+
+        <!-- titulo de cabecera -->
+    <label id="Banner" class="banner" for="Clock"><strong>AgilityContest Serial Chronometer Web Interface</strong></label>
+
+        <!-- ventana del reloj -->
+    <span class="chrono_fondo" style="background: #c3ff13;" id="fondo_clock">&nbsp;</span>
+    <input id="Clock" class="display" type="text" readonly="readonly" name="Clock" value="43:21">
+
+        <!-- ventana de faltas y rehuses -->
+    <span class="chrono_fondo " id="fondo_datos" style="background: #87CEEB">&nbsp;</span>
+    <label id="TurnoLbl" for="Turno" class="data">En pista:</label>
+    <input id="Turno"  class="data" type="text" readonly="readonly" name="Turno" value="T">
+    <label id="FaltasLbl" for="Faltas" class="data">Faltas:</label>
+    <input id="Faltas"  class="data" type="text" readonly="readonly" name="F" value="F">
+    <label id="RehusesLbl" for="Rehuses" class="data">Rehuses:</label>
+    <input id="Rehuses"  class="data" type="text" readonly="readonly" name="R" value="R">
+    <label id="EliminadoLbl" for="Eliminado" class="data">Eliminado:</label>
+    <input id="Eliminado"  class="data" type="text" readonly="readonly" name="F" value="E">
+
+    </form>
+    <span id="Copyright" class="copy"><br/>Copyright &copy; 2019 by JAMC para AgilityContest 3.9.1</span>
+</div>
+</body>
+</html>
