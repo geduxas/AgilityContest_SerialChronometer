@@ -108,6 +108,7 @@ function c_error(state) {
 }
 
 function c_reset(local) {
+    $('#LastTime').html("Last time: "+toFixedT(last_time/1000,2));
     $('#Faltas').val(0);
     $('#Rehuses').val(0);
     $('#Eliminado').val(0);
@@ -161,6 +162,7 @@ function stop_run(elapsed,local) {
 }
 
 function reconocimiento(seconds,local) {
+    $('#LastTime').html("Last time: "+toFixedT(last_time/1000,2));
     if (local) seconds = 60 * parseInt($('#WalkTime').val());
     if (c_reconocimiento.started()) c_reconocimiento.stop();
     if (c_llamada.started()) c_llamada.stop();
@@ -170,6 +172,7 @@ function reconocimiento(seconds,local) {
 }
 
 function llamada(seconds,local) {
+    $('#LastTime').html("Last time: "+toFixedT(last_time/1000,2));
     if (local) seconds=15;
     if (c_reconocimiento.started()) c_reconocimiento.stop();
     if (c_llamada.started()) c_llamada.stop();

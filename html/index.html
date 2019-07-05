@@ -42,6 +42,7 @@
         var lastID=0;
         var alive_timestamp=0;
         var start_timestamp=0;
+        var last_time=0;
 
         String.prototype.explode = function (separator, limit) {
             const array = this.split(separator);
@@ -108,6 +109,7 @@
             auto: false,
             interval: 50,
             showMode: 2,
+            triggerEvents: true, // to fire up chronostart and chronostop
             onBeforePause: function() { return true; },
             onBeforeResume: function() {  return true; },
             onUpdate: function(elapsed,running,paused) {
@@ -135,8 +137,15 @@
 
         function initialize() {
             start_ts=Date.now();
-            $('#btn_turno').prop('checked',true);
-            $('#sel_rec').val("0").prop('enabled',true);
+
+            // prepare cronometer events
+            chrono=$('#cronoauto');
+            chrono.on("chronostart",function() {
+                $('#LastTime').html("Last time: "+toFixedT(last_time/1000,2));
+            });
+            chrono.on("chronostop",function() {
+                last_time=chrono.Chrono('getValue');
+            });
             lastID=0;
             alive_timestamp=0;
             start_timestamp=0;
@@ -150,6 +159,7 @@
             doLayout(layout,"#Banner",35,5,107,5);
             doLayout(layout,"#MessageBox",35,2,60,7);
             doLayout(layout,"#fondo_clock",34,14,62,27);
+            doLayout(layout,"#LastTime",78,37,30,5);
             doLayout(layout,"#Clock",35,15,60,25);
             doLayout(layout,"#fondo_datos",99,14,43,27);
             doLayout(layout,"#FaltasLbl",103,17,10,5);
@@ -171,10 +181,10 @@
             doLayout(layout,"#Turno",19,34,10,5);
             doLayout(layout,"#fondo_buttons",4,44,138,7);
             doLayout(layout,"#ResetBtn",5,45,15,5);
-            doLayout(layout,"#StartBtn" ,25,45,15,5);
-            doLayout(layout,"#IntBtn",45,45,15,5);
-            doLayout(layout,"#StopBtn",65,45,15,5);
-            doLayout(layout,"#SalidaBtn",98,45,15,5);
+            doLayout(layout,"#StartBtn" ,23,45,15,5);
+            doLayout(layout,"#IntBtn",41,45,15,5);
+            doLayout(layout,"#StopBtn",59,45,15,5);
+            doLayout(layout,"#SalidaBtn",100,45,15,5);
             doLayout(layout,"#ReconocimientoBtn",118,45,15,5);
             doLayout(layout,"#WalkTime",134,45,7,5);
             $('#MessageBox').css("display","none");
@@ -188,7 +198,7 @@
 
     <form id="parameters" autocomplete="off">
         <!-- logotipo -->
-    <label id="Logo" name="Logo" class="logo"><a target="info" href="/getInfo"><img src="/AgilityContest.png" alt="logo" width="100%"></a></label>
+    <label id="Logo" name="Logo" class="logo"><a target="info" href="/getInfo"><img src="AgilityContest.png" alt="logo" width="100%"></a></label>
         <!-- titulo de cabecera -->
     <label id="Banner" class="title" for="Clock" class="title"><h2>AgilityContest Serial Chronometer Web Interface</h2></label>
         <!-- ventana del reloj -->
@@ -196,9 +206,13 @@
     <a target="clock" href="/clock" >
         <input id="Clock" class="display" type="text" readonly="readonly" name="Clock" value="43:21">
     </a>
-        <span class="chrono_fondo" id="MessageBox" style="display:none;text-align:center;vertical-align:middle;background: #f4e579"></span>
-        <!-- ventana de faltas y rehuses -->
-        <span class="chrono_fondo " id="fondo_datos" style="background: #87CEEB">&nbsp;</span>
+    <span class="chrono_fondo" id="MessageBox" style="display:none;text-align:center;vertical-align:middle;background: #f4e579"></span>
+
+    <!-- marca del ultimo tiempo medido -->
+    <span id="LastTime">Last time: 12:34</span>
+
+    <!-- ventana de faltas y rehuses -->
+    <span class="chrono_fondo " id="fondo_datos" style="background: #87CEEB">&nbsp;</span>
     <label id="FaltasLbl" for="Faltas" class="data">Faltas:</label>
     <input id="Faltas"  class="data" type="text" readonly="readonly" name="F" value="Faltas">
     <input id="FaltasUp" class="data" type="button" name="FaltasUp" value="Flt+" onclick="falta(1)"/>
