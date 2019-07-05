@@ -150,10 +150,11 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num {+}>"},
     else if (strcasecmp("fault",cmd)==0) {
         int len=0;
+        int ft=config->status.faults+config->status.touchs;
         if (digican_faltas < config->status.faults) {
-            for (;digican_faltas<config->status.faults;digican_faltas++) len+=sprintf(buffer+len,"FALT+$");
+            for (;digican_faltas < ft ; digican_faltas++) len+=sprintf(buffer+len,"FALT+$");
         } else {
-            for (;digican_faltas>config->status.faults;digican_faltas--) len+=sprintf(buffer+len,"FALT-$");
+            for (;digican_faltas>ft;digican_faltas--) len+=sprintf(buffer+len,"FALT-$");
         }
     }
     // { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num {+}>"},
@@ -173,10 +174,11 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 11, "data",    "Set course fault/ref/disq info", "<faults>:<refulsals>:<disq>"},
     else if (strcasecmp("data",cmd)==0) {
         int len=0;
-        if (digican_faltas < config->status.faults) {
-            for (;digican_faltas<config->status.faults;digican_faltas++) len+=sprintf(buffer+len,"FALT+$");
+        int ft=config->status.faults+config->status.touchs;
+        if (digican_faltas < ft) {
+            for (;digican_faltas <ft;digican_faltas++) len+=sprintf(buffer+len,"FALT+$");
         } else {
-            for (;digican_faltas>config->status.faults;digican_faltas--) len+=sprintf(buffer+len,"FALT-$");
+            for (;ft;digican_faltas--) len+=sprintf(buffer+len,"FALT-$");
         }
         if (digican_rehuses < config->status.refusals) {
             for (;digican_rehuses < config->status.refusals; digican_rehuses++) len+=sprintf(buffer+len,"REHU+$");

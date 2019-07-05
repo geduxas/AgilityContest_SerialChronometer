@@ -63,28 +63,39 @@ static int main_mgr_msg(configuration * config, int slot, char **tokens, int nto
     debug(DBG_INFO,"%s -> Command: MSG %s %s (...) ",tokens[0],tokens[2],tokens[3]);
     return 0;
 }
+
 static int main_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
     int minutes=(ntokens==3)?atoi(tokens[2])/60:7;
     debug(DBG_INFO,"%s -> Command: WALK %d (min)",tokens[0],minutes);
     return 0;
 }
+
 static int main_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
     int seconds=(ntokens==3)?atoi(tokens[2]):15;
     debug(DBG_INFO,"%s -> Command: DOWN %d",tokens[0],seconds);
     return 0;
 }
+
 static int main_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
     if (ntokens==3) {
-        if (strcmp(tokens[2],"+")==0) config->status.faults++;
-        else if (strcmp(tokens[2],"-")==0) config->status.faults--;
-        else config->status.faults=atoi(tokens[2]);
-    } else {
+        if (strcmp(tokens[2],"+")==0) { // fault +
+            config->status.faults++;
+        }
+        else if (strcmp(tokens[2],"-")==0) { // fault -
+            if(config->status.faults > 0) config->status.faults--;
+            else if (config->status.touchs>0) config->status.touchs--;
+        } else { // faults #absolute
+            config->status.faults = atoi(tokens[2])-config->status.touchs;
+        }
+    } else { // no sufixx: assume increase fault count
         config->status.faults++;
     }
     if (config->status.faults<0) config->status.faults=0;
+    if (config->status.touchs<0) config->status.touchs=0;
     debug(DBG_INFO,"%s -> Command: FAULT %d",tokens[0],config->status.faults);
     return 0;
 }
+
 static int main_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
     if (ntokens==3) {
         if (strcmp(tokens[2],"+")==0) config->status.refusals++;
@@ -97,6 +108,7 @@ static int main_mgr_refusal(configuration * config, int slot, char **tokens, int
     debug(DBG_INFO,"%s -> Command: REFUSAL %d",tokens[0],config->status.refusals);
     return 0;
 }
+
 static int main_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
     if (ntokens==3) {
         if (strcmp(tokens[2],"+")==0) config->status.eliminated=1;
@@ -118,9 +130,9 @@ static int main_mgr_data(configuration * config, int slot, char **tokens, int nt
     *pt++='\0';
     char *pt2=strchr(pt,':');
     *pt2++='\0';
-    config->status.faults=atoi(str);
-    config->status.refusals=atoi(pt);
-    config->status.eliminated=(atoi(pt2)==0)?0:1;
+    config->status.faults = atoi(str) - config->status.touchs;
+    config->status.refusals = atoi(pt);
+    config->status.eliminated = (atoi(pt2)==0)?0:1;
     debug(DBG_INFO,"%s -> Command: DATA %s",tokens[0],tokens[2]);
     return 0;
 }
@@ -129,6 +141,7 @@ static int main_mgr_reset(configuration * config, int slot, char **tokens, int n
     config->status.int_time=0L;
     config->status.stop_time=0L;
     config->status.faults=0;
+    config->status.touchs=0;
     config->status.refusals=0;
     config->status.eliminated=0;
     config->status.notpresent=0;

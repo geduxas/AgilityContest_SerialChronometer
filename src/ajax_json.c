@@ -56,6 +56,7 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         config->status.perro=0;
         config->status.equipo=0;
         config->status.faults=0;
+        config->status.touchs=0;
         config->status.refusals=0;
         config->status.eliminated=0;
         config->status.notpresent=0;
@@ -77,6 +78,7 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         config->status.perro=0;
         config->status.equipo=0;
         config->status.faults=0;
+        config->status.touchs=0;
         config->status.refusals=0;
         config->status.eliminated=0;
         config->status.notpresent=0;
@@ -114,7 +116,7 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         char const *eli=json_getPropertyValue( rdata, "Eli" );
         char const *npr=json_getPropertyValue( rdata, "NPr" );
         int f=(strcmp(flt,"-1")==0)?config->status.faults:atoi(flt);
-        int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
+        int t=(strcmp(toc,"-1")==0)?config->status.touchs:atoi(toc);
         int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
         int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
         int n=(strcmp(npr,"-1")==0)?config->status.notpresent:atoi(npr); // not present is not used but required
@@ -147,11 +149,11 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         char const *reh=json_getPropertyValue( rdata, "Reh" );
         char const *eli=json_getPropertyValue( rdata, "Eli" );
         char const *npr=json_getPropertyValue( rdata, "NPr" );
-        if (strcmp("-1",flt)!=0) config->status.faults=atoi(flt);
-        if (strcmp("-1",toc)!=0) config->status.faults += atoi(toc);
-        if (strcmp("-1",reh)!=0) config->status.refusals=atoi(reh);
-        if (strcmp("-1",eli)!=0) config->status.eliminated=atoi(eli);
-        if (strcmp("-1",flt)!=0) config->status.notpresent=atoi(npr);
+        if (strcmp("-1",flt)!=0) config->status.faults = atoi(flt);
+        if (strcmp("-1",toc)!=0) config->status.touchs = atoi(toc);
+        if (strcmp("-1",reh)!=0) config->status.refusals = atoi(reh);
+        if (strcmp("-1",eli)!=0) config->status.eliminated = atoi(eli);
+        if (strcmp("-1",flt)!=0) config->status.notpresent = atoi(npr);
 
         // generamos SerialAPI msg con el numero de turno del perro
         char const *num=json_getPropertyValue( rdata, "Numero" );
@@ -163,9 +165,9 @@ static char * process_eventData(configuration *config,char const * datastr, int 
         char const *reh=json_getPropertyValue( rdata, "Reh" );
         char const *eli=json_getPropertyValue( rdata, "Eli" );
         char const *npr=json_getPropertyValue( rdata, "NPr" );
-        int f=(strcmp(flt,"-1")==0)?config->status.faults:atoi(flt);
-        int t=(strcmp(toc,"-1")==0)?0:atoi(toc);
-        int r=(strcmp(reh,"-1")==0)?config->status.refusals:atoi(reh);
+        int f=(strcmp(flt,"-1")==0)?config->status.faults :   atoi(flt);
+        int t=(strcmp(toc,"-1")==0)?config->status.touchs :   atoi(toc);
+        int r=(strcmp(reh,"-1")==0)?config->status.refusals : atoi(reh);
         int e=(strcmp(eli,"-1")==0)?config->status.eliminated:atoi(eli);
         int n=(strcmp(npr,"-1")==0)?config->status.notpresent:atoi(npr); // not present is not used in this program
         snprintf(result,MSG_LEN,"data %d:%d:%d\n",f+t,r,e);

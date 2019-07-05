@@ -262,7 +262,7 @@ int ajax_put_event(configuration *config, char *type, sc_extra_data_t *data,int 
         len+=sprintf(sc_puteventurl+len,"&Perro=%d",config->status.perro);
         len+=sprintf(sc_puteventurl+len,"&Equipo=%d",config->status.equipo);
         len+=sprintf(sc_puteventurl+len,"&Faltas=%d",config->status.faults);
-        len+=sprintf(sc_puteventurl+len,"&Tocados=0"); // internally added to faults
+        len+=sprintf(sc_puteventurl+len,"&Tocados=%d",config->status.touchs);
         len+=sprintf(sc_puteventurl+len,"&Rehuses=%d",config->status.refusals);
         len+=sprintf(sc_puteventurl+len,"&Eliminado=%d",config->status.eliminated);
         len+=sprintf(sc_puteventurl+len,"&Nopresentado=%d",config->status.notpresent);

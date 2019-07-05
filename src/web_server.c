@@ -89,7 +89,7 @@ static void readData(httpd_conn_t *conn, hrequest_t *req) {
     char *id_value=item->value;
     int cmdid=atoi(id_value);
     len=sprintf(line,"{\"F\":\"%d\",\"R\":\"%d\",\"E\":\"%d\",\"D\":\"%d\"",
-            config->status.faults,config->status.refusals,config->status.eliminated,config->status.numero);
+            config->status.faults+config->status.touchs,config->status.refusals,config->status.eliminated,config->status.numero);
     // PENDING if event: add it
     // parse htmlquery to extract last commandID
     char *msg=queue_pick(output_queue,cmdid);

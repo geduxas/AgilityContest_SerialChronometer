@@ -59,7 +59,7 @@ static int console_mgr_down(configuration * config, int slot, char **tokens, int
     return 0;
 }
 static int console_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
-    fprintf(stderr,"Fault count is: %d\n",config->status.faults);
+    fprintf(stderr,"Fault/Touch count is: %d\n",config->status.faults+config->status.touchs);
     return 0;
 }
 static int console_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
@@ -71,7 +71,7 @@ static int console_mgr_elim(configuration * config, int slot, char **tokens, int
     return 0;
 }
 static int console_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
-    fprintf(stderr,"Received DATA. F:%d R:%d E:%d\n",config->status.faults,config->status.refusals,config->status.eliminated);
+    fprintf(stderr,"Received DATA. F:%d R:%d E:%d\n",config->status.faults+config->status.touchs,config->status.refusals,config->status.eliminated);
     return 0;
 }
 static int console_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {

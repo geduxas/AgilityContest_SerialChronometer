@@ -25,6 +25,7 @@ typedef struct {
     long stop_time;  // chrono end value (mseconds
     long int_time; // chrono intermediate time
     int faults;
+    int touchs; // required to handle consistency with AC internal data
     int refusals;
     int eliminated;
     int notpresent;

@@ -43,6 +43,7 @@ configuration * default_options(configuration * config) {
     // internal status tracking
     config->status.eliminated=0;
     config->status.faults=0;
+    config->status.touchs=0;
     config->status.refusals=0;
     config->status.start_time=-1L;
     config->status.int_time=0L;
@@ -54,13 +55,13 @@ configuration * default_options(configuration * config) {
 void print_status(configuration *config) {
     debug(DBG_DEBUG,"Status info:");
     debug(DBG_DEBUG,"Numero %d",      config->status.numero);
-    debug(DBG_DEBUG,"Faults %d",    config->status.faults);
+    debug(DBG_DEBUG,"Faults %d",    config->status.faults+config->status.touchs);
     debug(DBG_DEBUG,"Refusals %d",    config->status.refusals);
     debug(DBG_DEBUG,"Eliminated %d",      config->status.eliminated);
     if (config->opmode & OPMODE_CONSOLE) {
         fprintf(stderr,"Status information:\n");
         fprintf(stderr,"Numero %d\n",    config->status.numero);
-        fprintf(stderr,"Faults %d\n",    config->status.faults);
+        fprintf(stderr,"Faults %d\n",    config->status.faults+config->status.touchs);
         fprintf(stderr,"Refusals %d\n",    config->status.refusals);
         fprintf(stderr,"Eliminated %d\n",      config->status.eliminated);
     }
