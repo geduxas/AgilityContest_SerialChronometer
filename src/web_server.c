@@ -92,7 +92,7 @@ static void readData(httpd_conn_t *conn, hrequest_t *req) {
             config->status.faults+config->status.touchs,config->status.refusals,config->status.eliminated,config->status.numero);
     // PENDING if event: add it
     // parse htmlquery to extract last commandID
-    char *msg=queue_pick(output_queue,cmdid);
+    char *msg=queue_pick(output_queue,(cmdid<=0)?-1:cmdid);
     if (msg) { // add to json data as ",Command":message"
         len += sprintf(line+len,",\"Command\":\"%s\"",msg);
         free(msg); //strdup()'d from queue
