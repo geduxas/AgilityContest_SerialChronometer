@@ -58,11 +58,13 @@ function readData() {
             $('#Rehuses').val(data.R);
             $('#Eliminado').val(data.E);
             $('#Turno').val(data.D);
+            if (data.ID==="0") $('#Ring').val(data.Ring);
             if(clockDisplay && (!clockDisplay.closed)) {
                 clockDisplay.document.getElementById("Faltas").value=data.F;
                 clockDisplay.document.getElementById("Rehuses").value=data.R;
                 clockDisplay.document.getElementById("Eliminado").value=data.E;
                 clockDisplay.document.getElementById("Turno").value=data.D;
+                if (data.ID==="0") clockDisplay.document.getElementById("Ring").value=data.Ring;
             }
             lastID= parseInt(data.ID);
             // if any event, parse it
@@ -122,6 +124,7 @@ function c_reset(local) {
         clockDisplay.document.getElementById("Faltas").value=0;
         clockDisplay.document.getElementById("Rehuses").value=0;
         clockDisplay.document.getElementById("Eliminado").value=0;
+        // clock y turno no se actualizan con reset, sino con reload
     }
     c_llamada.stop();
     c_reconocimiento.stop();

@@ -97,8 +97,12 @@ static void readData(httpd_conn_t *conn, hrequest_t *req) {
         len += sprintf(line+len,",\"Command\":\"%s\"",msg);
         free(msg); //strdup()'d from queue
     }
-    // add cmdid
+    // add cmdid and on startup ring number
     len += sprintf(line+len,",\"ID\":\"%d\"",cmdid);
+    if (cmdid==0) {
+        len += sprintf(line+len,",\"Ring\":\"%d\"",config->ring);
+    }
+    // close json data
     len += sprintf(line+len,"}");
     httpd_add_header(conn,"Content-Type","application/json");
     httpd_send_header(conn, 200, "OK");

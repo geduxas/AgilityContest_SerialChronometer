@@ -65,15 +65,17 @@
             doLayout(layout,"#Copyright",21,21,10,1);
             doLayout(layout,"#fondo_clock",0,0,31,18);
             doLayout(layout,"#Clock",1,1,29,16);
-            doLayout(layout,"#fondo_datos",8,18,23,3);
-            doLayout(layout,"#TurnoLbl",9,19,3,2);
-            doLayout(layout,"#Turno",12,19,1,1);
-            doLayout(layout,"#FaltasLbl",16,19,3,2);
-            doLayout(layout,"#Faltas",19,19,1,1);
-            doLayout(layout,"#RehusesLbl",20,19,3,2);
-            doLayout(layout,"#Rehuses",23,19,1,1);
-            doLayout(layout,"#EliminadoLbl",24,19,3,2);
-            doLayout(layout,"#Eliminado",27,19,1,1);
+            doLayout(layout,"#fondo_datos",6,18,25,3);
+            doLayout(layout,"#RingLbl",6,19,3,2);
+            doLayout(layout,"#Ring",9,19,1,1);
+            doLayout(layout,"#TurnoLbl",10,19,3,2);
+            doLayout(layout,"#Turno",13,19,1,1);
+            doLayout(layout,"#FaltasLbl",17,19,3,2);
+            doLayout(layout,"#Faltas",20,19,1,1);
+            doLayout(layout,"#RehusesLbl",21,19,3,2);
+            doLayout(layout,"#Rehuses",24,19,1,1);
+            doLayout(layout,"#EliminadoLbl",25,19,3,2);
+            doLayout(layout,"#Eliminado",28,19,1,1);
         }
 
     </script>
@@ -95,8 +97,10 @@
 
         <!-- ventana de faltas y rehuses -->
     <span class="chrono_fondo " id="fondo_datos" style="background: #87CEEB">&nbsp;</span>
-    <label id="TurnoLbl" for="Turno" class="data">En pista:</label>
-    <input id="Turno"  class="data" type="text" readonly="readonly" name="Turno" value="T">
+        <label id="RingLbl" for="Ring" class="data">Ring:</label>
+        <input id="Ring"  class="data" type="text" readonly="readonly" name="Ring" value="T">
+        <label id="TurnoLbl" for="Turno" class="data">En pista:</label>
+        <input id="Turno"  class="data" type="text" readonly="readonly" name="Turno" value="T">
     <label id="FaltasLbl" for="Faltas" class="data">Faltas:</label>
     <input id="Faltas"  class="data" type="text" readonly="readonly" name="F" value="F">
     <label id="RehusesLbl" for="Rehuses" class="data">Rehuses:</label>
