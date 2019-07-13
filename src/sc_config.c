@@ -40,6 +40,7 @@ configuration * default_options(configuration * config) {
     config->serial_port = NULL;
     config->opmode = 0; //bitmask 1:serial 2:console 4:html 8:agilitycontest
     config->local_port = 8880;
+    config->license_file = NULL;
     // internal status tracking
     config->status.eliminated=0;
     config->status.faults=0;
@@ -49,6 +50,7 @@ configuration * default_options(configuration * config) {
     config->status.int_time=0L;
     config->status.stop_time=0;
     config->status.numero=0;
+
     return config;
 }
 
@@ -70,6 +72,7 @@ void print_status(configuration *config) {
 void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"Configuration parameters:");
     debug(DBG_DEBUG,"osname %s",   config->osname);
+    debug(DBG_DEBUG,"license_file %s",   config->license_file);
     debug(DBG_DEBUG,"logfile %s",    config->logfile);
     debug(DBG_DEBUG,"loglevel %d",    config->loglevel);
     debug(DBG_DEBUG,"opmode %d",      config->opmode);
@@ -85,6 +88,7 @@ void print_configuration(configuration *config) {
     if (config->opmode & OPMODE_CONSOLE) {
         fprintf(stderr,"Configuration parameters:\n");
         fprintf(stderr,"osname %s\n",   config->osname);
+        fprintf(stderr,"license_file %s\n",   config->license_file);
         fprintf(stderr,"logfile %s\n",    config->logfile);
         fprintf(stderr,"loglevel %d\n",    config->loglevel);
         fprintf(stderr,"opmode %d\n",      config->opmode);
@@ -115,6 +119,7 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Debug",   "loglevel"))    config->loglevel = atoi(value) % 9; /* 0..8 */
     else if (MATCH("Debug",   "opmode"))      config->opmode = atoi(value) %  0x1F; /* bitmask */
     else if (MATCH("Debug",   "verbose"))     config->verbose = ((atoi(value)!=0)?1:0);
+    else if (MATCH("Global",  "license_file"))  config->license_file = strdup(value);
     else if (MATCH("Global",  "local_port"))     config->local_port =atoi(value);
     else if (MATCH("Global",  "console"))     config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
     else if (MATCH("Global", "ring"))       config->ring = atoi(value); /* default 1 */

@@ -29,6 +29,7 @@
 #include "sc_config.h"
 #include "main.h"
 #include "parser.h"
+#include "license.h"
 
 
 int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
@@ -70,6 +71,7 @@ static int usage() {
     fprintf(stderr,"\t -v         || --verbose            Send debug to stderr console\n");
     fprintf(stderr,"\t -q         || --quiet              Do not send debug log to console\n");
     fprintf(stderr,"Additional options:\n");
+    fprintf(stderr,"\t -l         || --license-file=file  Tell location for license file\n");
     fprintf(stderr,"\t -f         || --find-ports         Show available , non-busy comm ports and exit\n");
     fprintf(stderr,"\t -h  || -?  || --help               Display this help and exit\n");
     return 0;
@@ -86,8 +88,9 @@ static int usage() {
  */
 static int parse_cmdline(configuration *config, int argc,  char * const argv[]) {
     int option=0;
-    while ((option = getopt(argc, argv,"m:n:d:w:s:L:D:b:r:vqhcf")) != -1) {
+    while ((option = getopt(argc, argv,"l:m:n:d:w:s:L:D:b:r:vqhcf")) != -1) {
         switch (option) {
+            case 'l' : config->license_file = strdup(optarg);     break;
             case 'm' : config->module = strdup(optarg);     break;
             case 'n' : config->client_name = strdup(optarg);break;
             case 'd' : config->comm_port = strdup(optarg);  break;
@@ -152,6 +155,14 @@ int main (int argc, char *argv[]) {
         serial_print_ports(config);
         return 0;
     }
+
+    // check license
+    char *lic=getLicenseFromFile(config);
+    if (!lic) {
+        debug(DBG_ERROR,"Cannot find license file");
+        return 1;
+    }
+    debug(DBG_TRACE,"getLicenseFile() returns %s",lic);
 
     // start requested threads
     // we need 4+1 threads (console,serial,ajax,web) managers plus webserver

@@ -80,6 +80,7 @@ typedef struct {
     int baud_rate;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
     struct sp_port *serial_port; // serial port to be openend
+    char *license_file;
 
     // chrono status
     sc_data_t status;
