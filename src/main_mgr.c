@@ -189,7 +189,19 @@ static int main_mgr_numero(configuration * config, int slot, char **tokens, int 
     debug(DBG_INFO,"%s -> Command: TURN %d",tokens[0],config->status.numero);
     return 0;
 }
-
+static int main_mgr_bright(configuration * config, int slot, char **tokens, int ntokens) {
+    if (ntokens==3) {
+        if (strcmp(tokens[2],"+")==0) config->bright++;
+        else if (strcmp(tokens[2],"-")==0) config->bright--;
+        else config->bright=atoi(tokens[2]);
+    } else {
+        config->bright++;
+    }
+    if (config->bright<0) config->bright=0;
+    if (config->bright>9) config->bright=9;
+    debug(DBG_INFO,"%s -> Command: BRIGHT %d",tokens[0],config->status.numero);
+    return 0;
+}
 static int main_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"%s -> Command: CLOCK",tokens[0]);
     return 0;
@@ -223,7 +235,8 @@ func main_mgr_entries[32]= {
         main_mgr_config, // { 18, "config", "List configuration parameters",   "" },
         main_mgr_status, // { 19, "status", "Show faults/refusal/elim info",   "" },
         main_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        main_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        main_mgr_debug,  // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        main_mgr_bright, // { 21, "bright", "Set display bright level (0..9) [+-#]","[ + | - | num ] {+}"},
+        main_mgr_clock,  // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        main_mgr_debug,  // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL                // { -1, NULL,     "",                                "" }
 };

@@ -42,7 +42,19 @@
         var alive_timestamp=0;
         var start_timestamp=0;
         var last_time=0;
-
+        var bright_levels = [
+            "#FFFFFF",
+            "#EEEEEE",
+            "#CCCCCC",
+            "#AAAAAA",
+            "#888888",
+            "#666666",
+            "#444444",
+            "#333333",
+            "#222222",
+            "#111111",
+            "#000000"
+        ];
         var clockDisplay=null;
 
         String.prototype.explode = function (separator, limit) {
@@ -217,6 +229,7 @@
 <div style="width:100%">
 
     <form id="parameters" autocomplete="off">
+    <input type="hidden" id="Bright" name="Bright" value="5"/>
         <!-- logotipo -->
     <label id="Logo" name="Logo" class="logo"><a target="info" href="/getInfo"><img src="AgilityContest.png" alt="logo" height="100%"></a></label>
         <!-- titulo de cabecera -->

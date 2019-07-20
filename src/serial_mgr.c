@@ -101,6 +101,11 @@ static int serial_mgr_numero(configuration * config, int slot, char **tokens, in
     if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
     return entry_points.module_write(tokens,ntokens);
 }
+static int serial_mgr_bright(configuration * config, int slot, char **tokens, int ntokens) {
+    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
+    return entry_points.module_write(tokens,ntokens);
+}
 static int serial_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
     return entry_points.module_write(tokens,ntokens);
@@ -128,8 +133,9 @@ static func entries[32]= {
         NULL,              // { 18, "config", "List configuration parameters",   "" },
         NULL,              // { 19, "status", "Show faults/refusal/elim info",   "" },
         serial_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        serial_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        NULL,              // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        serial_mgr_bright, // { 21, "bright", "Set display bright level (0..9) [+-#]","[ + | - | num ] {+}"},
+        serial_mgr_clock,  // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,              // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL               // { -1, NULL,     "",                                "" }
 };
 

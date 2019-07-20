@@ -149,8 +149,9 @@ static func entries[32]= {
         NULL,            // { 18, "config", "List configuration parameters",   "" },
         NULL,            // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
         NULL,            // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        NULL,            // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        NULL,            // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        NULL,            // { 21, "bright", "Set display bright level [+-#]",  "[ + | - | num ] {+}"},
+        NULL,            // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,            // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }
 };
 
