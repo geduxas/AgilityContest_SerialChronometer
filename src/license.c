@@ -17,6 +17,8 @@
 #include "debug.h"
 #include "license.h"
 
+static char *license_data=NULL;
+
 static char *getPK() {
      char *str=
     "MIIEIjANBgkqhkiG9w0BAQEFAAOCBA8AMIIECgKCBAEAzgeD27TXHKde3iNMtQSq\n"
@@ -124,16 +126,26 @@ static char * base64Decode(char* fname,size_t *datalen) {
 }
 
 static char *decryptLicense(char *data,size_t datalen, RSA *puk) {
-    char *buff=calloc(RSA_size(puk),sizeof(char));
-    int  result = RSA_public_decrypt(datalen,(unsigned char *)data,(unsigned char *) buff,puk,RSA_PKCS1_PADDING);
-    if (result<0) {
-        debug(DBG_ERROR,"decryptLicense() failed");
-        return NULL;
+    char *result=calloc(RSA_size(puk),sizeof(char));
+    int resultlen=0;
+    // data is encrypted in 1024 bytes blocks ( as for 8192bit key )
+    // so divide incomming data in 1K chunks and decrypt then
+    char buff[RSA_size(puk)-11]; // to store chunk decrypts
+    for (char *pt=data;pt<data+datalen;pt+=1024) {
+        int nbytes = RSA_public_decrypt(1024,(unsigned char *)pt,(unsigned char *) buff,puk,RSA_PKCS1_PADDING);
+        if (nbytes<0) {
+            debug(DBG_ERROR,"decryptLicense() failed");
+            return NULL;
+        }
+        result=realloc(result,datalen+nbytes);
+        memcpy(result+resultlen,buff,1+nbytes);
+        resultlen+=nbytes;
     }
-    return buff;
+    result[resultlen]='\0';
+    return result;
 }
 
-char * getLicenseFromFile(configuration *config) {
+int readLicenseFromFile(configuration *config) {
     size_t len=0;
     // try to locate license file where config says
     char *data=base64Decode(config->license_file,&len);
@@ -141,10 +153,31 @@ char * getLicenseFromFile(configuration *config) {
     if (!data) data=base64Decode("registration.info",&len);
     // finally try in AgilityContest std location
     if (!data) data=base64Decode(LICENSE_FILE,&len);
-    if (!data) return NULL;
+    if (!data) return -1;
     // retrieve public key
     RSA *puk=getPublicKey();
     // decrypt license
-    char *result=decryptLicense(data,len,puk);
+    license_data=decryptLicense(data,len,puk);
+    if (!license_data) return -1;
+    return strlen(license_data);
+}
+
+char *getLicenseItem(char *item) {
+    char searchkey[64];
+    if (!license_data) return NULL;
+    snprintf(searchkey,64,"\"%s\" : \"",item);
+    char *pt1=strstr(license_data,searchkey);
+    if (!pt1) return NULL; // no "key" : " found
+    pt1+=strlen(item)+6;
+    char *pt2=strchr(pt1,'"');
+    if (!pt2) return NULL; // no closing quotes
+    char *result=calloc(1+pt2-pt1,sizeof(char));
+    if (!result) return NULL;
+    memcpy(result,pt1,pt2-pt1);
     return result;
+}
+
+char *getLicenseLogo() {
+    // PENDING: should be base64decode'd ?
+    return getLicenseItem("image");
 }

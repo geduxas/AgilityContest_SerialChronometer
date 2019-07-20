@@ -157,12 +157,15 @@ int main (int argc, char *argv[]) {
     }
 
     // check license
-    char *lic=getLicenseFromFile(config);
-    if (!lic) {
-        debug(DBG_ERROR,"Cannot find license file");
+    int lic=readLicenseFromFile(config);
+    if (lic<0) {
+        debug(DBG_ERROR,"Cannot read and/or process license file");
         return 1;
     }
-    debug(DBG_TRACE,"getLicenseFile() returns %s",lic);
+    debug(DBG_TRACE,"getLicenseFile() returns %d bytes\n",lic);
+    debug(DBG_TRACE,"License Serial Number: '%s'\n",getLicenseItem("serial"));
+    debug(DBG_TRACE,"License club: '%s'\n",getLicenseItem("club"));
+    debug(DBG_TRACE,"License capabilities '%s'\n",getLicenseItem("options"));
 
     // start requested threads
     // we need 4+1 threads (console,serial,ajax,web) managers plus webserver

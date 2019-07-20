@@ -20,7 +20,9 @@
 #else
 #define EXTERN
 #endif
-EXTERN char * getLicenseFromFile(configuration *config);
+EXTERN int readLicenseFromFile(configuration *config);
+EXTERN char *getLicenseItem(char *item);
+EXTERN char *getLicenseLogo();
 
 #undef EXTERN
 
