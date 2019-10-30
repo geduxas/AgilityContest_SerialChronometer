@@ -4,7 +4,7 @@ Se distribuye bajo los términos y condiciones de la licencia General Pública d
 
 Contenido del fichero zip:
 -------------------------------
-AC_SerialProtocol.pdf  - Manual del usuario
+ac_SerialProtocol.pdf  - Manual del usuario
 LICENSE                - Licencia y CopyRight
 serial_chrono.ini      - Fichero de configuracion
 html                   - Carpeta que contiene los diversos ficheros del interfaz web
@@ -28,7 +28,7 @@ Instalacion
 
 5- Arrancar la aplicación lanzando desde un interprete de comandos el ejecutable correspondiente. En caso de haber habilitado en el fichero de configuración el servidor local, es posible que el firewall de windows presente un aviso de alerta, que podremos aceptar e ignorar
 
-6.1 - Si se utiliza AgilitContest, desde el menú de control de sesiones comprobar que el cwcronómetro es reconocido, y que se puede controlar desde el tablet
+6.1 - Si se utiliza AgilitContest, desde el menú de control de sesiones comprobar que el cronómetro es reconocido, y que se puede controlar desde el tablet
 
 6.2 - Si se utiliza como aplicación autónoma, desplegar un navegador en la dirección
 http://localhost:808X ( siendo X el numero de ring escogido en el fichero de configuración )

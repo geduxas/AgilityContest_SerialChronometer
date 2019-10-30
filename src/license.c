@@ -101,6 +101,44 @@ static RSA *getPublicKey() {
     return rsa;
 }
 
+static char *error_null(char *format,const char *msg) {
+    debug(DBG_ERROR,format,msg);
+    return NULL;
+}
+
+// base 64 encode provided file
+// returns encoded data or null on error
+static char *base64Encode(const char* fname) {
+    struct stat st;
+    // check file
+    if (!fname) return error_null("filename is null","");
+    if (stat(fname, &st) == -1)  return error_null("%s does not exists",fname);
+    if ( ! S_ISREG(st.st_mode) ) return error_null("%s is not a regular file",fname);
+
+    // load file into memory
+    char *data=calloc(st.st_size,sizeof(char));
+    if (!data) return error_null("Cannot allocate space for file %s",fname);
+    FILE *from=fopen(fname,"rb");
+    if (!from) return error_null("Error opening file %s",fname);
+    fread(data,st.st_size,sizeof(char),from);
+    fclose(from);
+
+    // perform encoding operation
+    BIO *bio, *b64;
+    BUF_MEM *bufferPtr;
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_new(BIO_s_mem());
+    bio = BIO_push(b64, bio);
+
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line
+    BIO_write(bio, data, st.st_size);
+    BIO_flush(bio);
+    BIO_get_mem_ptr(bio, &bufferPtr);
+    BIO_set_close(bio, BIO_NOCLOSE);
+    BIO_free_all(bio);
+    return bufferPtr->data;
+}
+
 //Decodes a base64 encoded file
 static char * base64Decode(char* fname,size_t *datalen) {
     BIO *bio, *b64;
@@ -177,7 +215,29 @@ char *getLicenseItem(char *item) {
     return result;
 }
 
-char *getLicenseLogo() {
+/**
+ * get logo from license (base 64 encoded )
+ * if license has no logo use default and mark it unencoded
+ */
+char *getLicenseLogo(size_t *size) {
     // PENDING: should be base64decode'd ?
-    return getLicenseItem("image");
+    char *data= getLicenseItem("image");
+    if (data && strlen(data)>0) return data;
+    debug(DBG_ERROR,"License file has empty logo data");
+    char *fname="html/AgilityContest.png";
+    struct stat st;
+    // check file
+    if (!fname) return error_null("filename is null","");
+    if (stat(fname, &st) == -1)  return error_null("%s does not exists",fname);
+    if ( ! S_ISREG(st.st_mode) ) return error_null("%s is not a regular file",fname);
+
+    // load file into memory
+    data=calloc(st.st_size,sizeof(char));
+    if (!data) return error_null("Cannot allocate space for file %s",fname);
+    FILE *from=fopen(fname,"rb");
+    if (!from) return error_null("Error opening file %s",fname);
+    fread(data,st.st_size,sizeof(char),from);
+    fclose(from);
+    *size=st.st_size;
+    return data;
 }

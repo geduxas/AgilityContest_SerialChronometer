@@ -22,7 +22,7 @@
 #endif
 EXTERN int readLicenseFromFile(configuration *config);
 EXTERN char *getLicenseItem(char *item);
-EXTERN char *getLicenseLogo();
+EXTERN char *getLicenseLogo(size_t *size);
 
 #undef EXTERN
 
