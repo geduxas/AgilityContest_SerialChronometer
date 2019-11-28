@@ -18,7 +18,6 @@
 #define OPMODE_WEB 4
 #define OPMODE_SERVER 8
 #define OPMODE_FIND 16 /* find serial ports and exit */
-#define OPMODE_BROWSER 32 /* fire up browser if web mode is on */
 
 typedef struct {
     // valores de estado utlizados en las operaciones del crono

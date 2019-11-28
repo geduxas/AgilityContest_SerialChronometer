@@ -262,11 +262,7 @@ void *init_webServer(void *arg) {
 		debug(DBG_ERROR, "Can not register default service");
 		return NULL;
 	}
-	if (httpd_run()) {
-		debug(DBG_ERROR, "can not run httpd");
-		return NULL;
-	}
-	// finally if configured to do launch web browser
+    // launch browser if configured to do so
     if (config->fire_browser!=0) {
         debug(DBG_INFO, "Firing up browser....");
 #ifdef __WIN32__
@@ -278,5 +274,11 @@ void *init_webServer(void *arg) {
 #endif
     }
     free(buffer);
+    // and finally start web server
+    // notice that this wont return unless external stop
+	if (httpd_run()) {
+		debug(DBG_ERROR, "can not run httpd");
+		return NULL;
+	}
 	return 0;
 }

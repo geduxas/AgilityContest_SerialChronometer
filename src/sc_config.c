@@ -131,7 +131,7 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Serial", "comm_port"))    config->comm_port = strdup(value);
     else if (MATCH("Serial", "baud_rate"))    config->baud_rate = atoi(value); /* def 9600 */
     else if (MATCH("Web",    "web_port"))     config->web_port = atoi(value); /* def 8080 */
-    else if (MATCH("Web",    "fire_browser")) config->opmode |= ((atoi(value)!=0)?OPMODE_BROWSER:0);
+    else if (MATCH("Web",    "fire_browser")) config->fire_browser = ((atoi(value)!=0)?1:0);
     else return 0; /* unknown section/name, error */
     return 1;
 }
