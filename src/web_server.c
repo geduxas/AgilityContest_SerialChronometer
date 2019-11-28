@@ -29,12 +29,14 @@
 #include <sys/stat.h>
 #include "nanohttp/nanohttp-logging.h"
 #include "nanohttp/nanohttp-server.h"
+#include "nanohttp/nanohttp-base64.h"
 
 #include "debug.h"
 #include "sc_config.h"
 #include "sc_tools.h"
 #include "web_mgr.h"
 #include "web_server.h"
+#include "license.h"
 
 #include "main.h"
 static configuration *config;
@@ -57,7 +59,6 @@ static int simple_authenticator(hrequest_t *req, const char *user, const char *p
 static void secure_service(httpd_conn_t *conn, hrequest_t *req) {
 	httpd_send_header(conn, 200, "OK");
 	hsocket_send(conn->sock,"<html><head><title>Secure ressource!</title></head><body><h1>Authenticated access!!!</h1></body></html>");
-	return;
 }
 
 /** not used, just to preserve code from original example */
@@ -73,7 +74,22 @@ static void headers_service(httpd_conn_t *conn, hrequest_t *req) {
         hsocket_send(conn->sock, "</li>");
     }
     hsocket_send(conn->sock,"</ul></body></html>");
-    return;
+}
+
+static void getLogo(httpd_conn_t *conn, hrequest_t *req) {
+    httpd_add_header(conn,"Content-Type","image/png");
+    httpd_send_header(conn, 200, "OK");
+    size_t len=0;
+    char *logo=getLicenseLogo(&len); // len is zero if data is base64 encoded
+    char *data=logo;
+    if (len==0) { // data comes base64 encoded
+        len=4+strlen(logo)*3/4; // decoded lenght is 3/4 of the encoded one ( plus padding)
+        data=calloc(len,sizeof(char));
+        base64_decode(logo,data);
+    }
+    hsocket_nsend (conn->sock,data,len);
+    if (data!=logo) free(logo);
+    free(data);
 }
 
 /*
@@ -227,6 +243,10 @@ void *init_webServer(void *arg) {
     }
     if (!httpd_register("/writeData", writeData)) {
         debug(DBG_ERROR, "Can not register service 'writeData'");
+        return NULL;
+    }
+    if (!httpd_register("/getLogo", getLogo)) {
+        debug(DBG_ERROR, "Can not register service 'getLogo'");
         return NULL;
     }
 	/*

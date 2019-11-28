@@ -76,6 +76,7 @@ else()
             ${CMAKE_SOURCE_DIR}/libserialport/lib/linux/libserialport.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libnanohttp.a
             pthread
+            crypto
             curl
             dl
     )

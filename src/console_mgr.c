@@ -106,6 +106,10 @@ static int console_mgr_numero(configuration * config, int slot, char **tokens, i
     fprintf(stderr,"Entering dog number: %d\n",config->status.numero);
     return 0;
 }
+static int console_mgr_bright(configuration * config, int slot, char **tokens, int ntokens) {
+    fprintf(stderr,"Setting display bright: %d\n",config->bright);
+    return 0;
+}
 
 static int console_mgr_clock(configuration * config, int slot, char **tokens, int ntokens) {
     fprintf(stderr,"Entering clock mode");
@@ -139,8 +143,9 @@ static func entries[32]= {
         console_mgr_config, // { 18, "config", "List configuration parameters",   "" },
         console_mgr_status, // { 19, "status", "Show faults/refusal/elim info",   "" },
         console_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        console_mgr_clock,  // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        console_mgr_debug,  // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        console_mgr_bright, // { 21, "bright", "Set display bright level [+-#]",  "[ + | - | num ] {+}"},
+        console_mgr_clock,  // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        console_mgr_debug,  // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL                // { -1, NULL,     "",                                "" }
 };
 

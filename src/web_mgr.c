@@ -59,6 +59,13 @@ static int web_mgr_sendTurn(configuration *config, int slot,char **tokens, int n
     return strlen(buffer); // strlen("start 0")
 }
 
+static int web_mgr_sendBright(configuration *config, int slot,char **tokens, int ntokens) {
+    if (strcmp(SC_WEBSRV,tokens[0])==0) return 0;
+    char buffer[1024];
+    snprintf(buffer,1024,"bright %d",config->bright);
+    queue_put(output_queue,buffer);
+    return strlen(buffer); // strlen("start 0")
+}
 static int web_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"Internal html interface thread: exit requested");
     return -1;
@@ -87,8 +94,9 @@ static func entries[32]= {
         NULL,            // { 18, "config", "List configuration parameters",   "" },
         NULL,            // { 19, "status", "Show faults/refusal/elim info",   "" },
         web_mgr_sendTurn, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
-        NULL,            // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        NULL,            // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        web_mgr_sendBright,// { 21, "bright", "Set display bright level (0..9) [+-#]","[ + | - | num ] {+}"},
+        NULL,            // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
+        NULL,            // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
         NULL             // { -1, NULL,     "",                                "" }
 };
 

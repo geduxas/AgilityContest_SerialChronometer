@@ -44,6 +44,9 @@ function parseCommand(command) {
         c_error(false);
         return;
     }
+    if (cmd.indexOf("bright ")===0) {
+        return brillo(parseInt(command.substring(7)),false);
+    }
     console.log("unknown command received: '"+command+"'");
 }
 
@@ -186,6 +189,15 @@ function reconocimiento(seconds,local) {
     c_reconocimiento.reset(seconds);
     if (seconds!==0)c_reconocimiento.start();
     if(local) writeData("walk "+seconds);
+}
+
+function brillo(level,local) {
+    if (local) level = parseInt($('#Bright').val());
+    $('#Bright').val(level); // store new level
+    $('#Clock').css("color",bright_levels[level]);
+    if(clockDisplay && (!clockDisplay.closed)) {
+        $(clockDisplay.document.getElementById("Clock")).css("color",bright_levels[level]);
+    }
 }
 
 function llamada(seconds,local) {
