@@ -205,8 +205,8 @@ void *init_webServer(void *arg) {
     config=slot->config;
     slot->entries=NULL; // non sense as this is not a manager thread
 
-    char *buffer=calloc(16,sizeof(char));
-    snprintf(buffer,16,"%d",config->ring+config->web_port);
+    char *buffer=calloc(64,sizeof(char));
+    snprintf(buffer,64,"%d",config->ring+config->web_port);
     char *args[4]= {
             "ac_webserver", // program name
             NHTTPD_ARG_PORT, // specify port
@@ -246,5 +246,17 @@ void *init_webServer(void *arg) {
 		debug(DBG_ERROR, "can not run httpd");
 		return NULL;
 	}
+	// finally if configured to do launch web browser
+    if (config->fire_browser!=0) {
+        debug(DBG_INFO, "Firing up browser....");
+#ifdef __WIN32__
+        snprintf(buffer,64,"http://localhost:%d/index.html",config->ring+config->web_port);
+        ShellExecute(0, 0, buffer, 0, 0 , SW_SHOW );
+#else
+        snprintf(buffer,64,"xdg-open http://localhost:%d/index.html",config->ring+config->web_port);
+        system(buffer);
+#endif
+    }
+    free(buffer);
 	return 0;
 }

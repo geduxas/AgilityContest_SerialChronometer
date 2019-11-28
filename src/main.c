@@ -57,7 +57,8 @@ static int usage() {
     fprintf(stderr,"\t -d comport || --device=com_port    Communication port to attach to (required) \n");
     fprintf(stderr,"\t -b baud    || --baud=baudrate      Set baudrate for comm port. Defaults 9600\n");
     fprintf(stderr,"Web interface:\n");
-    fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for html interface. 0:disable . Default 8080\n");
+    fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for html interface. 0:disable. Default 8080\n");
+    fprintf(stderr,"\t -B         || --browser            Launch default browser when webport is non-zero. Default yes\n");
     fprintf(stderr,"AgilityContest  interface:\n");
     fprintf(stderr,"\t -s ipaddr  || --server=ip_address  Location (IP) of AgilityContest server.\n");
     fprintf(stderr,"                                      Values: \"none\":disable - \"find\":search - Default: \"localhost\"\n");
@@ -86,7 +87,7 @@ static int usage() {
  */
 static int parse_cmdline(configuration *config, int argc,  char * const argv[]) {
     int option=0;
-    while ((option = getopt(argc, argv,"m:n:d:w:s:L:D:b:r:vqhcf")) != -1) {
+    while ((option = getopt(argc, argv,"m:n:d:w:s:L:D:b:r:vBqhcf")) != -1) {
         switch (option) {
             case 'm' : config->module = strdup(optarg);     break;
             case 'n' : config->client_name = strdup(optarg);break;
@@ -100,6 +101,7 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
             case 'v' : config->verbose = 1; break;
             case 'q' : config->verbose = 0; break; // no console output
             case 'c' : config->opmode |= OPMODE_CONSOLE;    break; // test serial port
+            case 'B' : config->opmode |= OPMODE_BROWSER;    break; // fire browser if web_port is nonzero
             case 'f' : config->opmode = OPMODE_FIND;        break; // find serial ports
             case 'h' :
             case '?' : usage(); exit(0);

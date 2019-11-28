@@ -32,6 +32,7 @@ configuration * default_options(configuration * config) {
     config->verbose = 0;
     config->ajax_server = strdup("localhost");
     config->web_port = 8080;
+    config->fire_browser = 1; // default is fire up browser
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
     config->ring = 1;
@@ -81,6 +82,7 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
     debug(DBG_DEBUG,"ring %d",  config->ring);
     debug(DBG_DEBUG,"html port %d",  config->web_port);
+    debug(DBG_DEBUG,"fire browser %d",  config->fire_browser);
     debug(DBG_DEBUG,"local_port %d",  config->local_port);
     if (config->opmode & OPMODE_CONSOLE) {
         fprintf(stderr,"Configuration parameters:\n");
@@ -96,6 +98,7 @@ void print_configuration(configuration *config) {
         fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
         fprintf(stderr,"ring %d\n",  config->ring);
         fprintf(stderr,"html port %d\n",  config->web_port);
+        fprintf(stderr,"fire browser %d\n",  config->fire_browser);
         fprintf(stderr,"local_port %d\n",  config->local_port);
     }
 }
@@ -111,19 +114,20 @@ void print_configuration(configuration *config) {
 static int handler(void * data, const char* section, const char* name, const char* value) {
     configuration *config=(configuration*)data;
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
-    if      (MATCH("Debug",   "logfile"))     config->logfile = strdup(value);
-    else if (MATCH("Debug",   "loglevel"))    config->loglevel = atoi(value) % 9; /* 0..8 */
-    else if (MATCH("Debug",   "opmode"))      config->opmode = atoi(value) %  0x1F; /* bitmask */
-    else if (MATCH("Debug",   "verbose"))     config->verbose = ((atoi(value)!=0)?1:0);
-    else if (MATCH("Global",  "local_port"))     config->local_port =atoi(value);
-    else if (MATCH("Global",  "console"))     config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
-    else if (MATCH("Global", "ring"))       config->ring = atoi(value); /* default 1 */
-    else if (MATCH("Server", "ajax_server")) config->ajax_server = strdup(value); /* def "localhost" */
-    else if (MATCH("Server", "client_name")) config->client_name = strdup(value); /* def serial module name */
-    else if (MATCH("Serial", "module"))     config->module = strdup(value);
-    else if (MATCH("Serial", "comm_port"))   config->comm_port = strdup(value);
-    else if (MATCH("Serial", "baud_rate"))   config->baud_rate = atoi(value); /* def 9600 */
-    else if (MATCH("Web", "web_port"))   config->web_port = atoi(value); /* def 8080 */
+    if      (MATCH("Debug",  "logfile"))      config->logfile = strdup(value);
+    else if (MATCH("Debug",  "loglevel"))     config->loglevel = atoi(value) % 9; /* 0..8 */
+    else if (MATCH("Debug",  "opmode"))       config->opmode = atoi(value) %  0x1F; /* bitmask */
+    else if (MATCH("Debug",  "verbose"))      config->verbose = ((atoi(value)!=0)?1:0);
+    else if (MATCH("Global", "local_port"))   config->local_port =atoi(value);
+    else if (MATCH("Global", "console"))      config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
+    else if (MATCH("Global", "ring"))         config->ring = atoi(value); /* default 1 */
+    else if (MATCH("Server", "ajax_server"))  config->ajax_server = strdup(value); /* def "localhost" */
+    else if (MATCH("Server", "client_name"))  config->client_name = strdup(value); /* def serial module name */
+    else if (MATCH("Serial", "module"))       config->module = strdup(value);
+    else if (MATCH("Serial", "comm_port"))    config->comm_port = strdup(value);
+    else if (MATCH("Serial", "baud_rate"))    config->baud_rate = atoi(value); /* def 9600 */
+    else if (MATCH("Web",    "web_port"))     config->web_port = atoi(value); /* def 8080 */
+    else if (MATCH("Web",    "fire_browser")) config->opmode |= ((atoi(value)!=0)?OPMODE_BROWSER:0);
     else return 0; /* unknown section/name, error */
     return 1;
 }
