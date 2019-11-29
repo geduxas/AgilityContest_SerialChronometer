@@ -139,8 +139,34 @@ static char *base64Encode(const char* fname) {
     return bufferPtr->data;
 }
 
+static char *decryptLicense(char *data,size_t datalen, char *uniqueID, RSA *puk) {
+    char *result=calloc(RSA_size(puk),sizeof(char));
+    int resultlen=0;
+    // data is encrypted in 1024 bytes blocks ( as for 8192bit key )
+    // so divide incomming data in 1K chunks and decrypt then
+    char buff[RSA_size(puk)-11]; // to store chunk decrypts
+    for (char *pt=data;pt<data+datalen;pt+=1024) {
+        int nbytes = RSA_public_decrypt(1024,(unsigned char *)pt,(unsigned char *) buff,puk,RSA_PKCS1_PADDING);
+        if (nbytes<0) {
+            debug(DBG_ERROR,"decryptLicense() failed");
+            return NULL;
+        }
+        result=realloc(result,datalen+nbytes);
+        memcpy(result+resultlen,buff,1+nbytes);
+        resultlen+=nbytes;
+    }
+    result[resultlen]='\0';
+    return result;
+}
+
+// extract unique id from system.ini file if found
+// when fname is null asume uniqueid=00000000000000000000000000000000 ( 128 bits )
+static char *retrieveUniqueID(const char *fname) {
+    if (!fname) return "00000000000000000000000000000000";
+}
+
 //Decodes a base64 encoded file
-static char * base64Decode(char* fname,size_t *datalen) {
+static char * base64DecodeFile(char* fname,size_t *datalen) {
     BIO *bio, *b64;
     struct stat st;
     if (!fname) return NULL;
@@ -163,39 +189,29 @@ static char * base64Decode(char* fname,size_t *datalen) {
     return (buffer); //success
 }
 
-static char *decryptLicense(char *data,size_t datalen, RSA *puk) {
-    char *result=calloc(RSA_size(puk),sizeof(char));
-    int resultlen=0;
-    // data is encrypted in 1024 bytes blocks ( as for 8192bit key )
-    // so divide incomming data in 1K chunks and decrypt then
-    char buff[RSA_size(puk)-11]; // to store chunk decrypts
-    for (char *pt=data;pt<data+datalen;pt+=1024) {
-        int nbytes = RSA_public_decrypt(1024,(unsigned char *)pt,(unsigned char *) buff,puk,RSA_PKCS1_PADDING);
-        if (nbytes<0) {
-            debug(DBG_ERROR,"decryptLicense() failed");
-            return NULL;
-        }
-        result=realloc(result,datalen+nbytes);
-        memcpy(result+resultlen,buff,1+nbytes);
-        resultlen+=nbytes;
-    }
-    result[resultlen]='\0';
-    return result;
-}
 
 int readLicenseFromFile(configuration *config) {
     size_t len=0;
     // try to locate license file where config says
-    char *data=base64Decode(config->license_file,&len);
-    // else look in current directory
-    if (!data) data=base64Decode("registration.info",&len);
-    // finally try in AgilityContest std location
-    if (!data) data=base64Decode(LICENSE_FILE,&len);
-    if (!data) return -1;
+    // also locate unique id to check hash
+    char *data=base64DecodeFile(config->license_file,&len);
+    char *uniqueid=retrieveUniqueID(config->license_file);
+    // else look in AgilityContest std location
+    if (!data) {
+        data=base64DecodeFile(LICENSE_FILE,&len);
+        uniqueid=retrieveUniqueID(LICENSE_FILE);
+    }
+    // finally try in current directory
+    if (!data) {
+        data=base64DecodeFile("registration.info",&len);
+        uniqueid=retrieveUniqueID(NULL);
+    }
+    if (!data) { debug(DBG_ERROR,"Cannot read license file"); return -1; }
+    if (!uniqueid) { debug(DBG_ERROR,"Cannot retrieve uniqueID"); return -1; }
     // retrieve public key
     RSA *puk=getPublicKey();
     // decrypt license
-    license_data=decryptLicense(data,len,puk);
+    license_data=decryptLicense(data,len,uniqueid,puk);
     if (!license_data) return -1;
     return strlen(license_data);
 }

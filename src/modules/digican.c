@@ -104,7 +104,6 @@ static int digican_rehuses=0;
 
 int ADDCALL module_write(char **tokens, size_t ntokens){
     static char *buffer=NULL;
-    int len=0;
     if (buffer==NULL) buffer=malloc(1024*sizeof(char));
     memset(buffer,0,1024);
     char *cmd=tokens[1];
@@ -123,7 +122,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     else if (strcasecmp("stop",cmd)==0) {
         // digican uses cents of seconds, so remove last digit
         long cents=(config->status.stop_time - config->status.start_time)/10;
-        sprintf(buffer,"PARAR%04d$",cents);
+        sprintf(buffer,"PARAR%04d$",(int)cents);
     }
     // { 3, "fail",    "Sensor faillure detected",        ""},
     // unsupported in digican chrono

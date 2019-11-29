@@ -268,6 +268,9 @@ void *init_webServer(void *arg) {
 #ifdef __WIN32__
         snprintf(buffer,64,"http://localhost:%d/index.html",config->ring+config->web_port);
         ShellExecute(0, 0, buffer, 0, 0 , SW_SHOW );
+#elif defined __APPLE__
+        snprintf(buffer,64,"open http://localhost:%d/index.html",config->ring+config->web_port);
+        system(buffer);
 #else
         snprintf(buffer,64,"xdg-open http://localhost:%d/index.html",config->ring+config->web_port);
         system(buffer);
