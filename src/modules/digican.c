@@ -127,10 +127,13 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     }
     // { 3, "fail",    "Sensor faillure detected",        ""},
     // unsupported in digican chrono
+    else if (strcasecmp("fail",cmd)==0) { unsuported("digican","fail");  }
     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
     // unsupported in digican chrono
+    else if (strcasecmp("ok",cmd)==0) {  unsuported("digican","ok"); }
     // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
-    // unsupported in digican chrono
+        // unsupported in digican chrono
+    else if (strcasecmp("msg",cmd)==0) {  unsuported("digican","msg"); }
     // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
     else if (strcasecmp("walk",cmd)==0) {
         // PENDING: ask digican how to provide course walk duration in seconds ( or minutes )
@@ -195,20 +198,28 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     }
     // { 13, "help",   "show command list",               "[cmd]"},
     //  useless outside console
+    else if (strcasecmp("help",cmd)==0) {  unsuported("digican","help");  }
     // { 14, "version","Show software version",           "" },
     //  useless outside console
+    else if (strcasecmp("version",cmd)==0) {  unsuported("digican","version");  }
     // { 15, "exit",   "End program (from console)",      "" },
     // useless outside console
+    else if (strcasecmp("exit",cmd)==0) {  unsuported("digican","exit");  }
     // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
     //  useless outside console
+    else if (strcasecmp("server",cmd)==0) { unsuported("digican","server"); }
     // { 17, "ports",  "Show available serial ports",     "" },
     //  useless outside console
+    else if (strcasecmp("ports",cmd)==0) { unsuported("digican","ports"); }
     // { 18, "config", "List configuration parameters",   "" },
     //  useless outside console
+    else if (strcasecmp("config",cmd)==0) {  unsuported("digican","config"); }
     // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
     //  useless outside console
+    else if (strcasecmp("status",cmd)==0) {  unsuported("digican","status"); }
     // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
     //  useless outside console
+    else if (strcasecmp("turn",cmd)==0) { unsuported("digican","turn"); }
     // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
     // PENDING: ask oito-innova how to specify current time
     else if (strcasecmp("clock",cmd)==0) {
@@ -222,7 +233,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { -1, NULL,     "",                                "" }
     else {
         // arriving here means unrecognized or not supported command.
-        debug(DBG_NOTICE,"Unrecognized or Unsupported command '%s'",tokens[1]);
+        debug(DBG_NOTICE,"Unrecognized command '%s'",tokens[1]);
         return 0;
     }
 

@@ -52,6 +52,7 @@
 EXTERN int debug_init(configuration *config);
 EXTERN void set_debug_level(int level);
 EXTERN int get_debug_level();
+#define unsuported(a,b) debug(DBG_INFO,"Module:%s Operation:%s is not supported",(a),(b))
 
 /*
  * debug_print() prints the given debug-message if the current debug-level 
