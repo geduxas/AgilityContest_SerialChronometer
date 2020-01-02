@@ -58,6 +58,10 @@ int ADDCALL module_open(){
         }
     }
     sp_set_baudrate(config->serial_port, config->baud_rate);
+    sp_set_bits(config->serial_port, 8);
+    sp_set_flowcontrol(config->serial_port, SP_FLOWCONTROL_NONE);
+    sp_set_parity(config->serial_port, SP_PARITY_NONE);
+    sp_set_stopbits(config->serial_port, 1);
     sp_set_rts(config->serial_port,SP_RTS_ON);
     return 0;
 }
