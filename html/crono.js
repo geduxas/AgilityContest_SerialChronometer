@@ -95,6 +95,49 @@ function writeData(msg) {
     });
 }
 
+/** enable/disable buttons according action */
+function handle_buttons(button) {
+    var resetBtn=$("#ResetBtn"); // always enabled :-)
+    var startBtn=$("#StartBtn");
+    var intBtn=$("#IntBtn");
+    var stopBtn=$("#StopBtn");
+    var downBtn=$("#SalidaBtn");
+    var walkBtn=$("#ReconocimientoBtn");
+    switch(button) {
+        case "reset":
+        case "stop":
+            startBtn.attr("disabled",false);
+            intBtn.attr("disabled",true);
+            stopBtn.attr("disabled",true);
+            downBtn.attr("disabled",false);
+            walkBtn.attr("disabled",false);
+            break;
+        case "start":
+        case "int":
+            startBtn.attr("disabled",true);
+            intBtn.attr("disabled",false);
+            stopBtn.attr("disabled",false);
+            downBtn.attr("disabled",true);
+            walkBtn.attr("disabled",true);
+            break;
+        case "down":
+            startBtn.attr("disabled",false);
+            intBtn.attr("disabled",true);
+            stopBtn.attr("disabled",true);
+            downBtn.attr("disabled",false);
+            walkBtn.attr("disabled",true);
+            break;
+        case "walk":
+            startBtn.attr("disabled",true);
+            intBtn.attr("disabled",true);
+            stopBtn.attr("disabled",true);
+            downBtn.attr("disabled",true);
+            walkBtn.attr("disabled",false);
+            break;
+        default:
+            console.log("handle_buttons() invalid button: "+button);
+    }
+}
 function falta(inc) {
     var f= inc+parseInt( $('#Faltas').val() ) ;
     if (f<0) f=0;
@@ -138,6 +181,8 @@ function c_reset(local) {
     if(clockDisplay && (!clockDisplay.closed)) {
         clockDisplay.document.getElementById("Clock").value="00:00";
     }
+    // update buttons status
+    handle_buttons("reset");
     // do not update FTR, will be done in main program
     // also turn number should not be affected by reset
     if (local) writeData("reset");
@@ -155,6 +200,8 @@ function start_run(val,local) {
     crono.Chrono('reset');
     crono.Chrono('start',start_timestamp);
 
+    // update buttons status
+    handle_buttons("start");
     // if locally generated, send to main loop
     if (local) writeData("start 0");
 }
@@ -169,6 +216,9 @@ function int_run(elapsed,local) {
         crono.Chrono('pause',start_timestamp+elapsed);
         setTimeout(function(){crono.Chrono('resume');},5000);
     }
+    // update buttons status
+    handle_buttons("int");
+    // if locally generated, send to main loop
     if (local) writeData("int "+elapsed);
 }
 
@@ -178,6 +228,9 @@ function stop_run(elapsed,local) {
     if (local) elapsed = end_timestamp - start_timestamp;
     else elapsed +=1; // add 1 to elapsed to bypass chono handling fof '0'
     if (crono.Chrono('started')) crono.Chrono('stop',start_timestamp+elapsed);
+    // update buttons status
+    handle_buttons("stop");
+    // if locally generated, send to main loop
     if(local) writeData("stop " + elapsed);
 }
 
@@ -188,6 +241,9 @@ function reconocimiento(seconds,local) {
     if (c_llamada.started()) c_llamada.stop();
     c_reconocimiento.reset(seconds);
     if (seconds!==0)c_reconocimiento.start();
+    // update buttons status
+    handle_buttons("walk");
+    // if locally generated, send to main loop
     if(local) writeData("walk "+seconds);
 }
 
@@ -207,5 +263,8 @@ function llamada(seconds,local) {
     if (c_llamada.started()) c_llamada.stop();
     c_llamada.reset(seconds);
     if (seconds!==0)c_llamada.start();
+    // update buttons status
+    handle_buttons("down");
+    // if locally generated, send to main loop
     if (local) writeData("down "+seconds);
 }
