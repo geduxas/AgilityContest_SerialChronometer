@@ -166,6 +166,7 @@ function c_reset(local) {
     $('#Faltas').val(0);
     $('#Rehuses').val(0);
     $('#Eliminado').val(0);
+    start_local=false;
     if(clockDisplay && (!clockDisplay.closed)) {
         clockDisplay.document.getElementById("Faltas").value=0;
         clockDisplay.document.getElementById("Rehuses").value=0;
@@ -188,32 +189,44 @@ function c_reset(local) {
     if (local) writeData("reset");
 }
 
-function start_run(val,local) {
-    if (local) start_timestamp = Date.now()-alive_timestamp; // miliseconds since webapp started
-    else start_timestamp = 1+val;
+function start_run(val,local) { // provided val is zero  when local=true
+    // evaluate timestamps
+    local_ts = Date.now()-alive_timestamp; // miliseconds since webapp started
+    remote_ts = val; // 0:local; else provided
+    if (local) remote_ts = local_ts;
 
-    var crono=$('#cronoauto');
     // call crono functions
+    var crono=$('#cronoauto');
     c_llamada.stop();
     c_reconocimiento.stop();
-    if (crono.Chrono('started')) crono.Chrono('stop',1+start_timestamp);
+    if (crono.Chrono('started')) crono.Chrono('stop',remote_ts+1);
     crono.Chrono('reset');
-    crono.Chrono('start',start_timestamp);
+    crono.Chrono('start',remote_ts);
 
     // update buttons status
     handle_buttons("start");
     // if locally generated, send to main loop
-    if (local) writeData("start 0");
+    if (local) writeData("start "+local_ts);
 }
 
-function int_run(elapsed,local) {
-    var crono=$('#cronoauto');
-    var int_timestamp= Date.now()-alive_timestamp; // miliseconds since webapp started
-    if (local) elapsed = int_timestamp-start_timestamp;
-    else elapsed += 1; // add 1 to elapsed to bypass chono handling fof '0'
+function int_run(val,local) { // provided val is zero  when local=true
+    // evaluate timestamps
+    var local_int = Date.now()-alive_timestamp; // miliseconds since webapp started
+    var remote_int = val; // 0:local; else provided
+    if (local) {
+        if (local_ts==remote_ts) elapsed= local_int-local_ts; // start:local intermediate:local
+        else elapsed = remote_ts + local_int-local_ts; // start:remote intermediate:local
+    } else {
+        // on start:local and intermediate remote, assume that remote uses our provided start
+        // as there are no way to deduce their own start
+        if (local_ts==remote_ts) elapsed= remote_int-local_ts; // start:local intermediate:remote
+        else elapsed = remote_int-remote_ts; // start:remote intermediate:remote
+    }
+
     // call crono funtions
+    var crono=$('#cronoauto');
     if ( crono.Chrono('started')) { // si crono no esta activo, ignorar
-        crono.Chrono('pause',start_timestamp+elapsed);
+        crono.Chrono('pause',remote_ts+elapsed);
         setTimeout(function(){crono.Chrono('resume');},5000);
     }
     // update buttons status
@@ -222,12 +235,23 @@ function int_run(elapsed,local) {
     if (local) writeData("int "+elapsed);
 }
 
-function stop_run(elapsed,local) {
+function stop_run(val,local) { // provided val is zero  when local=true
+    // evaluate timestamps
+    // evaluate timestamps
+    var local_stop = Date.now()-alive_timestamp; // miliseconds since webapp started
+    var remote_stop = val; // 0:local; else provided
+    if (local) {
+        if (local_ts==remote_ts) elapsed= local_stop-local_ts; // start:local intermediate:local
+        else elapsed = remote_ts + local_stop-local_ts; // start:remote intermediate:local
+    } else {
+        // on start:local and stop remote, assume that remote uses our provided start
+        // as there are no way to deduce their own start
+        if (local_ts==remote_ts) elapsed= remote_stop-local_ts; // start:local intermediate:remote
+        else elapsed = remote_stop -remote_ts; // start:remote intermediate:remote
+    }
+    // call crono funtions
     var crono=$('#cronoauto');
-    var end_timestamp = Date.now() - alive_timestamp;
-    if (local) elapsed = end_timestamp - start_timestamp;
-    else elapsed +=1; // add 1 to elapsed to bypass chono handling fof '0'
-    if (crono.Chrono('started')) crono.Chrono('stop',start_timestamp+elapsed);
+    if (crono.Chrono('started')) crono.Chrono('stop',elapsed);
     // update buttons status
     handle_buttons("stop");
     // if locally generated, send to main loop
