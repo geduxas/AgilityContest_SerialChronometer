@@ -176,7 +176,7 @@ function c_reset(local) {
     c_llamada.stop();
     c_reconocimiento.stop();
     var crono=$('#cronoauto');
-    if(crono.Chrono('started')) crono.Chrono('stop',1+start_timestamp);
+    if(crono.Chrono('started')) crono.Chrono('stop');
     crono.Chrono( 'reset');
     $('#Clock').val("00:00");
     if(clockDisplay && (!clockDisplay.closed)) {
@@ -192,70 +192,71 @@ function c_reset(local) {
 function start_run(val,local) { // provided val is zero  when local=true
     // evaluate timestamps
     local_ts = Date.now()-alive_timestamp; // miliseconds since webapp started
-    remote_ts = val; // 0:local; else provided
-    if (local) remote_ts = local_ts;
+    remote_ts = (local)?local_ts : val; // 0:local; else provided
+    var start_ts=remote_ts;
 
     // call crono functions
     var crono=$('#cronoauto');
     c_llamada.stop();
     c_reconocimiento.stop();
-    if (crono.Chrono('started')) crono.Chrono('stop',remote_ts+1);
+    if (crono.Chrono('started')) crono.Chrono('stop',start_ts);
     crono.Chrono('reset');
-    crono.Chrono('start',remote_ts);
+    crono.Chrono('start',start_ts+1);  // use value+1 to bypass zero chrono behaviour
 
     // update buttons status
     handle_buttons("start");
     // if locally generated, send to main loop
-    if (local) writeData("start "+local_ts);
+    if (local) writeData("start "+start_ts);
 }
 
 function int_run(val,local) { // provided val is zero  when local=true
     // evaluate timestamps
     var local_int = Date.now()-alive_timestamp; // miliseconds since webapp started
     var remote_int = val; // 0:local; else provided
-    if (local) {
-        if (local_ts==remote_ts) elapsed= local_int-local_ts; // start:local intermediate:local
-        else elapsed = remote_ts + local_int-local_ts; // start:remote intermediate:local
-    } else {
-        // on start:local and intermediate remote, assume that remote uses our provided start
-        // as there are no way to deduce their own start
-        if (local_ts==remote_ts) elapsed= remote_int-local_ts; // start:local intermediate:remote
-        else elapsed = remote_int-remote_ts; // start:remote intermediate:remote
+    var int_ts=0;
+    if (local) { // stop command is local
+        if (local_ts===remote_ts) int_ts= local_int; // start:local stop:local
+        else int_ts = remote_ts + local_int-local_ts; // start:remote stop:local
+    } else { // stop command is remote
+        // on start:local and stop remote, assume that remote uses our provided start
+        // as there are no way to deduce their own start --> use remote_data
+        // on start:remote and stop remote, --> use also remote data
+        int_ts = remote_int; // start:remote stop:remote
     }
 
     // call crono funtions
     var crono=$('#cronoauto');
     if ( crono.Chrono('started')) { // si crono no esta activo, ignorar
-        crono.Chrono('pause',remote_ts+elapsed);
+        crono.Chrono('pause',int_ts+1); // use value+1 to bypass zero chrono behaviour
         setTimeout(function(){crono.Chrono('resume');},5000);
     }
     // update buttons status
     handle_buttons("int");
     // if locally generated, send to main loop
-    if (local) writeData("int "+elapsed);
+    if (local) writeData("int "+int_ts);
 }
 
 function stop_run(val,local) { // provided val is zero  when local=true
     // evaluate timestamps
-    // evaluate timestamps
     var local_stop = Date.now()-alive_timestamp; // miliseconds since webapp started
     var remote_stop = val; // 0:local; else provided
-    if (local) {
-        if (local_ts==remote_ts) elapsed= local_stop-local_ts; // start:local intermediate:local
-        else elapsed = remote_ts + local_stop-local_ts; // start:remote intermediate:local
-    } else {
+    var end_ts=0;
+    if (local) { // stop command is local
+        if (local_ts===remote_ts) end_ts= local_stop; // start:local stop:local
+        else end_ts = remote_ts + local_stop-local_ts; // start:remote stop:local
+    } else { // stop command is remote
         // on start:local and stop remote, assume that remote uses our provided start
-        // as there are no way to deduce their own start
-        if (local_ts==remote_ts) elapsed= remote_stop-local_ts; // start:local intermediate:remote
-        else elapsed = remote_stop -remote_ts; // start:remote intermediate:remote
+        // as there are no way to deduce their own start --> use remote_data
+        // on start:remote and stop remote, --> use also remote data
+        end_ts = remote_stop; // start:remote stop:remote
     }
     // call crono funtions
     var crono=$('#cronoauto');
-    if (crono.Chrono('started')) crono.Chrono('stop',elapsed);
+    if (crono.Chrono('started')) crono.Chrono('stop',end_ts+1); // use value+1 to bypass zero chrono behaviour
     // update buttons status
     handle_buttons("stop");
     // if locally generated, send to main loop
-    if(local) writeData("stop " + elapsed);
+    if(local) writeData("stop " + end_ts);
 }
 
 function reconocimiento(seconds,local) {

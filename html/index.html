@@ -39,7 +39,7 @@
 
         // used to store last command id parsed
         var lastID=0;
-        var alive_timestamp=0; // tiempo desde que arranco la pagina web
+        var alive_timestamp=Date.now(); // tiempo en que arranco la pagina web
         var local_ts=0; // marca de tiempo local en start
         var remote_ts=0; // marca de tiempo recibida en start
         var last_time=0;
@@ -169,8 +169,6 @@
         }
 
         function initialize() {
-            start_ts=Date.now();
-
             // prepare cronometer events
             chrono=$('#cronoauto');
             chrono.on("chronostart",function() {
@@ -179,8 +177,10 @@
             chrono.on("chronostop",function() {
                 last_time=chrono.Chrono('getValue');
             });
+            chrono.Chrono('stop');
+            chrono.Chrono('reset');
             lastID=0;
-            alive_timestamp=0; // tiempo que la aplicacion lleva activa
+            alive_timestamp=Date.now(); // tiempo que la aplicacion lleva activa
             local_ts=0; // timestamp local al recibir comando start
             remote_ts=0; // timestamp recibido con el comando start
 
