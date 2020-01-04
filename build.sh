@@ -8,7 +8,8 @@ cd ${BASE}/${BUILD}
 wget http://www.agilitycontest.es/downloads/ac_SerialProtocol.pdf
 cp ${BASE}/INSTALL.txt .
 cp ${BASE}/LICENSE .
-cp ${BASE}/serial_chrono.{bat,ini,sh} .
+cp ${BASE}/serial_chrono.{exe,ini,sh}
+cp .${BASE}/agilitycontest_64x64.png .
 cp ${BASE}/cmake-build-debug/digican.so .
 cp ${BASE}/cmake-build-debug/generic.so .
 cp ${BASE}/cmake-build-debug/SerialChronometer .
