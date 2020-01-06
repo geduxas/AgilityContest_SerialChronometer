@@ -1,6 +1,9 @@
 //
 // Created by jantonio on 5/05/19.
 //
+
+#define _GNU_SOURCE
+
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -34,7 +37,8 @@
 int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
     sc_thread_slot *slot=&sc_threads[index];
     slot->index=index;
-    slot->tname=name;
+    slot->tname=strdup(name);
+    if (strlen(slot->tname)>16) slot->tname[15]='\0';
     slot->config=config;
     slot->handler=handler;
     int res=pthread_create( &slot->thread, NULL, slot->handler, &slot->index);
@@ -43,6 +47,8 @@ int sc_thread_create(int index,char *name,configuration *config,void *(*handler)
         slot->index=-1;
         return -1;
     }
+    res=pthread_setname_np(slot->thread,slot->tname);
+    if (res!=0) debug(DBG_NOTICE,"Cannot set thread name: %s",slot->tname);
     return 0;
 }
 
