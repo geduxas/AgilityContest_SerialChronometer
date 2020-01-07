@@ -140,7 +140,7 @@ void *web_manager_thread(void *arg){
         char *msg=queue_get(input_queue);
         if (!msg || *msg=='\0') {
             // debug(DBG_TRACE,"queue_get(): queue is empty");
-            // sleep(1);
+            usleep(10000); // 10 miliseconds
             continue;
         }
         debug(DBG_TRACE,"queue_get(): received '%s'",msg);

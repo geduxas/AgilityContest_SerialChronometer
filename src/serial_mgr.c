@@ -224,6 +224,7 @@ void *serial_manager_thread(void *arg){
         if (res<0) {
             debug(DBG_ERROR,"SerialMgr read() returns %d",res);
             res=0;
+            continue;
         }
         request[offset+res]='\0';
         if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline

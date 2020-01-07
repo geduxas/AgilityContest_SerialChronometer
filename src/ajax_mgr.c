@@ -194,7 +194,7 @@ void *ajax_manager_thread(void *arg){
             debug(DBG_ERROR,"%s: Cannot open session %d at server '%s'",SC_AJAXSRV,ses,config->ajax_server);
             return NULL;
         }
-        if (evtid==0) sleep(5); // retry in 5 seconds
+        if (evtid==0) sleep(2); // retry in 5 seconds
     }
 
     // start waitForEvents loop until exit or error
@@ -213,8 +213,8 @@ void *ajax_manager_thread(void *arg){
         int res=0;
         char **cmds=ajax_wait_for_events(config,&evtid,&timestamp);
         if (!cmds) {
-            debug(DBG_NOTICE,"%s WaitForEvent() failed. retrying",SC_AJAXSRV);
-            sleep(5);
+            // debug(DBG_NOTICE,"%s WaitForEvent() failed. retrying",SC_AJAXSRV);
+            sleep(1);
             continue;
         }
         // iterate received command list

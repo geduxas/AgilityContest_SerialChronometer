@@ -35,10 +35,12 @@
 
 
 int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
+    char buff[32];
+    memset(buff,0,32);
     sc_thread_slot *slot=&sc_threads[index];
     slot->index=index;
     slot->tname=strdup(name);
-    if (strlen(slot->tname)>16) slot->tname[15]='\0';
+    if (strlen(name)>16)slot->tname[15]='\0'; // stupid mingw has no strndup(name,len)
     slot->config=config;
     slot->handler=handler;
     int res=pthread_create( &slot->thread, NULL, slot->handler, &slot->index);
@@ -49,6 +51,8 @@ int sc_thread_create(int index,char *name,configuration *config,void *(*handler)
     }
     res=pthread_setname_np(slot->thread,slot->tname);
     if (res!=0) debug(DBG_NOTICE,"Cannot set thread name: %s",slot->tname);
+    res=pthread_getname_np(slot->thread,buff,32);
+    debug(DBG_TRACE,"getname returns %d thread name:%s",res,buff);
     return 0;
 }
 

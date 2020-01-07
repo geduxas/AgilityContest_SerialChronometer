@@ -188,7 +188,7 @@
             c_reconocimiento.reset(420); // default. will change later
             c_llamada.reset(15);
             readData();
-            setInterval(function() { readData(); },1000);
+            setInterval(function() { readData(); },500);
             var layout= {'rows':55,'cols':145};
             doLayout(layout,"#Logo",7,5,25,20);
             doLayout(layout,"#Copyright",35,3,107,3);
