@@ -95,6 +95,49 @@ function writeData(msg) {
     });
 }
 
+/** enable/disable buttons according action */
+function handle_buttons(button) {
+    var resetBtn=$("#ResetBtn"); // always enabled :-)
+    var startBtn=$("#StartBtn");
+    var intBtn=$("#IntBtn");
+    var stopBtn=$("#StopBtn");
+    var downBtn=$("#SalidaBtn");
+    var walkBtn=$("#ReconocimientoBtn");
+    switch(button) {
+        case "reset":
+        case "stop":
+            startBtn.attr("disabled",false);
+            intBtn.attr("disabled",true);
+            stopBtn.attr("disabled",true);
+            downBtn.attr("disabled",false);
+            walkBtn.attr("disabled",false);
+            break;
+        case "start":
+        case "int":
+            startBtn.attr("disabled",true);
+            intBtn.attr("disabled",false);
+            stopBtn.attr("disabled",false);
+            downBtn.attr("disabled",true);
+            walkBtn.attr("disabled",true);
+            break;
+        case "down":
+            startBtn.attr("disabled",false);
+            intBtn.attr("disabled",true);
+            stopBtn.attr("disabled",true);
+            downBtn.attr("disabled",false);
+            walkBtn.attr("disabled",true);
+            break;
+        case "walk":
+            startBtn.attr("disabled",true);
+            intBtn.attr("disabled",true);
+            stopBtn.attr("disabled",true);
+            downBtn.attr("disabled",true);
+            walkBtn.attr("disabled",false);
+            break;
+        default:
+            console.log("handle_buttons() invalid button: "+button);
+    }
+}
 function falta(inc) {
     var f= inc+parseInt( $('#Faltas').val() ) ;
     if (f<0) f=0;
@@ -123,6 +166,7 @@ function c_reset(local) {
     $('#Faltas').val(0);
     $('#Rehuses').val(0);
     $('#Eliminado').val(0);
+    start_local=false;
     if(clockDisplay && (!clockDisplay.closed)) {
         clockDisplay.document.getElementById("Faltas").value=0;
         clockDisplay.document.getElementById("Rehuses").value=0;
@@ -132,53 +176,87 @@ function c_reset(local) {
     c_llamada.stop();
     c_reconocimiento.stop();
     var crono=$('#cronoauto');
-    if(crono.Chrono('started')) crono.Chrono('stop',1+start_timestamp);
+    if(crono.Chrono('started')) crono.Chrono('stop');
     crono.Chrono( 'reset');
     $('#Clock').val("00:00");
     if(clockDisplay && (!clockDisplay.closed)) {
         clockDisplay.document.getElementById("Clock").value="00:00";
     }
+    // update buttons status
+    handle_buttons("reset");
     // do not update FTR, will be done in main program
     // also turn number should not be affected by reset
     if (local) writeData("reset");
 }
 
-function start_run(val,local) {
-    if (local) start_timestamp = Date.now()-alive_timestamp; // miliseconds since webapp started
-    else start_timestamp = 1+val;
+function start_run(val,local) { // provided val is zero  when local=true
+    // evaluate timestamps
+    local_ts = Date.now()-alive_timestamp; // miliseconds since webapp started
+    remote_ts = (local)?local_ts : val; // 0:local; else provided
+    var start_ts=remote_ts;
 
-    var crono=$('#cronoauto');
     // call crono functions
+    var crono=$('#cronoauto');
     c_llamada.stop();
     c_reconocimiento.stop();
-    if (crono.Chrono('started')) crono.Chrono('stop',1+start_timestamp);
+    if (crono.Chrono('started')) crono.Chrono('stop',start_ts);
     crono.Chrono('reset');
-    crono.Chrono('start',start_timestamp);
+    crono.Chrono('start',start_ts+1);  // use value+1 to bypass zero chrono behaviour
 
+    // update buttons status
+    handle_buttons("start");
     // if locally generated, send to main loop
-    if (local) writeData("start 0");
+    if (local) writeData("start "+start_ts);
 }
 
-function int_run(elapsed,local) {
-    var crono=$('#cronoauto');
-    var int_timestamp= Date.now()-alive_timestamp; // miliseconds since webapp started
-    if (local) elapsed = int_timestamp-start_timestamp;
-    else elapsed += 1; // add 1 to elapsed to bypass chono handling fof '0'
+function int_run(val,local) { // provided val is zero  when local=true
+    // evaluate timestamps
+    var local_int = Date.now()-alive_timestamp; // miliseconds since webapp started
+    var remote_int = val; // 0:local; else provided
+    var int_ts=0;
+    if (local) { // stop command is local
+        if (local_ts===remote_ts) int_ts= local_int; // start:local stop:local
+        else int_ts = remote_ts + local_int-local_ts; // start:remote stop:local
+    } else { // stop command is remote
+        // on start:local and stop remote, assume that remote uses our provided start
+        // as there are no way to deduce their own start --> use remote_data
+        // on start:remote and stop remote, --> use also remote data
+        int_ts = remote_int; // start:remote stop:remote
+    }
+
     // call crono funtions
+    var crono=$('#cronoauto');
     if ( crono.Chrono('started')) { // si crono no esta activo, ignorar
-        crono.Chrono('pause',start_timestamp+elapsed);
+        crono.Chrono('pause',int_ts+1); // use value+1 to bypass zero chrono behaviour
         setTimeout(function(){crono.Chrono('resume');},5000);
     }
-    if (local) writeData("int "+elapsed);
+    // update buttons status
+    handle_buttons("int");
+    // if locally generated, send to main loop
+    if (local) writeData("int "+int_ts);
 }
 
-function stop_run(elapsed,local) {
+function stop_run(val,local) { // provided val is zero  when local=true
+    // evaluate timestamps
+    var local_stop = Date.now()-alive_timestamp; // miliseconds since webapp started
+    var remote_stop = val; // 0:local; else provided
+    var end_ts=0;
+    if (local) { // stop command is local
+        if (local_ts===remote_ts) end_ts= local_stop; // start:local stop:local
+        else end_ts = remote_ts + local_stop-local_ts; // start:remote stop:local
+    } else { // stop command is remote
+        // on start:local and stop remote, assume that remote uses our provided start
+        // as there are no way to deduce their own start --> use remote_data
+        // on start:remote and stop remote, --> use also remote data
+        end_ts = remote_stop; // start:remote stop:remote
+    }
+    // call crono funtions
     var crono=$('#cronoauto');
-    var end_timestamp = Date.now() - alive_timestamp;
-    if (local) elapsed = end_timestamp - start_timestamp;
-    else elapsed +=1; // add 1 to elapsed to bypass chono handling fof '0'
-    if (crono.Chrono('started')) crono.Chrono('stop',start_timestamp+elapsed);
-    if(local) writeData("stop " + elapsed);
+    if (crono.Chrono('started')) crono.Chrono('stop',end_ts+1); // use value+1 to bypass zero chrono behaviour
+    // update buttons status
+    handle_buttons("stop");
+    // if locally generated, send to main loop
+    if(local) writeData("stop " + end_ts);
 }
 
 function reconocimiento(seconds,local) {
@@ -188,6 +266,9 @@ function reconocimiento(seconds,local) {
     if (c_llamada.started()) c_llamada.stop();
     c_reconocimiento.reset(seconds);
     if (seconds!==0)c_reconocimiento.start();
+    // update buttons status
+    handle_buttons("walk");
+    // if locally generated, send to main loop
     if(local) writeData("walk "+seconds);
 }
 
@@ -207,5 +288,8 @@ function llamada(seconds,local) {
     if (c_llamada.started()) c_llamada.stop();
     c_llamada.reset(seconds);
     if (seconds!==0)c_llamada.start();
+    // update buttons status
+    handle_buttons("down");
+    // if locally generated, send to main loop
     if (local) writeData("down "+seconds);
 }

@@ -5,8 +5,9 @@
     <meta name="application-name" content="Agility Contest's Serial Chronometer Web Console" />
     <meta name="copyright" content="© 2019 Juan Antonio Martinez" />
     <meta name="author" lang="en" content="Juan Antonio Martinez" />
-    <title>Now Running Web console</title>
+    <title>AgilityContest SerialChronomenter Web console</title>
     <script src="jquery-2.2.4.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="HackTimer.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="jquery-chronometer.js" type="text/javascript" charset="utf-8"></script>
     <script src="countdown.js" type="text/javascript" charset="utf-8"></script>
     <script src="sprintf.js" type="text/javascript" charset="utf-8"></script>
@@ -39,8 +40,9 @@
 
         // used to store last command id parsed
         var lastID=0;
-        var alive_timestamp=0;
-        var start_timestamp=0;
+        var alive_timestamp=Date.now(); // tiempo en que arranco la pagina web
+        var local_ts=0; // marca de tiempo local en start
+        var remote_ts=0; // marca de tiempo recibida en start
         var last_time=0;
         var bright_levels = [
             "#FFFFFF",
@@ -168,8 +170,6 @@
         }
 
         function initialize() {
-            start_ts=Date.now();
-
             // prepare cronometer events
             chrono=$('#cronoauto');
             chrono.on("chronostart",function() {
@@ -178,9 +178,13 @@
             chrono.on("chronostop",function() {
                 last_time=chrono.Chrono('getValue');
             });
+            chrono.Chrono('stop');
+            chrono.Chrono('reset');
             lastID=0;
-            alive_timestamp=0;
-            start_timestamp=0;
+            alive_timestamp=Date.now(); // tiempo que la aplicacion lleva activa
+            local_ts=0; // timestamp local al recibir comando start
+            remote_ts=0; // timestamp recibido con el comando start
+
             c_reconocimiento.reset(420); // default. will change later
             c_llamada.reset(15);
             readData();

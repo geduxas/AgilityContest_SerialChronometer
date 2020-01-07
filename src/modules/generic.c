@@ -3,10 +3,12 @@
 //
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "modules.h"
 #include "sc_config.h"
 #include "debug.h"
+
 
 static char error_str[1024];
 
@@ -40,8 +42,12 @@ int ADDCALL module_open(){
             return -1;
         }
     }
-    sp_set_rts(config->serial_port,SP_RTS_ON);
     sp_set_baudrate(config->serial_port, config->baud_rate);
+    sp_set_bits(config->serial_port, 8);
+    sp_set_flowcontrol(config->serial_port, SP_FLOWCONTROL_NONE);
+    sp_set_parity(config->serial_port, SP_PARITY_NONE);
+    sp_set_stopbits(config->serial_port, 1);
+    sp_set_rts(config->serial_port,SP_RTS_ON);
     return 0;
 }
 
@@ -77,9 +83,11 @@ int ADDCALL module_read(char *buffer,size_t length){
 
 int ADDCALL module_write(char **tokens,size_t ntokens){
     static char *buffer=NULL;
+    int len=0;
     if (buffer==NULL) buffer=calloc(1024,sizeof(char));
     // compose message by adding tokens
-    int len=sprintf(buffer,"%s",tokens[1]);
+    // int len=sprintf(buffer,"%s",tokens[1]);
+    for (len=0;len<strlen(tokens[1]);len++) buffer[len]=toupper(tokens[1][len]); // uppercase command (as manual says)
     for (int n=2;n<ntokens;n++) len += sprintf(buffer+len," %s",tokens[n]);
     len += sprintf(buffer+len,"\r\n");
     // notice "blocking" mode. needed as most modules do not support full duplex communications
