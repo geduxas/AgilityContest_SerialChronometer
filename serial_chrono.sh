@@ -136,7 +136,10 @@ loglevel = $LVL
 verbose = $I_CLOG
 
 [Server]
-# where is agilitycontest running: "none"->disable "0.0.0.0"->find
+# location of AgilityContest server
+# IPv4 Address (prefered) or FQDN host name ( not recomended if no DNS available)
+# "none": do not connect to server
+# "find" or "0.0.0.0" try to locate server in local network
 ajax_server = $IPADDR
 client_name = serial_chrono
 
