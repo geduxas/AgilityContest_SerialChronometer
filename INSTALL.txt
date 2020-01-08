@@ -4,13 +4,20 @@ Se distribuye bajo los términos y condiciones de la licencia General Pública d
 
 Contenido del fichero zip:
 -------------------------------
+( general )
 ac_SerialProtocol.pdf  - Manual del usuario
 LICENSE                - Licencia y CopyRight
 serial_chrono.ini      - Fichero de configuracion
 html                   - Carpeta que contiene los diversos ficheros del interfaz web
+
+( Windows )
+serial_chrono.exe      - Script de arranque en modo gráfico (Windows)
 SerialChronometer.exe  - Ejecutable para Windows ( Win32 Api - windowsw 7 o superior )
 generic.dll            - Biblioteca dinámica (Windows DLL) para el cronometro Genérico
 digican.dll            - Biblioteca (Windows DLL) para el cronometro "Digican (serie naranja)
+
+( Linux )
+serial_chrono.sh       - Script de arranque en modo gráfico (Linux)
 SerialChronometer      - Ejecutable para Linux (64 bits)
 generic.so             - Biblioteca dinámica (Linux .so) para el cronometro Genérico
 digican.so             - Biblioteca (Linux .so) para el cronometro "Digican (serie naranja)
