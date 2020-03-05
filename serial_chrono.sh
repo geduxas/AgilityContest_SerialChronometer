@@ -103,7 +103,7 @@ res=`yad \
 	--field="Depuracion en consola::CB" "$verbose" \
 	--field=" :LBL" "space" \
 	--field="Guardar configuracion:CHK" "true" \
-	"" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""`
+	"" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""`
 [ $? -ne 0 ] && die "Operacion cancelada por el usuario"
 
 # leemos el resultado de la ventana de dialogo

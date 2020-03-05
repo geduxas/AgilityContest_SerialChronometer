@@ -21,9 +21,11 @@ cp ${BASE}/serial_chrono.{exe,ini,sh} .
 cp ${BASE}/agilitycontest_64x64.png .
 cp ${BASE}/cmake-build-debug/digican.so .
 cp ${BASE}/cmake-build-debug/generic.so .
+cp ${BASE}/cmake-build-debug/canometroweb.so .
 cp ${BASE}/cmake-build-debug/SerialChronometer .
 cp ${BASE}/cmake-build-debug-mingw/digican.so digican.dll
 cp ${BASE}/cmake-build-debug-mingw/generic.so generic.dll
+cp ${BASE}/cmake-build-debug-mingw/canometroweb.so canometroweb.dll
 cp ${BASE}/cmake-build-debug-mingw/SerialChronometer.exe .
 cp -r ${BASE}/html .
 
