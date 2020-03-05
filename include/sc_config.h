@@ -77,11 +77,13 @@ typedef struct {
     // serial port parameters
     char *module; // dll module name ( without .dll/.so )
     int ring;
+    char *comm_ipaddr; // used in network connected modules (galican)
     char *comm_port;
     int baud_rate;
     int bright;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
     struct sp_port *serial_port; // serial port to be openend
+
     char *license_file;
 
     // chrono status

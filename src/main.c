@@ -27,6 +27,7 @@
 #include "web_mgr.h"
 #include "ajax_mgr.h"
 #include "serial_mgr.h"
+#include "net_mgr.h"
 #include "console_mgr.h"
 #include "debug.h"
 #include "sc_config.h"
@@ -64,7 +65,8 @@ static int usage() {
     fprintf(stderr,"%s command line options:\n",program_name);
     fprintf(stderr,"Serial parameters:\n");
     fprintf(stderr,"\t -m module  || --module=module_name Serial comm module to be used. Default \"generic\"\n");
-    fprintf(stderr,"\t -d comport || --device=com_port    Communication port to attach to (required) \n");
+    fprintf(stderr,"\t -i ipaddr ||  --ipaddr=com_ipaddr  IP address for networked chronometers (required on net chrono)\n");
+    fprintf(stderr,"\t -d comport || --device=com_port    Communication port to attach to (required on serial chrono) \n");
     fprintf(stderr,"\t -b baud    || --baud=baudrate      Set baudrate for comm port. Defaults 9600\n");
     fprintf(stderr,"Web interface:\n");
     fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for html interface. 0:disable . Default 8080\n");
@@ -100,6 +102,7 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
         switch (option) {
             case 'm' : config->module = strdup(optarg);     break;
             case 'n' : config->client_name = strdup(optarg);break;
+            case 'i' : config->comm_ipaddr = strdup(optarg);  break;
             case 'd' : config->comm_port = strdup(optarg);  break;
             case 'r' : config->ring = atoi(optarg);         break;
             case 'w' : config->web_port = atoi(optarg);     break; // port used will be web_port+ring
@@ -177,9 +180,15 @@ int main (int argc, char *argv[]) {
         sc_thread_create(0,SC_CONSOLE,config,console_manager_thread);
     }
     // thread 1: recepcion de datos por puerto serie
-    if (config->comm_port != (char*)NULL ) {
+    if ( (config->comm_port != (char*)NULL )  && (strcmp(config->module,"canometroweb")!=0) ) {
         config->opmode |= OPMODE_NORMAL;
         debug(DBG_TRACE,"Starting comm port receiver thread");
+        sc_thread_create(1,SC_SERIAL,config,serial_manager_thread);
+    }
+    // serial thread is also used in network connections
+    if ((config->comm_ipaddr != (char*)NULL ) && (strcmp(config->module,"canometroweb")==0) )  {
+        config->opmode |= OPMODE_NORMAL;
+        debug(DBG_TRACE,"Starting comm port (networked) receiver thread");
         sc_thread_create(1,SC_SERIAL,config,serial_manager_thread);
     }
     // thread 2: gestion de mini-servidor we 0b

@@ -5,8 +5,8 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ; Creamos array de claves a modificar en archivo ini
 
-ClaveArray := [ring,console,loglevel,verbose,ajax_server,module,comm_port,baud_rate,fire_browser]
-ValorArray := ["1","1","5","0","none","generic","COM3","57600","1"]
+ClaveArray := [ring,console,loglevel,verbose,ajax_server,module,comm_ipaddr,comm_port,baud_rate,fire_browser]
+ValorArray := ["1","1","5","0","none","generic","192.168.2.1","COM3","57600","1"]
 
 ; Creamos array para leer linea a linea el archivo ini
 Entrada := [] 
@@ -35,9 +35,10 @@ for indice, linea in Entrada
         case "verbose"     :  ValorArray[4] := elementosDeLinea[2]
         case "ajax_server" :  ValorArray[5] := elementosDeLinea[2]
         case "module"      :  ValorArray[6] := elementosDeLinea[2]        
-        case "comm_port"   :  ValorArray[7] := elementosDeLinea[2]
-        case "baud_rate"   :  ValorArray[8] := elementosDeLinea[2]
-        case "fire_browser":  ValorArray[9] := elementosDeLinea[2]
+        case "comm_ipaddr" :  ValorArray[7] := elementosDeLinea[2]
+        case "comm_port"   :  ValorArray[8] := elementosDeLinea[2]
+        case "baud_rate"   :  ValorArray[9] := elementosDeLinea[2]
+        case "fire_browser":  ValorArray[10] := elementosDeLinea[2]
     }
 }
 
@@ -191,6 +192,7 @@ if (Guardar)
             case "verbose"     : FileAppend, verbose = %Verbo%`n, *%A_ScriptDir%\serial_chrono.ini
             case "ajax_server" : FileAppend, ajax_server = %dirIP%`n, *%A_ScriptDir%\serial_chrono.ini
             case "module"      : FileAppend, module = %Tipo%`n, *%A_ScriptDir%\serial_chrono.ini
+            case "comm_ipaddr" : FileAppend, comm_ipaddr = %IPAddress%`n, *%A_ScriptDir%\serial_chrono.ini
             case "comm_port"   : FileAppend, comm_port = %Puerto%`n, *%A_ScriptDir%\serial_chrono.ini
             case "baud_rate"   : FileAppend, baud_rate = %Velocidad%`n, *%A_ScriptDir%\serial_chrono.ini
             case "fire_browser": FileAppend, fire_browser = %Explorador%`n, *%A_ScriptDir%\serial_chrono.ini

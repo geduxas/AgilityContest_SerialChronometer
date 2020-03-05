@@ -20,10 +20,15 @@ add_library(generic SHARED src/modules/generic.c src/debug.c)
 target_compile_options(generic PRIVATE -DADD_EXPORTS)
 set_target_properties(generic PROPERTIES PREFIX "")
 
-# module libraries definition for "digican" module
+# module libraries definition for OitoInnova's "digican" module
 add_library(digican SHARED src/modules/digican.c src/debug.c)
 target_compile_options(digican PRIVATE -DADD_EXPORTS)
 set_target_properties(digican PROPERTIES PREFIX "")
+
+# module libraries definition for Galican's canometer web interface module
+add_library(canometroweb SHARED src/modules/canometroweb.c src/debug.c)
+target_compile_options(canometroweb PRIVATE -DADD_EXPORTS)
+set_target_properties(canometroweb PROPERTIES PREFIX "")
 
 #executable declaration
 add_executable(SerialChronometer ${SOURCES} ${INCLUDES})
@@ -44,6 +49,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/lib/mingw32/libserialport.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libnanohttp.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libcsoap.a
             dlfcn-win32::dl
             curl
             idn2
@@ -69,12 +75,21 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             dlfcn-win32::dl
             setupapi
     )
+    target_link_libraries(
+            canometroweb
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libcsoap.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libnanohttp.a
+            dlfcn-win32::dl
+            ws2_32
+            setupapi
+    )
 else()
     find_package (Threads REQUIRED)
     target_link_libraries(
             SerialChronometer
             ${CMAKE_SOURCE_DIR}/libserialport/lib/linux/libserialport.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libnanohttp.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libcsoap.a
             pthread
             crypto
             curl

@@ -24,12 +24,18 @@ loglevel="0: None!1: Panic!2: Alert!3: Error!4: Notice!5: Info!6: Debug!7: Trace
 verbose="^si!no"
 use_server="^si!no"
 ajax_server="127.0.0.1"
-module="generic!^digican"
+module="generic!^digican!canometroweb"
+comm_ipaddr="192.168.2.1"
 comm_port="$puertos"
 baud_rate="9600!19200!38400!57600!115200"
 if [ -f $inifile ]; then
   sed -e 's/[ \t]//g' serial_chrono.ini | \
-  awk -v puertos="$puertos" -v ring="$ring" -v loglevel="$loglevel" -v baud_rate="$baud_rate" -F'=' '
+  awk -v puertos="$puertos" \
+      -v ipaddr="$comm_ipaddr" \
+      -v ring="$ring" \
+      -v loglevel="$loglevel" \
+      -v baud_rate="$baud_rate" \
+      -F'=' '
   BEGIN {
         printf("#!/bin/bash\n");
       }
@@ -53,6 +59,10 @@ if [ -f $inifile ]; then
       }
   /^module/ {
         printf("module=\"%s\"\n",($2=="generic")?"^generic!digican":"generic!^digican");
+      }
+  /^comm_ipaddr/ {
+        gsub($2,"^"$2,ipaddr);
+        printf("comm_ipaddr=\"%s\"\n",ipaddr);
       }
   /^comm_port/ {
         gsub($2,"^"$2,puertos);
@@ -79,6 +89,7 @@ res=`yad \
 	--separator="," \
 	--field=" :LBL" "space"\
 	--field="Parametros de Usuario:LBL" "user"\
+	--field="IPAddr (Canometro)::CB" "$comm_ipaddr" \
 	--field="Puertos::CB" "$comm_port" \
 	--field="Velocidad::CB" "$baud_rate" \
 	--field="Modelo de cronometro::CB" "$module" \
@@ -146,6 +157,7 @@ client_name = serial_chrono
 [Serial]
 #serial module to be used. "generic","digican"...
 module = $mod
+comm_ipaddr = $com_ipaddr
 comm_port = $port
 baud_rate = $baud
 
@@ -162,6 +174,7 @@ __EOF
     -e "s|^verbose =.*|verbose = $I_CLOG|g" \
     -e "s|^ajax_server =.*|ajax_server = $IPADDR|g" \
     -e "s|^module =.*|module = $mod|g" \
+    -e "s|^comm_ipaddr =.*|comm_ipaddr = $port|g" \
     -e "s|^comm_port =.*|comm_port = $port|g" \
     -e "s|^baud_rate =.*|baud_rate = $baud|g"
 fi

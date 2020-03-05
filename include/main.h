@@ -21,6 +21,7 @@
 #define SC_WEBSRV "web_server"
 #define SC_AJAXSRV "ac_server"
 #define SC_SERIAL "comm_server"
+#define SC_NETWORK "net_server"
 typedef int (*func)(configuration *config,int slot,char *tokens[],int ntokens);
 typedef struct {
     int index; // thread index

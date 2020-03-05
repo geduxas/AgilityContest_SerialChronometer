@@ -133,7 +133,7 @@ void *web_manager_thread(void *arg){
     // prepare data before enter loop
     char *p;
     char request[1024];
-    sprintf(request,"%s ",SC_SERIAL);
+    sprintf(request,"%s ",SC_WEBSRV);
     char response[1024];
     res=0;
     while(res>=0) {

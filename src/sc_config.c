@@ -33,6 +33,7 @@ configuration * default_options(configuration * config) {
     config->ajax_server = strdup("localhost");
     config->web_port = 8080;
     config->fire_browser = 1; // default is fire up browser
+    config->comm_ipaddr = "192.168.2.1"; // default for canometroweb
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
     config->ring = 1;
@@ -81,6 +82,7 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"ajax_server %s", config->ajax_server);
     debug(DBG_DEBUG,"client_name %s", config->client_name);
     debug(DBG_DEBUG,"module %s",    config->module);
+    debug(DBG_DEBUG,"comm_ipaddr %s",  config->comm_ipaddr);
     debug(DBG_DEBUG,"comm_port %s",  config->comm_port);
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
     debug(DBG_DEBUG,"ring %d",  config->ring);
@@ -98,6 +100,7 @@ void print_configuration(configuration *config) {
         fprintf(stderr,"ajax_server %s\n", config->ajax_server);
         fprintf(stderr,"client_name %s\n", config->client_name);
         fprintf(stderr,"module %s\n",  config->module);
+        fprintf(stderr,"comm_ipaddr %s\n",  config->comm_ipaddr);
         fprintf(stderr,"comm_port %s\n",  config->comm_port);
         fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
         fprintf(stderr,"ring %d\n",  config->ring);
@@ -128,6 +131,7 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Server", "ajax_server"))  config->ajax_server = strdup(value); /* def "localhost" */
     else if (MATCH("Server", "client_name"))  config->client_name = strdup(value); /* def serial module name */
     else if (MATCH("Serial", "module"))       config->module = strdup(value);
+    else if (MATCH("Serial", "comm_ipaddr"))  config->comm_ipaddr = strdup(value);
     else if (MATCH("Serial", "comm_port"))    config->comm_port = strdup(value);
     else if (MATCH("Serial", "baud_rate"))    config->baud_rate = atoi(value); /* def 9600 */
     else if (MATCH("Web",    "web_port"))     config->web_port = atoi(value); /* def 8080 */
