@@ -31,7 +31,127 @@ static char error_str[1024];
 
 static configuration *config;
 static herror_t status;
-static httpc_conn_t conn;
+
+/*
+
+ Datos de cronometro
+
+<?xml version='1.0'?>
+<xml>
+  <millistime> %u </millistime>
+  <tiempoactual> %lu </tiempoactual>
+  <cronocorriendo> %d </cronocorriendo>
+  <faltas> %d </faltas>
+  <rehuses> %d </rehuses>
+  <eliminado> %d </eliminado>
+<cuentaresultados> 0 </cuentaresultados>
+<versionresultados> 0 </versionresultados>
+</xml>
+
+  Datos de configuracion
+
+ <?xml version='1.0'?>
+ <xml>
+  <Brightness> "Low" | "High" </Brightness>
+  <Precision> "Centis" | "Milis" </Precision>
+  <Guardtime> %d (secs) </Guardtime>
+  <Walktime> %d (min) </Walktime>
+  <Walkstyle> "Numbers" | "Graphic" </Walkstyle>
+  <Ring> %d </Ring>
+ </xml>
+
+ */
+
+
+static int sendrec_error() {
+    return -1;
+}
+
+/**
+ *
+ * @param page baseurl ( ie: /xml )
+ * @param tipo name of parameter to set
+ * @param valor value of parameter to set
+ * @return returned string from canometro
+ *
+ * pages: /startstop /xml /config_xml /configuracion_accion /canometro_accion
+ *
+ * POSTDATA: tipo=<tipo>&valor=<valor>
+ * tipo: any of configutation action or
+ * F (Fault)
+ * R (Eefusal)
+ * E (Eliminate )
+ * 0 (Reset)
+ * W (coursewalk)
+ * C (Countdown)
+ *
+ */
+static char *sendrec(char *page,char *tipo,char *valor) {
+    // connection related vars
+    httpc_conn_t *conn;
+    hresponse_t *response;
+    hpair_t *pair;
+
+    // data for response
+    char result[1024];
+
+    // data for post request
+    char url[256];
+    char postdata[256];
+    memset(url,0,256);
+    memset(postdata,0,256);
+    snprintf(url,254,"http://%s/%s",config->comm_ipaddr,page);
+    if (tipo && valor) {
+        snprintf(postdata,255,"tipo=%s&valor=%s",tipo,valor);
+    }
+
+    // create connection
+    if ( ! (conn = httpc_new()) ) {
+        fprintf(stderr, "Cannot create nanoHTTP client connection\n");
+        return NULL;
+    }
+
+    /* Set header for chunked transport */
+    httpc_set_header(conn, HEADER_TRANSFER_ENCODING, TRANSFER_ENCODING_CHUNKED);
+
+    /* POSTing will be done in 3 steps
+     1. httpc_post_begin()
+     2. http_output_stream_write()
+     3. httpc_post_end()
+    */
+    if ((status = httpc_post_begin(conn, url)) != H_OK) {
+        fprintf(stderr, "nanoHTTP POST begin failed (%s)\n", herror_message(status));
+        herror_release(status);
+        httpc_free(conn);
+        return NULL;
+    }
+
+    if ((status = http_output_stream_write(conn->out, postdata, strlen(postdata))) != H_OK) {
+        fprintf(stderr, "nanoHTTP send POST data failed (%s)\n", herror_message(status));
+        herror_release(status);
+        httpc_free(conn);
+        return NULL;
+    }
+
+    if ((status = httpc_post_end(conn, &response)) != H_OK ) {
+        fprintf(stderr, "nanoHTTP receive POST response failed (%s)\n", herror_message(status));
+        herror_release(status);
+        httpc_free(conn);
+        return NULL;
+    }
+    // handle response
+    int len=0;
+    while (http_input_stream_is_ready(response->in)) {
+       len += http_input_stream_read(response->in, &result[len], 1024-len);
+       if (len>=1023) break;
+     }
+
+    // clean up and return
+    hresponse_free(response);
+    httpc_free(conn);
+    return strdup(result);
+}
+
 
 /* Declare our Add function using the above definitions. */
 int ADDCALL module_init(configuration *cfg) {
@@ -39,21 +159,42 @@ int ADDCALL module_init(configuration *cfg) {
     // initialize
     char *argv[] = {"canometroweb",config->comm_ipaddr, NULL};
     if ((status = httpc_init(2, argv)) != H_OK) {
-        snprintf(error_str,1024,"Cannot init nanoHTTP client (%s)\n", herror_message(status));
+        snprintf(error_str,1024,"Cannot init nanoHTTP client (%s)", herror_message(status));
         debug(DBG_ERROR,error_str);
         return -1;
     }
-    // now check connection against Canometer by mean of setting ring and trying to receive result
-
+    // now check connection against Canometer by mean of trying to receive configuration
+    char *check=sendrec("/configuracion_accion",NULL,NULL);
+    if(!check) {
+        httpc_destroy();
+        snprintf(error_str,1024,"Cannot contact with Canometer (%s) ", herror_message(status));
+        debug(DBG_ERROR,error_str);
+        return -1;
+    }
     return 0;
 }
+
 int ADDCALL module_end() {
     return 0;
 }
 
 int ADDCALL module_open(){
+    char *check;
+    char ring[4];
+    snprintf(ring,4,"%d",config->ring);
+    check=sendrec("/configuracion_accion","Ring",ring);
+    if(!check) return sendrec_error();
     // send reset
-    // retrieve configuration
+    check=sendrec("/canometro_accion","0","0");
+    if(!check) return sendrec_error();
+    // retrieve configuracion
+    check=sendrec("/config_xml",NULL,NULL);
+    if(!check) return sendrec_error();
+    // PENDNG: store configuration
+    // retrieve status
+    check=sendrec("/xml",NULL,NULL);
+    if(!check) return sendrec_error();
+    // PENDING: Store status
     return 0;
 }
 
