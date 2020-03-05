@@ -185,11 +185,11 @@ int main (int argc, char *argv[]) {
         debug(DBG_TRACE,"Starting comm port receiver thread");
         sc_thread_create(1,SC_SERIAL,config,serial_manager_thread);
     }
-    // serial thread is also used in network connections
+    //  on networked chronometers replace serial with network thread
     if ((config->comm_ipaddr != (char*)NULL ) && (strcmp(config->module,"canometroweb")==0) )  {
         config->opmode |= OPMODE_NORMAL;
         debug(DBG_TRACE,"Starting comm port (networked) receiver thread");
-        sc_thread_create(1,SC_SERIAL,config,serial_manager_thread);
+        sc_thread_create(1,SC_NETWORK,config,network_manager_thread);
     }
     // thread 2: gestion de mini-servidor we 0b
     if (config->web_port !=0 ) {

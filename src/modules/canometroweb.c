@@ -27,11 +27,6 @@
 #include "debug.h"
 #include "nanohttp/nanohttp-client.h"
 
-static char error_str[1024];
-
-static configuration *config;
-static herror_t status;
-
 /*
 
  Datos de cronometro
@@ -44,10 +39,22 @@ static herror_t status;
   <faltas> %d </faltas>
   <rehuses> %d </rehuses>
   <eliminado> %d </eliminado>
-<cuentaresultados> 0 </cuentaresultados>
-<versionresultados> 0 </versionresultados>
+  <cuentaresultados> 0 </cuentaresultados>
+  <versionresultados> 0 </versionresultados>
 </xml>
+*/
+typedef struct canometroweb_data {
+    unsigned int millistime;
+    unsigned long tiempoactual;
+    int cronocorriendo;
+    int faltas;
+    int rehuses;
+    int eliminado;
+    int cuentaresultados;
+    int versionresultados;
+} canometroweb_data_t;
 
+/*
   Datos de configuracion
 
  <?xml version='1.0'?>
@@ -61,10 +68,48 @@ static herror_t status;
  </xml>
 
  */
+typedef struct canometroweb_config {
+    char *brightness;
+    char *precision;
+    int guardtime; // seconds
+    int walktime; // minutes
+    char *walkstyle;
+    int ring;
+} canometroweb_config_t;
 
+static char error_str[1024];
+static configuration *config;
+static herror_t status;
+static canometroweb_data_t cw_data;
+static canometroweb_config_t cw_config;
 
-static int sendrec_error() {
-    return -1;
+static char *sendrec_error(httpc_conn_t *conn,char *msg) {
+    snprintf(error_str,1024,msg, herror_message(status));
+    debug(DBG_ERROR,error_str);
+    herror_release(status);
+    httpc_free(conn);
+    return NULL;
+}
+/**
+ * Parses an xml response string with canometer configuration
+ * @param pt where to store data. if null create space by calloc
+ * @param xml string to be xml parsed
+ * @return pointer to readed configuration
+ */
+static canometroweb_config_t *parse_config_xml(canometroweb_config_t *pt,char *xml) {
+    // PENDING: write
+    return NULL;
+}
+
+/**
+ * Parses an xml response string with canometer status/data
+ * @param pt where to store data. if null create space by calloc
+ * @param xml string to be xml parsed
+ * @return pointer to readed data
+ */
+static canometroweb_data_t *parse_status_xml(canometroweb_data_t *pt,char *xml) {
+    // PENDING: write
+    return NULL;
 }
 
 /**
@@ -77,7 +122,7 @@ static int sendrec_error() {
  * pages: /startstop /xml /config_xml /configuracion_accion /canometro_accion
  *
  * POSTDATA: tipo=<tipo>&valor=<valor>
- * tipo: any of configutation action or
+ * tipo: any of configutacion_accion or
  * F (Fault)
  * R (Eefusal)
  * E (Eliminate )
@@ -104,40 +149,29 @@ static char *sendrec(char *page,char *tipo,char *valor) {
     if (tipo && valor) {
         snprintf(postdata,255,"tipo=%s&valor=%s",tipo,valor);
     }
-
+    debug(DBG_TRACE,"sendrec() url: '%s' postdata: '%s'",url,postdata);
     // create connection
     if ( ! (conn = httpc_new()) ) {
-        fprintf(stderr, "Cannot create nanoHTTP client connection\n");
+        debug(DBG_ERROR,"Cannot create nanoHTTP client connection");
         return NULL;
     }
 
     /* Set header for chunked transport */
     httpc_set_header(conn, HEADER_TRANSFER_ENCODING, TRANSFER_ENCODING_CHUNKED);
 
-    /* POSTing will be done in 3 steps
+    /* POSTing is be done in 3 steps
      1. httpc_post_begin()
      2. http_output_stream_write()
      3. httpc_post_end()
     */
     if ((status = httpc_post_begin(conn, url)) != H_OK) {
-        fprintf(stderr, "nanoHTTP POST begin failed (%s)\n", herror_message(status));
-        herror_release(status);
-        httpc_free(conn);
-        return NULL;
+        return sendrec_error(conn,"nanoHTTP POST begin failed (%s)");
     }
-
     if ((status = http_output_stream_write(conn->out, postdata, strlen(postdata))) != H_OK) {
-        fprintf(stderr, "nanoHTTP send POST data failed (%s)\n", herror_message(status));
-        herror_release(status);
-        httpc_free(conn);
-        return NULL;
+        return sendrec_error(conn,"nanoHTTP send POST data failed (%s)");
     }
-
     if ((status = httpc_post_end(conn, &response)) != H_OK ) {
-        fprintf(stderr, "nanoHTTP receive POST response failed (%s)\n", herror_message(status));
-        herror_release(status);
-        httpc_free(conn);
-        return NULL;
+        return sendrec_error(conn,"nanoHTTP receive POST response failed (%s)");
     }
     // handle response
     int len=0;
@@ -164,11 +198,10 @@ int ADDCALL module_init(configuration *cfg) {
         return -1;
     }
     // now check connection against Canometer by mean of trying to receive configuration
-    char *check=sendrec("/configuracion_accion",NULL,NULL);
+    char *check=sendrec("/config_xml",NULL,NULL);
     if(!check) {
+        debug(DBG_ERROR,"Cannot contact with Canometer. Abort thread");
         httpc_destroy();
-        snprintf(error_str,1024,"Cannot contact with Canometer (%s) ", herror_message(status));
-        debug(DBG_ERROR,error_str);
         return -1;
     }
     return 0;
@@ -183,182 +216,203 @@ int ADDCALL module_open(){
     char ring[4];
     snprintf(ring,4,"%d",config->ring);
     check=sendrec("/configuracion_accion","Ring",ring);
-    if(!check) return sendrec_error();
+    if(!check) return-1;
     // send reset
     check=sendrec("/canometro_accion","0","0");
-    if(!check) return sendrec_error();
+    if(!check) return -1;
     // retrieve configuracion
     check=sendrec("/config_xml",NULL,NULL);
-    if(!check) return sendrec_error();
+    if(!check) return  -1;
     // PENDNG: store configuration
     // retrieve status
     check=sendrec("/xml",NULL,NULL);
-    if(!check) return sendrec_error();
+    if(!check) return  -1;
     // PENDING: Store status
     return 0;
 }
 
 int ADDCALL module_close(){
+    debug(DBG_NOTICE,"Closing network chronometer module");
+    httpc_destroy();
     return 0;
 }
 
 int ADDCALL module_read(char *buffer,size_t length){
-    int ret=1;
-    static char *inbuff=NULL;
-    if (inbuff==NULL) inbuff=malloc(1024*sizeof(char));
-    memset(inbuff,0,1024*sizeof(char));
+    char *received;
 
-    do {
-        // perform a GET /xml operation
-    } while(ret==0);
-    if (ret <0 ) {
+    received=sendrec("/xml",NULL,NULL);
+    if (!received) {
         debug(DBG_ERROR,"network_read() error %s",error_str);
         snprintf(buffer,length,"");
         return strlen(buffer);
-    };
-    debug(DBG_TRACE,"module_read() received '%s'",inbuff);
-    // At this moment, Digican only sends 2 comands "START" and "PARAR". So just a simple parser
-    if (strncmp(inbuff,"START",5)==0) {
-        snprintf(buffer,length,"start 0\n");
     }
-    else if (strncmp(inbuff,"PARAR",5)==0) {
-        int elapsed= 10* atoi(inbuff+7);
-        snprintf(buffer,length,"stop %d\n",elapsed);
-    }
-    // PENDING: parse and handle additional comands sent from digican chrono ( ask oitoinnova )
-    else snprintf(buffer,length,"");
-    debug(DBG_TRACE,"module_read() sending to serial manager '%s'",buffer);
-    return strlen(buffer);
+    debug(DBG_TRACE,"canometroweb module_read() received '%s'",received);
+    // parse xml and compare with stored data
+    canometroweb_data_t *data=parse_status_xml(NULL,received);
+
+    // PENDING: compare data and generate internal commands
+    // to report changes in f:t:r return back "data f:t:r" command
+    // to report crono count state, evaluate and send proper start/stop comand
+    // pending: recognize and parse intermediate time and sensor fail/failbak
+    return 0;
 }
 
 static int canometro_faltas=0;
 static int canometro_rehuses=0;
 
 int ADDCALL module_write(char **tokens, size_t ntokens){
-    static char *buffer=NULL;
-    if (buffer==NULL) buffer=malloc(1024*sizeof(char));
-    memset(buffer,0,1024);
+
+    char *result=NULL;
     char *cmd=tokens[1];
+
+    char page[64];
+    char tipo[16];
+    char valor[16];
+    memset(page,0,64);
+    memset(tipo,0,16);
+    memset(valor,0,16);
 
     // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
     if (strcasecmp("start",cmd)==0) {
-        sprintf(buffer,"START$");
+        // si el cronometro esta corriendo no hacer nada
+        // else mandamos la orden de startstop para indicar arranque manual
+        if (cw_data.cronocorriendo==0) {
+            snprintf(page,sizeof(page),"/startstop");
+        }
     }
     // { 1, "int",     "Intermediate time mark",          "<miliseconds>"},
-    else if (strcasecmp("int",cmd)==0) {
-        // on intermediate time cannot provide timestamp to digican, so just call to show intermediate time
-        // this may lead in some precission errors due to communications lag
-        sprintf(buffer,"TEMPI$");
-    }
+    // canometro web interface has no "intermediate time command"  but supported in event api protocol :-(
+    else if (strcasecmp("int",cmd)==0) { unsuported("canometroweb","int"); }
     // { 2, "stop",    "End of course run",               "<miliseconds>"},
     else if (strcasecmp("stop",cmd)==0) {
-        // digican uses cents of seconds, so remove last digit
-        long cents=(config->status.stop_time - config->status.start_time)/10;
-        sprintf(buffer,"PARAR%04d$",(int)cents);
+        // si crono parado no hacer nada; else mandamos orden de parada manual
+        if (cw_data.cronocorriendo==0) {
+            snprintf(page,sizeof(page),"/startstop");
+        }
     }
     // { 3, "fail",    "Sensor faillure detected",        ""},
-    // unsupported in digican chrono
-    else if (strcasecmp("fail",cmd)==0) { unsuported("digican","fail");  }
+    // unsupported in canometroweb chrono but supported in event api protocol :-(
+    else if (strcasecmp("fail",cmd)==0) { unsuported("canometroweb","fail");  }
     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
-    // unsupported in digican chrono
-    else if (strcasecmp("ok",cmd)==0) {  unsuported("digican","ok"); }
+    // unsupported in canometroweb chrono but supported in event api protocol :-(
+    else if (strcasecmp("ok",cmd)==0) {  unsuported("canometroweb","ok"); }
     // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
-        // unsupported in digican chrono
-    else if (strcasecmp("msg",cmd)==0) {  unsuported("digican","msg"); }
+        // unsupported in canometroweb chrono but supported in event api protocol :-(
+    else if (strcasecmp("msg",cmd)==0) {  unsuported("canometroweb","msg"); }
     // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
     else if (strcasecmp("walk",cmd)==0) {
-        // PENDING: ask digican how to provide course walk duration in seconds ( or minutes )
-        sprintf(buffer,"RECON$");
+        int minutes=atoi(tokens[2])/60;
+        if (minutes==0) { // send reset, to stop coursewalk
+            snprintf(page,sizeof(page),"/canometro_accion");
+            snprintf(tipo,sizeof(tipo),"0"); // reset cmd
+            snprintf(valor,sizeof(valor),"0");
+        } else {
+            // if current course time differs to provided, set cronometer
+            if (cw_config.walktime!=minutes) {
+                cw_config.walktime=minutes;
+                snprintf(page,sizeof(page),"/configuracion_accion");
+                snprintf(tipo,sizeof(tipo),"Walktime");
+                snprintf(valor,sizeof(valor),"%d",minutes);
+                sendrec(page,tipo,valor);
+            }
+            // and fireup course walk
+            snprintf(page,sizeof(page),"/canometro_accion");
+            snprintf(tipo,sizeof(tipo),"W");
+            snprintf(valor,sizeof(valor),"0");
+        }
     }
     // { 7, "down",    "Start 15 seconds countdown",      ""},
-    else if (strcasecmp("walk",cmd)==0) {
-        // PENDING: Ask digican how to provide countdown duration instead of 15 seconds
-        sprintf(buffer,"INICI$");
+    else if (strcasecmp("down",cmd)==0) {
+        snprintf(page,sizeof(page),"/canometro_accion");
+        snprintf(tipo,sizeof(tipo),"C");
+        snprintf(valor,sizeof(valor),"0");
     }
-    /*
-     * In digican chrono we cannot provide absolute values for faults and refusals, so need
-     * to track an inner count and sincronize it with master data
-     * so the way to work is:
-     * On reset,reloj and so clear variables
-     */
     // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num {+}>"},
     else if (strcasecmp("fault",cmd)==0) {
-        int len=0;
         int ft=config->status.faults+config->status.touchs;
-        if (canometro_faltas < config->status.faults) {
-            for (;canometro_faltas < ft ; canometro_faltas++) len+=sprintf(buffer+len,"FALT+$");
-        } else {
-            for (;canometro_faltas>ft;canometro_faltas--) len+=sprintf(buffer+len,"FALT-$");
-        }
+        snprintf(page,sizeof(page),"/canometro_accion");
+        snprintf(tipo,sizeof(tipo),"F");
+        snprintf(valor,sizeof(valor),"%d",ft);
     }
     // { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num {+}>"},
     else if (strcasecmp("refusal",cmd)==0) {
-        int len=0;
-        if (canometro_rehuses < config->status.refusals) {
-            for (;canometro_rehuses < config->status.refusals; canometro_rehuses++) len+=sprintf(buffer+len,"REHU+$");
-        } else {
-            for (;canometro_rehuses > config->status.refusals; canometro_rehuses--) len+=sprintf(buffer+len,"REHU-$");
-        }
+        snprintf(page,sizeof(page),"/canometro_accion");
+        snprintf(tipo,sizeof(tipo),"R");
+        snprintf(valor,sizeof(valor),"%d",config->status.refusals);
     }
     // { 10, "elim",    "Mark elimination [+-]",          "[ + | - ] {+}"},
+    // PENDING: revise eliminated behavior. if needed, just compare internal and xmldata to handle
     else if (strcasecmp("elim",cmd)==0) {
-        // digican has just "fire up" eliminated. no way to remove mark :-(
-        sprintf(buffer,"ELIMI$");
+        snprintf(page,sizeof(page),"/canometro_accion");
+        snprintf(tipo,sizeof(tipo),"E");
+        snprintf(valor,sizeof(valor),"%d",config->status.eliminated);
     }
     // { 11, "data",    "Set course fault/ref/disq info", "<faults>:<refulsals>:<disq>"},
     else if (strcasecmp("data",cmd)==0) {
-        int len=0;
         int ft=config->status.faults+config->status.touchs;
-        if (canometro_faltas < ft) {
-            for (;canometro_faltas <ft;canometro_faltas++) len+=sprintf(buffer+len,"FALT+$");
-        } else {
-            for (;canometro_faltas>ft;canometro_faltas--) len+=sprintf(buffer+len,"FALT-$");
-        }
-        if (canometro_rehuses < config->status.refusals) {
-            for (;canometro_rehuses < config->status.refusals; canometro_rehuses++) len+=sprintf(buffer+len,"REHU+$");
-        } else {
-            for (;canometro_rehuses > config->status.refusals; canometro_rehuses--) len+=sprintf(buffer+len,"REHU-$");
-        }
-        if (config->status.eliminated!=0) len+=sprintf(buffer+len,"ELIMI$");
+        snprintf(page,sizeof(page),"/canometro_accion");
+        snprintf(tipo,sizeof(tipo),"F");
+        snprintf(valor,sizeof(valor),"%d",ft);
+        sendrec(page,tipo,valor);
+        snprintf(tipo,sizeof(tipo),"R");
+        snprintf(valor,sizeof(valor),"%d",config->status.refusals);
+        sendrec(page,tipo,valor);
+        // PENDING: revise eliminated behavior.
+        // if needed, just compare internal and xmldata to handle
+        snprintf(tipo,sizeof(tipo),"E");
+        snprintf(valor,sizeof(valor),"%d",config->status.eliminated);
     }
     // { 12, "reset",  "Reset chronometer and countdown", "" },
     else if (strcasecmp("reset",cmd)==0) {
-        canometro_faltas=0;
-        canometro_rehuses=0;
-        sprintf(buffer,"RESET$");
+        snprintf(page,sizeof(page),"/canometro_accion");
+        snprintf(tipo,sizeof(tipo),"0"); // reset cmd
+        snprintf(valor,sizeof(valor),"0");
     }
     // { 13, "help",   "show command list",               "[cmd]"},
     //  useless outside console
-    else if (strcasecmp("help",cmd)==0) {  unsuported("digican","help");  }
+    else if (strcasecmp("help",cmd)==0) {  unsuported("canometroweb","help");  }
     // { 14, "version","Show software version",           "" },
     //  useless outside console
-    else if (strcasecmp("version",cmd)==0) {  unsuported("digican","version");  }
+    else if (strcasecmp("version",cmd)==0) {  unsuported("canometroweb","version");  }
     // { 15, "exit",   "End program (from console)",      "" },
     // useless outside console
-    else if (strcasecmp("exit",cmd)==0) {  unsuported("digican","exit");  }
+    else if (strcasecmp("exit",cmd)==0) {  unsuported("canometroweb","exit");  }
     // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
     //  useless outside console
-    else if (strcasecmp("server",cmd)==0) { unsuported("digican","server"); }
+    else if (strcasecmp("server",cmd)==0) { unsuported("canometroweb","server"); }
     // { 17, "ports",  "Show available serial ports",     "" },
     //  useless outside console
-    else if (strcasecmp("ports",cmd)==0) { unsuported("digican","ports"); }
+    else if (strcasecmp("ports",cmd)==0) { unsuported("canometroweb","ports"); }
     // { 18, "config", "List configuration parameters",   "" },
-    //  useless outside console
-    else if (strcasecmp("config",cmd)==0) {  unsuported("digican","config"); }
+    //  not real use, just to force read an parse canometer configuration
+    else if (strcasecmp("config",cmd)==0) {
+        char *result=sendrec("/config_xml",NULL,NULL);
+        if (!result) {
+            debug(DBG_ERROR,"cannot retrieve canometroweb configuration");
+            return -1;
+        }
+        parse_config_xml(&cw_config,result);
+        free(result);
+        return 0;
+    }
     // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
-    //  useless outside console
-    else if (strcasecmp("status",cmd)==0) {  unsuported("digican","status"); }
+    //  not real use, just to force read an parse canometer data
+    else if (strcasecmp("status",cmd)==0) {
+        result=sendrec("/xml",NULL,NULL);
+        if (!result) {
+            debug(DBG_ERROR,"cannot retrieve canometroweb status");
+            return -1;
+        }
+        parse_status_xml(&cw_data,result);
+        free(result);
+        return 0;
+    }
     // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
     //  useless outside console
-    else if (strcasecmp("turn",cmd)==0) { unsuported("digican","turn"); }
+    else if (strcasecmp("turn",cmd)==0) { unsuported("canometroweb","turn"); }
     // { 21, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-    // PENDING: ask oito-innova how to specify current time
-    else if (strcasecmp("clock",cmd)==0) {
-        // PENDING: check if setting hh/mm is available in digican crono
-        canometro_faltas=0;
-        canometro_rehuses=0;
-        sprintf(buffer,"RELOJ$");
-    }
+    // PENDING: ask Galican if supported
+    else if (strcasecmp("clock",cmd)==0) { unsuported("canometroweb","clock"); }
     // { 22, "debug",  "Get/Set debug level",             "[ new_level ]"},
     // only for console
     // { -1, NULL,     "",                                "" }
@@ -369,10 +423,15 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     }
 
     // so that's allmost all done, just sending command to serial port....
-    // notice "blocking" mode. needed as digican does not support full duplex communications
-    debug(DBG_TRACE,"module_write(), send: '%s'",buffer);
-
-    // todo: write send request
+    // notice "blocking" mode. needed as canometroweb does not support full duplex communications
+    debug(DBG_TRACE,"calling to sendrec(), command:'%s' page:'%s' tipo:'%s' valor:'%s'",tokens[1],page,tipo,valor);
+    if (strcmp(tipo,"")==0) result=sendrec(page,NULL,NULL);
+    else result=sendrec(page, tipo,valor);
+    if (!result) {
+        debug(DBG_ERROR,"call to sendrec() failed, command:'%s' page:'%s' tipo:'%s' valor:'%s'",tokens[1],page,tipo,valor);
+        return -1;
+    }
+    free(result);
     return 0;
 }
 

@@ -29,69 +29,69 @@ static struct {
 } entry_points;
 
 static int net_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     if (ntokens==2) tokens[ntokens++]="0"; // up to 32 tokens available
     return  entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_int(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_stop(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_fail(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     // fail msg is not to be sent to chrono (read only)
     debug(DBG_TRACE,"Serial command 'FAIL' (do not send)");
     return 0;
 }
 static int net_mgr_ok(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     // fail msg is not to be sent to chrono (read only)
     debug(DBG_TRACE,"Serial command 'OK' (do not send)");
     return 0;
 }
 static int net_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_walk(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     if (ntokens==2) tokens[ntokens++]="420"; // up to 32 tokens available
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_down(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     if (ntokens==2) tokens[ntokens++]="15"; // up to 32 tokens available
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_fault(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_refusal(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_elim(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_reset(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     return entry_points.module_write(tokens,ntokens);
 }
 static int net_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
-    if (strcmp(SC_SERIAL,tokens[0])==0) return 0; // to avoid get/put loop
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     debug(DBG_INFO,"Serial manager thread exit requested");
     return -1;
 }
@@ -138,7 +138,7 @@ static func entries[32]= {
         NULL               // { -1, NULL,     "",                                "" }
 };
 
-void *netchrono_manager_thread(void *arg){
+void *network_manager_thread(void *arg){
 
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];

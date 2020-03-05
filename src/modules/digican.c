@@ -107,7 +107,7 @@ static int digican_faltas=0;
 static int digican_rehuses=0;
 
 int ADDCALL module_write(char **tokens, size_t ntokens){
-    static char *buffer=NULL;
+    static char *buffer=NULL; // notice static to be preserved out of this function
     if (buffer==NULL) buffer=malloc(1024*sizeof(char));
     memset(buffer,0,1024);
     char *cmd=tokens[1];
@@ -143,7 +143,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         sprintf(buffer,"RECON$");
     }
     // { 7, "down",    "Start 15 seconds countdown",      ""},
-    else if (strcasecmp("walk",cmd)==0) {
+    else if (strcasecmp("down",cmd)==0) {
         // PENDING: Ask digican how to provide countdown duration instead of 15 seconds
         sprintf(buffer,"INICI$");
     }
