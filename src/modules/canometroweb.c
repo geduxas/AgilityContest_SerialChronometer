@@ -26,6 +26,7 @@
 #include "sc_config.h"
 #include "debug.h"
 #include "nanohttp/nanohttp-client.h"
+#include "libcsoap/soap-client.h"
 
 /*
 
@@ -97,8 +98,28 @@ static char *sendrec_error(httpc_conn_t *conn,char *msg) {
  * @return pointer to readed configuration
  */
 static canometroweb_config_t *parse_config_xml(canometroweb_config_t *pt,char *xml) {
-    // PENDING: write
-    return NULL;
+    xmlNodePtr root;
+    xmlChar *attr;
+    if (!pt) pt=calloc(1,sizeof(canometroweb_config_t));
+    if (!pt)  { debug(DBG_ERROR,"parse_config::calloc()"); return NULL; };
+    xmlDocPtr doc=xmlReadMemory(xml, strlen(xml), "config.xml", NULL, 0);
+    if (!doc) { debug(DBG_ERROR,"XML Parser: cannot compose tree"); return NULL; }
+    root = xmlDocGetRootElement(doc);
+    if (root == NULL) { debug(DBG_ERROR,"XML: Empty document received"); return NULL; }
+    attr= xmlGetProp(root,(xmlChar *) "Brightness");
+    if (attr) { if (pt->brightness) free(pt->brightness); pt->brightness=(char*)attr; }
+    attr= xmlGetProp(root,(xmlChar *) "Precision");
+    if (attr) { if (pt->precision) free(pt->precision); pt->precision=(char*)attr; }
+    attr= xmlGetProp(root,(xmlChar *) "Guardtime");
+    if (attr) { pt->guardtime=atoi((char *)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "Walktime");
+    if (attr) { pt->walktime=atoi((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "Walkstyle");
+    if (attr) { if (pt->walkstyle) free(pt->walkstyle); pt->walkstyle=(char*)attr; }
+    attr= xmlGetProp(root,(xmlChar *) "Ring");
+    if (attr) { pt->ring=atoi((char*)attr); }
+    xmlFreeDoc(doc);
+    return pt;
 }
 
 /**
@@ -108,8 +129,32 @@ static canometroweb_config_t *parse_config_xml(canometroweb_config_t *pt,char *x
  * @return pointer to readed data
  */
 static canometroweb_data_t *parse_status_xml(canometroweb_data_t *pt,char *xml) {
-    // PENDING: write
-    return NULL;
+    xmlNodePtr root;
+    xmlChar *attr;
+    if (!pt) pt=calloc(1,sizeof(canometroweb_data_t));
+    if (!pt)  { debug(DBG_ERROR,"parse_data::calloc()"); return NULL; };
+    xmlDocPtr doc=xmlReadMemory(xml, strlen(xml), "data.xml", NULL, 0);
+    if (!doc) { debug(DBG_ERROR,"XML Parser: cannot compose tree"); return NULL; }
+    root = xmlDocGetRootElement(doc);
+    if (root == NULL) { debug(DBG_ERROR,"XML: Empty document received"); return NULL; }
+    attr= xmlGetProp(root,(xmlChar *) "millistime");
+    if (attr) { pt->millistime=atoi((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "tiempoactual");
+    if (attr) { pt->tiempoactual=atol((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "cronocorriendo");
+    if (attr) { pt->cronocorriendo=atoi((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "faltas");
+    if (attr) { pt->faltas=atoi((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "rehuses");
+    if (attr) { pt->rehuses=atoi((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "eliminado");
+    if (attr) { pt->eliminado=atoi((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "cuentaresultados");
+    if (attr) { pt->cuentaresultados=atoi((char*)attr); }
+    attr= xmlGetProp(root,(xmlChar *) "versionresultados");
+    if (attr) { pt->versionresultados=atoi((char*)attr); }
+    xmlFreeDoc(doc);
+    return pt;
 }
 
 /**
@@ -204,6 +249,14 @@ int ADDCALL module_init(configuration *cfg) {
         httpc_destroy();
         return -1;
     }
+    // finally prepare soap subsistem
+    status = soap_client_init_args(0, NULL); // currently no arguments required
+    if (status != H_OK) {
+        debug(DBG_ERROR,"SoapInit() %s():%s [%d]", herror_func(status), herror_message(status),  herror_code(status));
+        herror_release(status);
+        return -1;
+    }
+
     return 0;
 }
 
@@ -223,11 +276,11 @@ int ADDCALL module_open(){
     // retrieve configuracion
     check=sendrec("/config_xml",NULL,NULL);
     if(!check) return  -1;
-    // PENDNG: store configuration
+    parse_config_xml(&cw_config,check);
     // retrieve status
     check=sendrec("/xml",NULL,NULL);
     if(!check) return  -1;
-    // PENDING: Store status
+    parse_status_xml(&cw_data,check);
     return 0;
 }
 

@@ -6,6 +6,7 @@ set( CMAKE_CXX_COMPILER_WORKS 1 )
 project (SerialChronometer)
 
 #include folder
+find_package(LibXml2 REQUIRED)
 include_directories(include)
 include_directories(libserialport/include)
 
@@ -13,7 +14,7 @@ include_directories(libserialport/include)
 #libcsoap includes libsoap and libnanohttp. libsoap is not used
 file(GLOB SOURCES "src/*.c")
 file(GLOB INCLUDES "include/*.h")
-include_directories( libserialport/include/ libcsoap-1.1.0/include/ )
+include_directories( libserialport/include/ libcsoap-1.1.0/include/ ${LIBXML2_INCLUDE_DIR})
 
 # module libraries definition for "generic" module
 add_library(generic SHARED src/modules/generic.c src/debug.c)
@@ -80,6 +81,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libcsoap.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libnanohttp.a
             dlfcn-win32::dl
+            xml2
             ws2_32
             setupapi
     )
