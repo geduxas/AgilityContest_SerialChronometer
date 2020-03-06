@@ -84,13 +84,6 @@ static herror_t status;
 static canometroweb_data_t cw_data;
 static canometroweb_config_t cw_config;
 
-static char *sendrec_error(httpc_conn_t *conn,char *msg) {
-    snprintf(error_str,1024,msg, herror_message(status));
-    debug(DBG_ERROR,error_str);
-    herror_release(status);
-    httpc_free(conn);
-    return NULL;
-}
 /**
  * Parses an xml response string with canometer configuration
  * @param pt where to store data. if null create space by calloc
@@ -157,6 +150,14 @@ static canometroweb_data_t *parse_status_xml(canometroweb_data_t *pt,char *xml) 
     return pt;
 }
 
+static char *sendrec_error(httpc_conn_t *conn,char *msg) {
+    snprintf(error_str,1024,msg, herror_message(status));
+    debug(DBG_ERROR,error_str);
+    // herror_release(status);
+    httpc_close_free(conn);
+    return NULL;
+}
+
 /**
  *
  * @param page baseurl ( ie: /xml )
@@ -186,10 +187,13 @@ static char *sendrec(char *page,char *tipo,char *valor) {
     char result[1024];
 
     // data for post request
+    char tmp[256]; // to evaluate temporary header data
     char url[256];
     char postdata[256];
-    memset(url,0,256);
-    memset(postdata,0,256);
+    memset(tmp,0,sizeof(tmp));
+    memset(url,0,sizeof(url));
+    memset(postdata,0,sizeof(postdata));
+    memset(result,0,sizeof(result));
     snprintf(url,254,"http://%s/%s",config->comm_ipaddr,page);
     if (tipo && valor) {
         snprintf(postdata,255,"tipo=%s&valor=%s",tipo,valor);
@@ -197,12 +201,13 @@ static char *sendrec(char *page,char *tipo,char *valor) {
     debug(DBG_TRACE,"sendrec() url: '%s' postdata: '%s'",url,postdata);
     // create connection
     if ( ! (conn = httpc_new()) ) {
-        debug(DBG_ERROR,"Cannot create nanoHTTP client connection");
+        debug(DBG_ERROR,"Cannot create nanoHTTP client");
         return NULL;
     }
 
-    /* Set header for chunked transport */
-    httpc_set_header(conn, HEADER_TRANSFER_ENCODING, TRANSFER_ENCODING_CHUNKED);
+    /* set content-length */
+    snprintf(tmp,sizeof(tmp),"%d",strlen(postdata));
+    httpc_set_header(conn, HEADER_CONTENT_LENGTH,tmp);
 
     /* POSTing is be done in 3 steps
      1. httpc_post_begin()
@@ -218,17 +223,23 @@ static char *sendrec(char *page,char *tipo,char *valor) {
         return sendrec_error(conn,"nanoHTTP send POST data failed (%s)");
     }
     debug(DBG_TRACE,"before post end");
-    if ((status = httpc_post_end(conn, &response)) != H_OK ) {
+    if ( (status = httpc_post_end(conn, &response) ) != H_OK ) {
         return sendrec_error(conn,"nanoHTTP receive POST response failed (%s)");
     }
     // handle response
     int len=0;
-    debug(DBG_TRACE,"before read response");
-    while (http_input_stream_is_ready(response->in)) {
-       len += http_input_stream_read(response->in, &result[len], 1024-len);
-       if (len>=1023) break;
-     }
-    debug(DBG_TRACE,"sendrec() returns %s",result);
+    if (response->in==NULL) {
+        debug(DBG_TRACE,"sendrec() empty response");
+        return NULL;
+    } else {
+        debug(DBG_TRACE,"before stream_is_ready");
+        while (http_input_stream_is_ready(response->in)) {
+            len += http_input_stream_read(response->in, &result[len], 1024-len);
+            debug(DBG_TRACE,"after stream_read() len:%d",len);
+            if (len>=1023) break;
+        }
+        debug(DBG_TRACE,"sendrec() returns %s",result);
+    }
     // clean up and return
     hresponse_free(response);
     return strdup(result);
@@ -295,10 +306,13 @@ int ADDCALL module_close(){
 
 int ADDCALL module_read(char *buffer,size_t length){
     char *received;
+
+    debug(DBG_TRACE,"module_read() enter");
     received=sendrec("xml",NULL,NULL);
     if (!received) {
         debug(DBG_ERROR,"network_read() error %s",error_str);
         snprintf(buffer,length,"");
+        debug(DBG_TRACE,"module_read(error) exit");
         return strlen(buffer);
     }
     debug(DBG_TRACE,"canometroweb module_read() received '%s'",received);
@@ -319,10 +333,13 @@ int ADDCALL module_read(char *buffer,size_t length){
         cw_data.eliminado=data->eliminado;
         free(data);
         snprintf(buffer,length,"DATA %d:%d:%d",cw_data.faltas,cw_data.rehuses,cw_data.eliminado);
+
+        debug(DBG_TRACE,"module_read(data) exit");
         return strlen(buffer);
     }
     // to report crono count state, evaluate and send proper start/stop comand
     // pending: recognize and parse intermediate time and sensor fail/failbak
+    debug(DBG_TRACE,"module_read(crono) exit");
     return 0;
 }
 
@@ -337,7 +354,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     memset(page,0,64);
     memset(tipo,0,16);
     memset(valor,0,16);
-
+    debug(DBG_TRACE,"module_write() enter");
     // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
     if (strcasecmp("start",cmd)==0)  {
         // si el cronometro esta corriendo no hacer nada
@@ -459,6 +476,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         }
         parse_config_xml(&cw_config,result);
         free(result);
+        debug(DBG_TRACE,"module_write(config) exit");
         return 0;
     }
     // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
@@ -471,6 +489,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         }
         parse_status_xml(&cw_data,result);
         free(result);
+        debug(DBG_TRACE,"module_write(status) exit");
         return 0;
     }
     // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
@@ -497,6 +516,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         debug(DBG_ERROR,"call to sendrec() failed, command:'%s' page:'%s' tipo:'%s' valor:'%s'",tokens[1],page,tipo,valor);
         return -1;
     }
+    debug(DBG_TRACE,"module_write(%s) exit",tokens[1]);
     free(result);
     return 0;
 }
