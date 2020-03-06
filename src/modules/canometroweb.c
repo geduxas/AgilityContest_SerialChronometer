@@ -292,7 +292,6 @@ int ADDCALL module_close(){
 
 int ADDCALL module_read(char *buffer,size_t length){
     char *received;
-
     received=sendrec("/xml",NULL,NULL);
     if (!received) {
         debug(DBG_ERROR,"network_read() error %s",error_str);
@@ -302,9 +301,23 @@ int ADDCALL module_read(char *buffer,size_t length){
     debug(DBG_TRACE,"canometroweb module_read() received '%s'",received);
     // parse xml and compare with stored data
     canometroweb_data_t *data=parse_status_xml(NULL,received);
+    if (!data) { debug(DBG_ERROR,"canometroweb module_read() parsexml failed '%s'",received); return -1; }
+    free(received); // no longer needed
 
-    // PENDING: compare data and generate internal commands
-    // to report changes in f:t:r return back "data f:t:r" command
+    // compare data and generate internal commands
+    // notice that cannot generate more than one message at a time,
+    // so if several parameters change, parse them in next iteration
+    //
+    // handle start/stop data
+    // handle f:t:r data
+    if ( (cw_data.faltas != data->faltas) || (cw_data.rehuses != data->rehuses) || (cw_data.eliminado!=data->eliminado) ) {
+        cw_data.faltas=data->faltas;
+        cw_data.rehuses=data->rehuses;
+        cw_data.eliminado=data->eliminado;
+        free(data);
+        snprintf(buffer,length,"DATA %d:%d:%d",cw_data.faltas,cw_data.rehuses,cw_data.eliminado);
+        return buffer;
+    }
     // to report crono count state, evaluate and send proper start/stop comand
     // pending: recognize and parse intermediate time and sensor fail/failbak
     return 0;

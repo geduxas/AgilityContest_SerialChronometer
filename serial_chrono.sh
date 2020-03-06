@@ -58,10 +58,9 @@ if [ -f $inifile ]; then
         printf("use_server=\"%s\"\n",($2!="none")?"^si!no":"si!^no");
       }
   /^module/ {
-        printf("module=\"%s\"\n",($2=="generic")?"^generic!digican":"generic!^digican");
+        printf("module=\"%s\"\n",($2=="generic")?"^generic!digican!canometroweb":"generic!^digican!canometroweb");
       }
   /^comm_ipaddr/ {
-        gsub($2,"^"$2,ipaddr);
         printf("comm_ipaddr=\"%s\"\n",ipaddr);
       }
   /^comm_port/ {
@@ -89,7 +88,7 @@ res=`yad \
 	--separator="," \
 	--field=" :LBL" "space"\
 	--field="Parametros de Usuario:LBL" "user"\
-	--field="IPAddr (Canometro)::CB" "$comm_ipaddr" \
+	--field="IPAddr (Canometro):" "$comm_ipaddr" \
 	--field="Puertos::CB" "$comm_port" \
 	--field="Velocidad::CB" "$baud_rate" \
 	--field="Modelo de cronometro::CB" "$module" \
@@ -107,7 +106,7 @@ res=`yad \
 [ $? -ne 0 ] && die "Operacion cancelada por el usuario"
 
 # leemos el resultado de la ventana de dialogo
-IFS=, read spare1 spare2 port baud mod server addr ring spare3 spare4 cons loglvl clog spare5 save <<< $res
+IFS=, read spare1 spare2 ipaddr port baud mod server addr ring spare3 spare4 cons loglvl clog spare5 save <<< $res
 
 #componemos la linea de comandos
 IPADDR="$addr"
@@ -123,7 +122,7 @@ I_CLOG="0"
 [ "Z$clog" == "Zsi" ] && CLOG="-v"
 [ "Z$clog" == "Zsi" ] && I_CLOG="1"
 
-CMD="./SerialChronometer -m $mod -d $port -b $baud -s $IPADDR -r $RING $CONS -D $LVL $CLOG"
+CMD="./SerialChronometer -m $mod -d $port -i $ipaddr -b $baud -s $IPADDR -r $RING $CONS -D $LVL $CLOG"
 
 # si nos lo piden, guardamos datos en fichero de configuracion
 if [ "Z$save" = "ZTRUE" ]; then
@@ -155,7 +154,7 @@ ajax_server = $IPADDR
 client_name = serial_chrono
 
 [Serial]
-#serial module to be used. "generic","digican"...
+#serial module to be used. "generic","digican",canometroweb ...
 module = $mod
 comm_ipaddr = $com_ipaddr
 comm_port = $port

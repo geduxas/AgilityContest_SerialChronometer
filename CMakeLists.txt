@@ -97,5 +97,10 @@ else()
             curl
             dl
     )
-    # no need to declare extra libs for digican and generic dll's in linux
+    target_link_libraries(
+            # libnanohttp and csoap needs to be compiled with -fpic option to be included in DLL's
+            canometroweb
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libnanohttp.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libcsoap.a
+    )
 endif()
