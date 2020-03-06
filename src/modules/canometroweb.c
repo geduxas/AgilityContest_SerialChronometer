@@ -21,11 +21,11 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include <unistd.h>
+#include <curl/curl.h>
 #include "modules.h"
 #include "sc_config.h"
 #include "debug.h"
-#include "nanohttp/nanohttp-client.h"
 #include "libcsoap/soap-client.h"
 
 /*
@@ -95,7 +95,8 @@ static canometroweb_config_t *parse_config_xml(canometroweb_config_t *pt,char *x
     xmlChar *attr;
     if (!pt) pt=calloc(1,sizeof(canometroweb_config_t));
     if (!pt)  { debug(DBG_ERROR,"parse_config::calloc()"); return NULL; };
-    xmlDocPtr doc=xmlReadMemory(xml, strlen(xml), "config.xml", NULL, 0);
+
+    xmlDocPtr doc=xmlParseDoc(xml);
     if (!doc) { debug(DBG_ERROR,"XML Parser: cannot compose tree"); return NULL; }
     root = xmlDocGetRootElement(doc);
     if (root == NULL) { debug(DBG_ERROR,"XML: Empty document received"); return NULL; }
@@ -150,12 +151,25 @@ static canometroweb_data_t *parse_status_xml(canometroweb_data_t *pt,char *xml) 
     return pt;
 }
 
-static char *sendrec_error(httpc_conn_t *conn,char *msg) {
-    snprintf(error_str,1024,msg, herror_message(status));
-    debug(DBG_ERROR,error_str);
-    // herror_release(status);
-    httpc_close_free(conn);
-    return NULL;
+/* methods to handle callback for curl request */
+struct string {
+    char *ptr;
+    size_t len;
+};
+
+static void init_string(struct string *s) {
+    s->len = 0;
+    s->ptr = malloc(s->len+1); // notice: assume won't fail. should be checked
+    s->ptr[0] = '\0';
+}
+
+static size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s) {
+    size_t new_len = s->len + size*nmemb;
+    s->ptr = realloc(s->ptr, new_len+1); // notice: assume won't fail. should be checked
+    memcpy(s->ptr+s->len, ptr, size*nmemb);
+    s->ptr[new_len] = '\0';
+    s->len = new_len;
+    return size*nmemb;
 }
 
 /**
@@ -177,12 +191,11 @@ static char *sendrec_error(httpc_conn_t *conn,char *msg) {
  * C (Countdown)
  *
  */
-static char *sendrec(char *page,char *tipo,char *valor) {
+static char *sendrec(char *page,char *tipo,char *valor,int wantresponse) {
     // connection related vars
-    httpc_conn_t *conn;
-    hresponse_t *response;
-    hpair_t *pair;
-
+    CURL *curl;
+    CURLcode res;
+    struct curl_slist *headers = NULL;
     // data for response
     char result[1024];
 
@@ -199,82 +212,61 @@ static char *sendrec(char *page,char *tipo,char *valor) {
         snprintf(postdata,255,"tipo=%s&valor=%s",tipo,valor);
     }
     debug(DBG_TRACE,"sendrec() url: '%s' postdata: '%s'",url,postdata);
-    // create connection
-    if ( ! (conn = httpc_new()) ) {
-        debug(DBG_ERROR,"Cannot create nanoHTTP client");
-        return NULL;
-    }
+    curl = curl_easy_init();
 
-    /* set content-length */
-    snprintf(tmp,sizeof(tmp),"%d",strlen(postdata));
-    httpc_set_header(conn, HEADER_CONTENT_LENGTH,tmp);
-
-    /* POSTing is be done in 3 steps
-     1. httpc_post_begin()
-     2. http_output_stream_write()
-     3. httpc_post_end()
-    */
-    debug(DBG_TRACE,"before post begin");
-    if ((status = httpc_post_begin(conn, url)) != H_OK) {
-        return sendrec_error(conn,"nanoHTTP POST begin failed (%s)");
-    }
-    debug(DBG_TRACE,"before post stream");
-    if ((status = http_output_stream_write(conn->out, postdata, strlen(postdata))) != H_OK) {
-        return sendrec_error(conn,"nanoHTTP send POST data failed (%s)");
-    }
-    debug(DBG_TRACE,"before post end");
-    if ( (status = httpc_post_end(conn, &response) ) != H_OK ) {
-        return sendrec_error(conn,"nanoHTTP receive POST response failed (%s)");
-    }
-    // handle response
-    int len=0;
-    if (response->in==NULL) {
-        debug(DBG_TRACE,"sendrec() empty response");
-        return NULL;
-    } else {
-        debug(DBG_TRACE,"before stream_is_ready");
-        while (http_input_stream_is_ready(response->in)) {
-            len += http_input_stream_read(response->in, &result[len], 1024-len);
-            debug(DBG_TRACE,"after stream_read() len:%d",len);
-            if (len>=1023) break;
+    if (curl) {
+        struct string s;
+        init_string(&s);
+        headers = curl_slist_append(headers, "Content-Type: text/plain");
+        headers = curl_slist_append(headers, "Accept: application/xml");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata); /* data goes here */
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(postdata));
+        if (wantresponse) {
+            /* we want to use our own read function */
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
         }
-        debug(DBG_TRACE,"sendrec() returns %s",result);
+        res = curl_easy_perform(curl);
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+        return s.ptr; // insted of strdup() + free() just return evaluated string
     }
-    // clean up and return
-    hresponse_free(response);
-    return strdup(result);
+    // arriving here means error
+    debug(DBG_ERROR,"sendrec::curl_init() failed");
 }
-
 
 /* Declare our Add function using the above definitions. */
 int ADDCALL module_init(configuration *cfg) {
     config = cfg;
-    // initialize
-    char *argv[] = {"canometroweb",config->comm_ipaddr, NULL};
-    if ((status = httpc_init(2, argv)) != H_OK) {
-        snprintf(error_str,1024,"Cannot init nanoHTTP client (%s)", herror_message(status));
-        debug(DBG_ERROR,error_str);
-        return -1;
+
+    /* In windows, this will init the winsock stuff */
+    CURLcode res = curl_global_init(CURL_GLOBAL_DEFAULT);
+    /* Check for errors */
+    if(res != CURLE_OK) {
+        debug(DBG_ERROR, "curl_global_init() failed: %s\n", curl_easy_strerror(res));
+        return -11;
     }
-    // now check connection against Canometer by mean of trying to receive configuration
-    char *check=sendrec("config_xml",NULL,NULL);
+    // check connection against Canometer by mean of trying to receive configuration
+    char *check=sendrec("config_xml",NULL,NULL,1);
     if(!check) {
         debug(DBG_ERROR,"Cannot contact with Canometer. Abort thread");
-        httpc_destroy();
         return -1;
     }
-    // finally prepare soap subsistem
+    // finally prepare soap subsystem
     status = soap_client_init_args(0, NULL); // currently no arguments required
     if (status != H_OK) {
         debug(DBG_ERROR,"SoapInit() %s():%s [%d]", herror_func(status), herror_message(status),  herror_code(status));
         herror_release(status);
         return -1;
     }
-
     return 0;
 }
 
 int ADDCALL module_end() {
+    curl_global_cleanup();
     return 0;
 }
 
@@ -282,17 +274,17 @@ int ADDCALL module_open(){
     char *check;
     char ring[4];
     snprintf(ring,4,"%d",config->ring);
-    check=sendrec("configuracion_accion","Ring",ring);
+    check=sendrec("configuracion_accion","Ring",ring,0);
     if(!check) return-1;
     // send reset
-    check=sendrec("canometro_accion","0","0");
+    check=sendrec("canometro_accion","0","0",0);
     if(!check) return -1;
     // retrieve configuracion
-    check=sendrec("config_xml",NULL,NULL);
+    check=sendrec("config_xml",NULL,NULL,1);
     if(!check) return  -1;
     parse_config_xml(&cw_config,check);
     // retrieve status
-    check=sendrec("xml",NULL,NULL);
+    check=sendrec("xml",NULL,NULL,1);
     if(!check) return  -1;
     parse_status_xml(&cw_data,check);
     return 0;
@@ -300,7 +292,6 @@ int ADDCALL module_open(){
 
 int ADDCALL module_close(){
     debug(DBG_NOTICE,"Closing network chronometer module");
-    httpc_destroy();
     return 0;
 }
 
@@ -308,7 +299,7 @@ int ADDCALL module_read(char *buffer,size_t length){
     char *received;
 
     debug(DBG_TRACE,"module_read() enter");
-    received=sendrec("xml",NULL,NULL);
+    received=sendrec("xml",NULL,NULL,1);
     if (!received) {
         debug(DBG_ERROR,"network_read() error %s",error_str);
         snprintf(buffer,length,"");
@@ -337,6 +328,7 @@ int ADDCALL module_read(char *buffer,size_t length){
         debug(DBG_TRACE,"module_read(data) exit");
         return strlen(buffer);
     }
+    usleep(500000); // wait 0.5segs
     // to report crono count state, evaluate and send proper start/stop comand
     // pending: recognize and parse intermediate time and sensor fail/failbak
     debug(DBG_TRACE,"module_read(crono) exit");
@@ -396,7 +388,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
                 snprintf(page,sizeof(page),"configuracion_accion");
                 snprintf(tipo,sizeof(tipo),"Walktime");
                 snprintf(valor,sizeof(valor),"%d",minutes);
-                sendrec(page,tipo,valor);
+                sendrec(page,tipo,valor,0);
             }
             // and fireup course walk
             snprintf(page,sizeof(page),"canometro_accion");
@@ -436,10 +428,10 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         snprintf(page,sizeof(page),"canometro_accion");
         snprintf(tipo,sizeof(tipo),"F");
         snprintf(valor,sizeof(valor),"%d",ft);
-        sendrec(page,tipo,valor);
+        sendrec(page,tipo,valor,0);
         snprintf(tipo,sizeof(tipo),"R");
         snprintf(valor,sizeof(valor),"%d",config->status.refusals);
-        sendrec(page,tipo,valor);
+        sendrec(page,tipo,valor,0);
         // PENDING: revise eliminated behavior.
         // if needed, just compare internal and xmldata to handle
         snprintf(tipo,sizeof(tipo),"E");
@@ -469,7 +461,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 18, "config", "List configuration parameters",   "" },
     //  not real use, just to force read an parse canometer configuration
     else if (strcasecmp("config",cmd)==0) {
-        char *result=sendrec("config_xml",NULL,NULL);
+        char *result=sendrec("config_xml",NULL,NULL,1);
         if (!result) {
             debug(DBG_ERROR,"cannot retrieve canometroweb configuration");
             return -1;
@@ -482,7 +474,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
     //  not real use, just to force read an parse canometer data
     else if (strcasecmp("status",cmd)==0) {
-        result=sendrec("xml",NULL,NULL);
+        result=sendrec("xml",NULL,NULL,1);
         if (!result) {
             debug(DBG_ERROR,"cannot retrieve canometroweb status");
             return -1;
@@ -510,8 +502,8 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // so that's allmost all done, just sending command to serial port....
     // notice "blocking" mode. needed as canometroweb does not support full duplex communications
     debug(DBG_TRACE,"calling to sendrec(), command:'%s' page:'%s' tipo:'%s' valor:'%s'",tokens[1],page,tipo,valor);
-    if (strcmp(tipo,"")==0)result=sendrec(page,NULL,NULL);
-    else result=sendrec(page,tipo,valor);
+    if (strcmp(tipo,"")==0)result=sendrec(page,NULL,NULL,1);
+    else result=sendrec(page,tipo,valor,0);
     if (!result) {
         debug(DBG_ERROR,"call to sendrec() failed, command:'%s' page:'%s' tipo:'%s' valor:'%s'",tokens[1],page,tipo,valor);
         return -1;

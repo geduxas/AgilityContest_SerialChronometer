@@ -81,6 +81,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libcsoap.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libnanohttp.a
             dlfcn-win32::dl
+            curl
             xml2
             ws2_32
             setupapi
@@ -100,7 +101,9 @@ else()
     target_link_libraries(
             # libnanohttp and csoap needs to be compiled with -fpic option to be included in DLL's
             canometroweb
-            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libnanohttp.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libcsoap.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/linux/libnanohttp.a
+            curl
+            xml2
     )
 endif()

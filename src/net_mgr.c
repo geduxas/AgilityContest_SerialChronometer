@@ -100,6 +100,16 @@ static int net_mgr_numero(configuration * config, int slot, char **tokens, int n
     if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
     return entry_points.module_write(tokens,ntokens);
 }
+/* config is used in net_mgr to just call configuration and refresh internal data */
+static int net_mgr_config(configuration * config, int slot, char **tokens, int ntokens) {
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
+    return entry_points.module_write(tokens,ntokens);
+}
+/* status is used in net_mgr to just call status and refresh internal data */
+static int net_mgr_status(configuration * config, int slot, char **tokens, int ntokens) {
+    if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
+    return entry_points.module_write(tokens,ntokens);
+}
 static int net_mgr_bright(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_NETWORK,tokens[0])==0) return 0; // to avoid get/put loop
     if (ntokens==2) tokens[ntokens++]="+"; // up to 32 tokens available
@@ -124,18 +134,18 @@ static func entries[32]= {
         net_mgr_elim,   // { 10, "elim",    "Mark elimination [+-]",           "[ + | - ] {+}"},
         net_mgr_data,   // { 11, "data",   "Set faults/refusal/disq info",    "<flt>:<reh>:<disq>"},
         net_mgr_reset,  // { 12, "reset",  "Reset chronometer and countdown", "" },
-        NULL,              // { 13, "help",   "show command list",               "[cmd]"},
-        NULL,              // { 14, "version","Show software version",           "" },
+        NULL,           // { 13, "help",   "show command list",               "[cmd]"},
+        NULL,           // { 14, "version","Show software version",           "" },
         net_mgr_exit,   // { 15, "exit",   "End program (from console)",      "" },
-        NULL,              // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
-        NULL,              // { 17, "ports",  "Show available serial ports",     "" },
-        NULL,              // { 18, "config", "List configuration parameters",   "" },
-        NULL,              // { 19, "status", "Show faults/refusal/elim info",   "" },
+        NULL,           // { 16, "server", "Set server IP address",           "<x.y.z.t> {0.0.0.0}" },
+        NULL,           // { 17, "ports",  "Show available serial ports",     "" },
+        net_mgr_config, // { 18, "config", "List configuration parameters",   "" },
+        net_mgr_status, // { 19, "status", "Show faults/refusal/elim info",   "" },
         net_mgr_numero, // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         net_mgr_bright, // { 21, "bright", "Set display bright level (0..9) [+-#]","[ + | - | num ] {+}"},
         net_mgr_clock,  // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
-        NULL,              // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
-        NULL               // { -1, NULL,     "",                                "" }
+        NULL,           // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        NULL            // { -1, NULL,     "",                                "" }
 };
 
 void *network_manager_thread(void *arg){
