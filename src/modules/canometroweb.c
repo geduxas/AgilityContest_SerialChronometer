@@ -91,27 +91,28 @@ static canometroweb_config_t cw_config;
  * @return pointer to readed configuration
  */
 static canometroweb_config_t *parse_config_xml(canometroweb_config_t *pt,char *xml) {
-    xmlNodePtr root;
-    xmlChar *attr;
+    xmlNode *root=NULL;
+    xmlChar *attr=NULL;
+    xmlDoc *doc=NULL;
     if (!pt) pt=calloc(1,sizeof(canometroweb_config_t));
     if (!pt)  { debug(DBG_ERROR,"parse_config::calloc()"); return NULL; };
-
-    xmlDocPtr doc=xmlParseDoc(xml);
+    doc=xmlReadMemory(xml, strlen(xml), "cpmfog.xml", NULL, 0);
     if (!doc) { debug(DBG_ERROR,"XML Parser: cannot compose tree"); return NULL; }
     root = xmlDocGetRootElement(doc);
     if (root == NULL) { debug(DBG_ERROR,"XML: Empty document received"); return NULL; }
-    attr= xmlGetProp(root,(xmlChar *) "Brightness");
-    if (attr) { if (pt->brightness) free(pt->brightness); pt->brightness=(char*)attr; }
-    attr= xmlGetProp(root,(xmlChar *) "Precision");
-    if (attr) { if (pt->precision) free(pt->precision); pt->precision=(char*)attr; }
-    attr= xmlGetProp(root,(xmlChar *) "Guardtime");
-    if (attr) { pt->guardtime=atoi((char *)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "Walktime");
-    if (attr) { pt->walktime=atoi((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "Walkstyle");
-    if (attr) { if (pt->walkstyle) free(pt->walkstyle); pt->walkstyle=(char*)attr; }
-    attr= xmlGetProp(root,(xmlChar *) "Ring");
-    if (attr) { pt->ring=atoi((char*)attr); }
+    // iterate inside "<xml> node
+    for (xmlNode *cur_node = root->xmlChildrenNode; cur_node; cur_node = cur_node->next) {
+        xmlChar *value;
+        if(cur_node->type != XML_ELEMENT_NODE ) continue;
+        attr=xmlNodeListGetString(doc,cur_node->xmlChildrenNode,1);
+        // debug(DBG_TRACE,"node name:%s value:%s",cur_node->name,attr);
+        if (!strcmp(cur_node->name,"Brighness")) { xmlFree(pt->brightness); pt->brightness=(char*)attr; }
+        else if (!strcmp(cur_node->name,"Precision")) { xmlFree(pt->precision); pt->precision=(char*)attr; }
+        else if (!strcmp(cur_node->name,"Guardtime")) { pt->ring=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"Walktime")) { pt->ring=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"Walkstyle")) { xmlFree(pt->walkstyle); pt->walkstyle=(char*)attr; }
+        else if (!strcmp(cur_node->name,"Ring")) { pt->ring=atoi((char*)attr); xmlFree(attr); }
+    }
     xmlFreeDoc(doc);
     return pt;
 }
@@ -123,31 +124,33 @@ static canometroweb_config_t *parse_config_xml(canometroweb_config_t *pt,char *x
  * @return pointer to readed data
  */
 static canometroweb_data_t *parse_status_xml(canometroweb_data_t *pt,char *xml) {
-    xmlNodePtr root;
-    xmlChar *attr;
+    xmlNode *root=NULL;
+    xmlChar *attr=NULL;
+    xmlDoc *doc=NULL;
     if (!pt) pt=calloc(1,sizeof(canometroweb_data_t));
     if (!pt)  { debug(DBG_ERROR,"parse_data::calloc()"); return NULL; };
-    xmlDocPtr doc=xmlReadMemory(xml, strlen(xml), "data.xml", NULL, 0);
+    debug(DBG_TRACE,"before: %lu",pt->millistime);
+    doc=xmlReadMemory(xml, strlen(xml), "data.xml", NULL, 0);
     if (!doc) { debug(DBG_ERROR,"XML Parser: cannot compose tree"); return NULL; }
     root = xmlDocGetRootElement(doc);
     if (root == NULL) { debug(DBG_ERROR,"XML: Empty document received"); return NULL; }
-    attr= xmlGetProp(root,(xmlChar *) "millistime");
-    if (attr) { pt->millistime=atoi((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "tiempoactual");
-    if (attr) { pt->tiempoactual=atol((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "cronocorriendo");
-    if (attr) { pt->cronocorriendo=atoi((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "faltas");
-    if (attr) { pt->faltas=atoi((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "rehuses");
-    if (attr) { pt->rehuses=atoi((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "eliminado");
-    if (attr) { pt->eliminado=atoi((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "cuentaresultados");
-    if (attr) { pt->cuentaresultados=atoi((char*)attr); }
-    attr= xmlGetProp(root,(xmlChar *) "versionresultados");
-    if (attr) { pt->versionresultados=atoi((char*)attr); }
+    // iterate inside "<xml> node
+    for (xmlNode *cur_node = root->xmlChildrenNode ; cur_node; cur_node = cur_node->next) {
+        xmlChar *value;
+        if(cur_node->type != XML_ELEMENT_NODE ) continue;
+        attr=xmlNodeListGetString(doc,cur_node->xmlChildrenNode,1);
+        // debug(DBG_TRACE,"node name:%s value:%s",cur_node->name,attr);
+        if (!strcmp(cur_node->name,"millistime")) { pt->millistime=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"tiempoactual")) { pt->tiempoactual=atol((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"cronocorriendo")) { pt->cronocorriendo=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"faltas")) { pt->faltas=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"rehuses")) { pt->rehuses=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"eliminado")) { pt->eliminado=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"cuentaresultados")) { pt->cuentaresultados=atoi((char*)attr); xmlFree(attr); }
+        else if (!strcmp(cur_node->name,"versionresultados")) { pt->versionresultados=atoi((char*)attr); xmlFree(attr); }
+    }
     xmlFreeDoc(doc);
+    debug(DBG_TRACE,"after: %lu",pt->millistime);
     return pt;
 }
 
@@ -236,6 +239,7 @@ static char *sendrec(char *page,char *tipo,char *valor,int wantresponse) {
     }
     // arriving here means error
     debug(DBG_ERROR,"sendrec::curl_init() failed");
+    return NULL;
 }
 
 /* Declare our Add function using the above definitions. */
