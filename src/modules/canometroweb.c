@@ -22,12 +22,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <semaphore.h>
 #include <curl/curl.h>
 #include "modules.h"
 #include "sc_config.h"
 #include "debug.h"
 #include "libcsoap/soap-client.h"
 
+#ifdef __MINGW__
+#define sem_init    CreateSemaphore
+#define sem_wait    WaitForSingleObject
+#define sem_post    ReleaseSemaphore
+#define sem_destroy CloseHandle
+#endif
 /*
 
  Datos de cronometro
@@ -81,8 +88,12 @@ typedef struct canometroweb_config {
 static char error_str[1024];
 static configuration *config;
 static herror_t status;
+// variables to store received data and status from canometer in sendrec operations
 static canometroweb_data_t cw_data;
 static canometroweb_config_t cw_config;
+ // semaphore used to block sendrec while data is being sent or receive,
+ // to make sure that any operation from/to chrono is atomic
+static sem_t sem;
 
 /**
  * Parses an xml response string with canometer configuration
@@ -245,7 +256,8 @@ static char *sendrec(char *page,char *tipo,char *valor,int wantresponse) {
 /* Declare our Add function using the above definitions. */
 int ADDCALL module_init(configuration *cfg) {
     config = cfg;
-
+    /* initialize semaphores */
+    sem_init(&sem,0,1);
     /* In windows, this will init the winsock stuff */
     CURLcode res = curl_global_init(CURL_GLOBAL_DEFAULT);
     /* Check for errors */
@@ -271,6 +283,7 @@ int ADDCALL module_init(configuration *cfg) {
 
 int ADDCALL module_end() {
     curl_global_cleanup();
+    sem_destroy(&sem);
     return 0;
 }
 
@@ -303,24 +316,39 @@ int ADDCALL module_read(char *buffer,size_t length){
     char *received;
 
     debug(DBG_TRACE,"module_read() enter");
+    sem_wait(&sem);
     received=sendrec("xml",NULL,NULL,1);
     if (!received) {
         debug(DBG_ERROR,"network_read() error %s",error_str);
-        snprintf(buffer,length,"");
-        debug(DBG_TRACE,"module_read(error) exit");
-        return strlen(buffer);
+        sem_post(&sem);
+        return 0; /* strlen(buffer); */
     }
     debug(DBG_TRACE,"canometroweb module_read() received '%s'",received);
     // parse xml and compare with stored data
     canometroweb_data_t *data=parse_status_xml(NULL,received);
-    if (!data) { debug(DBG_ERROR,"canometroweb module_read() parsexml failed '%s'",received); return -1; }
+    if (!data) {
+        debug(DBG_ERROR,"canometroweb module_read() parsexml failed '%s'",received);
+        sem_post(&sem);
+        debug(DBG_TRACE,"module_read(data) exit");
+        return -1;
+    }
     free(received); // no longer needed
 
+    snprintf(buffer,length,"");
     // compare data and generate internal commands
     // notice that cannot generate more than one message at a time,
     // so if several parameters change, parse them in next iteration
     //
     // handle start/stop data
+    // create a bitmap with current and received status
+    //lcorriento lactual ccorriendo cactual
+    //     0        0        0         0   =>
+    if (cw_data.cronocorriendo!=data->cronocorriendo) {
+        // handle start/stop
+
+    } else {
+        // handle reset/intermediate time
+    }
     // handle f:t:r data
     if ( (cw_data.faltas != data->faltas) || (cw_data.rehuses != data->rehuses) || (cw_data.eliminado!=data->eliminado) ) {
         cw_data.faltas=data->faltas;
@@ -328,13 +356,13 @@ int ADDCALL module_read(char *buffer,size_t length){
         cw_data.eliminado=data->eliminado;
         free(data);
         snprintf(buffer,length,"DATA %d:%d:%d",cw_data.faltas,cw_data.rehuses,cw_data.eliminado);
-
-        debug(DBG_TRACE,"module_read(data) exit");
+        sem_post(&sem);
         return strlen(buffer);
     }
     usleep(500000); // wait 0.5segs
     // to report crono count state, evaluate and send proper start/stop comand
     // pending: recognize and parse intermediate time and sensor fail/failbak
+    sem_post(&sem);
     debug(DBG_TRACE,"module_read(crono) exit");
     return 0;
 }
