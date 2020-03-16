@@ -347,10 +347,11 @@ int ADDCALL module_read(char *buffer,size_t length){
     mask=0;
     //        stored            received
     //lcorriento lactual ccorriendo cactual
-    mask |= (cw_data.cronocorriendo==0)?8:0;
+    mask |= (cw_data.cronocorriendo==0)?0:8;
     mask |= (cw_data.tiempoactual==0)?0:4;
-    mask |= (data->cronocorriendo==0)?2:0;
+    mask |= (data->cronocorriendo==0)?0:2;
     mask |= (data->tiempoactual==0)?0:1;
+    debug(DBG_ERROR,"evaluated mask %02X",mask);
     switch(mask) {
         case 0x00:
         case 0x01:
@@ -361,11 +362,11 @@ int ADDCALL module_read(char *buffer,size_t length){
         case 0x03:
             //     0        0        1         0   => justo ahora comienza a correr     START 0
             //     0        0        1         y   => ha comenzado a correr             START 0 (¿guardar tiempo?)
-            snprintf(buffer,length,"START 0");
+            snprintf(buffer,length,"START 0\n");
             break;
         case 0x04:
             //     0        x        0         0   => reset tras parada                 RESET
-            snprintf(buffer,length,"RESET");
+            snprintf(buffer,length,"RESET\n");
             break;
         case 0x05:
             //     0        x        0         y   => invalido: sincronizar             ignore
@@ -374,11 +375,11 @@ int ADDCALL module_read(char *buffer,size_t length){
         case 0x07:
             //     0        x        1         0   => justo ahora empieza a correr tras parada     START 0
             //     0        x        1         y   => ha empezado a correr tras parada             START 0
-            snprintf(buffer,length,"START 0");
+            snprintf(buffer,length,"START 0\n");
             break;
         case 0x08:
             //     1        0        0         0   => reset                             RESET
-            snprintf(buffer,length,"RESET");
+            snprintf(buffer,length,"RESET\n");
             break;
         case 0x09:
         case 0x0a:
@@ -389,20 +390,21 @@ int ADDCALL module_read(char *buffer,size_t length){
             break;
         case 0x0c:
             //     1        x        0         0   => recibido reset mientras en marcha RESET
-            snprintf(buffer,length,"RESET");
+            snprintf(buffer,length,"RESET\n");
             break;
         case 0x0d:
             //     1        x        0         y   => parada crono                      STOP Y
-            snprintf(buffer,length,"STOP %lu",data->tiempoactual);
+            snprintf(buffer,length,"STOP %lu\n",data->tiempoactual);
             break;
         case 0x0e:
             //     1        x        1         0   => restart crono                     START 0
-            snprintf(buffer,length,"START 0");
+            snprintf(buffer,length,"START 0\n");
             break;
         case 0x0f:
             //     1        x        1         y   => si x!=y crono corriendo           ignore
             //                                     => si x==y marca tiempo intermedio   INT Y
-            if (cw_data.tiempoactual==data->tiempoactual) snprintf(buffer,length,"INT %lu",data->tiempoactual);
+            if (cw_data.tiempoactual==data->tiempoactual)
+                snprintf(buffer,length,"INT %lu\n",data->tiempoactual);
             break;
         default:
             debug(DBG_ERROR,"invalid state mask %d",mask);
@@ -411,7 +413,11 @@ int ADDCALL module_read(char *buffer,size_t length){
     cw_data.tiempoactual=data->tiempoactual;
     cw_data.cronocorriendo=data->cronocorriendo;
     // if need to generate command, just do it and return
-    if (strlen(buffer)!=0) return strlen(buffer);
+    if (strlen(buffer)!=0) {
+        debug(DBG_TRACE,"module_read(cronoweb) returns action %s",buffer);
+        sem_post(&sem); // release lock
+        return strlen(buffer);
+    }
 
     // arriving here means that now comes handling of f:t:r data
     if ( (cw_data.faltas != data->faltas) || (cw_data.rehuses != data->rehuses) || (cw_data.eliminado!=data->eliminado) ) {
@@ -427,7 +433,7 @@ int ADDCALL module_read(char *buffer,size_t length){
     // to report crono count state, evaluate and send proper start/stop comand
     // pending: recognize and parse intermediate time and sensor fail/failbak
     sem_post(&sem);
-    debug(DBG_TRACE,"module_read(crono) exit");
+    debug(DBG_TRACE,"module_read(crono) returns no action");
     return 0;
 }
 
@@ -460,7 +466,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 2, "stop",    "End of course run",               "<miliseconds>"},
     else if (strcasecmp("stop",cmd)==0) {
         // si crono parado no hacer nada; else mandamos orden de parada manual
-        if (cw_data.cronocorriendo==0) {
+        if (cw_data.cronocorriendo==1) {
             snprintf(page,sizeof(page),"startstop");
         }
     }
@@ -560,7 +566,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 18, "config", "List configuration parameters",   "" },
     //  not real use, just to force read an parse canometer configuration
     else if (strcasecmp("config",cmd)==0) {
-        char *result=sendrec("config_xml",NULL,NULL,1);
+        result=sendrec("config_xml",NULL,NULL,1);
         if (!result) {
             debug(DBG_ERROR,"cannot retrieve canometroweb configuration");
             sem_post(&sem); // release lock
