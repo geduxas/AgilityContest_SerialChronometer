@@ -314,6 +314,7 @@ int ADDCALL module_close(){
 
 int ADDCALL module_read(char *buffer,size_t length){
     char *received;
+    unsigned int mask=0;
 
     debug(DBG_TRACE,"module_read() enter");
     sem_wait(&sem);
@@ -334,22 +335,85 @@ int ADDCALL module_read(char *buffer,size_t length){
     }
     free(received); // no longer needed
 
-    snprintf(buffer,length,"");
+    snprintf(buffer,length,""); // default: no new data
+
     // compare data and generate internal commands
     // notice that cannot generate more than one message at a time,
     // so if several parameters change, parse them in next iteration
-    //
+
+
     // handle start/stop data
     // create a bitmap with current and received status
+    mask=0;
+    //        stored            received
     //lcorriento lactual ccorriendo cactual
-    //     0        0        0         0   =>
-    if (cw_data.cronocorriendo!=data->cronocorriendo) {
-        // handle start/stop
-
-    } else {
-        // handle reset/intermediate time
+    mask |= (cw_data.cronocorriendo==0)?8:0;
+    mask |= (cw_data.tiempoactual==0)?0:4;
+    mask |= (data->cronocorriendo==0)?2:0;
+    mask |= (data->tiempoactual==0)?0:1;
+    switch(mask) {
+        case 0x00:
+        case 0x01:
+            //     0        0        0         0   => parado sin cambios                ignorar
+            //     0        0        0         y   => invalido                          ignorar
+            break;
+        case 0x02:
+        case 0x03:
+            //     0        0        1         0   => justo ahora comienza a correr     START 0
+            //     0        0        1         y   => ha comenzado a correr             START 0 (¿guardar tiempo?)
+            snprintf(buffer,length,"START 0");
+            break;
+        case 0x04:
+            //     0        x        0         0   => reset tras parada                 RESET
+            snprintf(buffer,length,"RESET");
+            break;
+        case 0x05:
+            //     0        x        0         y   => invalido: sincronizar             ignore
+            break;
+        case 0x06:
+        case 0x07:
+            //     0        x        1         0   => justo ahora empieza a correr tras parada     START 0
+            //     0        x        1         y   => ha empezado a correr tras parada             START 0
+            snprintf(buffer,length,"START 0");
+            break;
+        case 0x08:
+            //     1        0        0         0   => reset                             RESET
+            snprintf(buffer,length,"RESET");
+            break;
+        case 0x09:
+        case 0x0a:
+        case 0x0b:
+            //     1        0        0         y   => invalido                          ignorar
+            //     1        0        1         0   => no debería poder ocurrir          ignorar
+            //     1        0        1         y   => comenzo a correr en anterior poll ignorar
+            break;
+        case 0x0c:
+            //     1        x        0         0   => recibido reset mientras en marcha RESET
+            snprintf(buffer,length,"RESET");
+            break;
+        case 0x0d:
+            //     1        x        0         y   => parada crono                      STOP Y
+            snprintf(buffer,length,"STOP %lu",data->tiempoactual);
+            break;
+        case 0x0e:
+            //     1        x        1         0   => restart crono                     START 0
+            snprintf(buffer,length,"START 0");
+            break;
+        case 0x0f:
+            //     1        x        1         y   => si x!=y crono corriendo           ignore
+            //                                     => si x==y marca tiempo intermedio   INT Y
+            if (cw_data.tiempoactual==data->tiempoactual) snprintf(buffer,length,"INT %lu",data->tiempoactual);
+            break;
+        default:
+            debug(DBG_ERROR,"invalid state mask %d",mask);
     }
-    // handle f:t:r data
+    // store data into local variables
+    cw_data.tiempoactual=data->tiempoactual;
+    cw_data.cronocorriendo=data->cronocorriendo;
+    // if need to generate command, just do it and return
+    if (strlen(buffer)!=0) return strlen(buffer);
+
+    // arriving here means that now comes handling of f:t:r data
     if ( (cw_data.faltas != data->faltas) || (cw_data.rehuses != data->rehuses) || (cw_data.eliminado!=data->eliminado) ) {
         cw_data.faltas=data->faltas;
         cw_data.rehuses=data->rehuses;
@@ -378,6 +442,9 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     memset(page,0,64);
     memset(tipo,0,16);
     memset(valor,0,16);
+
+    sem_wait(&sem); // make sure that do not conflict with receiver
+
     debug(DBG_TRACE,"module_write() enter");
     // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
     if (strcasecmp("start",cmd)==0)  {
@@ -496,11 +563,13 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         char *result=sendrec("config_xml",NULL,NULL,1);
         if (!result) {
             debug(DBG_ERROR,"cannot retrieve canometroweb configuration");
+            sem_post(&sem); // release lock
             return -1;
         }
         parse_config_xml(&cw_config,result);
         free(result);
         debug(DBG_TRACE,"module_write(config) exit");
+        sem_post(&sem); // release lock
         return 0;
     }
     // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
@@ -509,11 +578,13 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         result=sendrec("xml",NULL,NULL,1);
         if (!result) {
             debug(DBG_ERROR,"cannot retrieve canometroweb status");
+            sem_post(&sem); // release lock
             return -1;
         }
         parse_status_xml(&cw_data,result);
         free(result);
         debug(DBG_TRACE,"module_write(status) exit");
+        sem_post(&sem); // release lock
         return 0;
     }
     // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
@@ -528,6 +599,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     else {
         // arriving here means unrecognized or not supported command.
         debug(DBG_NOTICE,"Unrecognized command '%s'",tokens[1]);
+        sem_post(&sem); // release lock
         return 0;
     }
 
@@ -538,10 +610,12 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     else result=sendrec(page,tipo,valor,0);
     if (!result) {
         debug(DBG_ERROR,"call to sendrec() failed, command:'%s' page:'%s' tipo:'%s' valor:'%s'",tokens[1],page,tipo,valor);
+        sem_post(&sem); // release lock
         return -1;
     }
     debug(DBG_TRACE,"module_write(%s) exit",tokens[1]);
     free(result);
+    sem_post(&sem); // release lock
     return 0;
 }
 
