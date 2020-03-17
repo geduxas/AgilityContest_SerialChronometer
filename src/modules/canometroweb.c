@@ -272,31 +272,35 @@ static int synchronize_chrono() {
             return -1;
         }
         free(data); // no longer needed
+        /*
+        debug(DBG_TRACE,"local F:R:E %d:%d:%d crono F:R:E %d:%d:%d",
+                config->status.faults+config->status.touchs,
+                config->status.refusals,
+                config->status.eliminated,
+                status->faltas,
+                status->rehuses,
+                status->eliminado);
+        */
         // check faults
         int ft=config->status.faults+config->status.touchs;
         for (int cur=status->faltas; delta(ft,cur)!=0; cur+=delta(ft,cur)) {
-            sendrec("canometro_accion","F",(delta(ft,cur)<0)?"-1":"1",0);
+            sendrec("canometro_accion","F",(delta(ft,cur)>0)?"1":"-1",0);
         }
         // check refusals
         int r=config->status.refusals;
         for (int cur=status->rehuses; delta(r,cur)!=0; cur+=delta(r,cur)) {
-            sendrec("canometro_accion","R",(delta(r,cur)<0)?"-1":"1",0);
+            sendrec("canometro_accion","R",(delta(r,cur)>0)?"1":"-1",0);
         }
         // check eliminated
         if (config->status.eliminated!=status->eliminado) {
             sendrec("canometro_accion","E","0",0);
         }
         free(status);
+        // finally store internal data
+        cw_data.eliminado=config->status.eliminated;
+        cw_data.rehuses=config->status.refusals;
+        cw_data.faltas=config->status.faults;
         return 0;
-}
-
-/**
- * set FTRE internal data to be equal to the data shown in chrono
- * This method is called inside a lock
- * @return 0 on success -1 on error
- */
-static int synchronize_ac() {
-
 }
 
 /* Declare our Add function using the above definitions. */
@@ -466,11 +470,16 @@ int ADDCALL module_read(char *buffer,size_t length){
     }
 
     // arriving here means that now comes handling of f:t:r data
-    if ( (cw_data.faltas != data->faltas) || (cw_data.rehuses != data->rehuses) || (cw_data.eliminado!=data->eliminado) ) {
+
+    if ( (data->faltas != (config->status.faults+config->status.touchs) ) ||
+         (data->rehuses != config->status.refusals) ||
+         (data->eliminado!=config->status.eliminated) ) {
+        // save state
         cw_data.faltas=data->faltas;
         cw_data.rehuses=data->rehuses;
         cw_data.eliminado=data->eliminado;
         free(data);
+        // and compose message
         snprintf(buffer,length,"DATA %d:%d:%d",cw_data.faltas,cw_data.rehuses,cw_data.eliminado);
         sem_post(&sem);
         return strlen(buffer);
