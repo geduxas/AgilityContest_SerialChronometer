@@ -35,6 +35,9 @@
 #define sem_post    ReleaseSemaphore
 #define sem_destroy CloseHandle
 #endif
+
+#define delta(x,y) ((x) > (y)) ? 1 : (((x) < (y)) ? -1 : 0)
+
 /*
 
  Datos de cronometro
@@ -210,8 +213,6 @@ static char *sendrec(char *page,char *tipo,char *valor,int wantresponse) {
     CURL *curl;
     CURLcode res;
     struct curl_slist *headers = NULL;
-    // data for response
-    char result[1024];
 
     // data for post request
     char tmp[256]; // to evaluate temporary header data
@@ -220,7 +221,6 @@ static char *sendrec(char *page,char *tipo,char *valor,int wantresponse) {
     memset(tmp,0,sizeof(tmp));
     memset(url,0,sizeof(url));
     memset(postdata,0,sizeof(postdata));
-    memset(result,0,sizeof(result));
     snprintf(url,254,"http://%s/%s",config->comm_ipaddr,page);
     if (tipo && valor) {
         snprintf(postdata,255,"tipo=%s&valor=%s",tipo,valor);
@@ -251,6 +251,52 @@ static char *sendrec(char *page,char *tipo,char *valor,int wantresponse) {
     // arriving here means error
     debug(DBG_ERROR,"sendrec::curl_init() failed");
     return NULL;
+}
+
+/**
+ * set FTRE data in crono to be equal to internal data
+ * This method is called inside a lock
+ * @return 0 on success -1 on error
+ */
+static int synchronize_chrono() {
+        // retrieve current data
+        char *data=sendrec("xml",NULL,NULL,1);
+        if(!data) {
+            debug(DBG_ERROR,"synchronize_chrono() failed: sendrec");
+            return  -1;
+        }
+        canometroweb_data_t *status=parse_status_xml(NULL,data);
+        if (!status) {
+            debug(DBG_ERROR,"synchronize_chrono() failed: parse_xml");
+            free(data);
+            return -1;
+        }
+        free(data); // no longer needed
+        // check faults
+        int ft=config->status.faults+config->status.touchs;
+        for (int cur=status->faltas; delta(ft,cur)!=0; cur+=delta(ft,cur)) {
+            sendrec("canometro_accion","F",(delta(ft,cur)<0)?"-1":"1",0);
+        }
+        // check refusals
+        int r=config->status.refusals;
+        for (int cur=status->rehuses; delta(r,cur)!=0; cur+=delta(r,cur)) {
+            sendrec("canometro_accion","R",(delta(r,cur)<0)?"-1":"1",0);
+        }
+        // check eliminated
+        if (config->status.eliminated!=status->eliminado) {
+            sendrec("canometro_accion","E","0",0);
+        }
+        free(status);
+        return 0;
+}
+
+/**
+ * set FTRE internal data to be equal to the data shown in chrono
+ * This method is called inside a lock
+ * @return 0 on success -1 on error
+ */
+static int synchronize_ac() {
+
 }
 
 /* Declare our Add function using the above definitions. */
@@ -509,38 +555,32 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     }
     // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num {+}>"},
     else if (strcasecmp("fault",cmd)==0) {
-        int ft=config->status.faults+config->status.touchs;
-        snprintf(page,sizeof(page),"canometro_accion");
-        snprintf(tipo,sizeof(tipo),"F");
-        snprintf(valor,sizeof(valor),"%d",ft);
+        if (synchronize_chrono()<0 ) {
+            debug(DBG_ERROR,"module_write::synchronize_chrono(fault) failed");
+            return -1;
+        }
     }
     // { 9, "refusal", "Mark refusal (+/-/#)",            "< + | - | num {+}>"},
     else if (strcasecmp("refusal",cmd)==0) {
-        snprintf(page,sizeof(page),"canometro_accion");
-        snprintf(tipo,sizeof(tipo),"R");
-        snprintf(valor,sizeof(valor),"%d",config->status.refusals);
+        if (synchronize_chrono()<0 ) {
+            debug(DBG_ERROR,"module_write::synchronize_chrono(refusal) failed");
+            return -1;
+        }
     }
     // { 10, "elim",    "Mark elimination [+-]",          "[ + | - ] {+}"},
     // PENDING: revise eliminated behavior. if needed, just compare internal and xmldata to handle
     else if (strcasecmp("elim",cmd)==0) {
-        snprintf(page,sizeof(page),"canometro_accion");
-        snprintf(tipo,sizeof(tipo),"E");
-        snprintf(valor,sizeof(valor),"%d",config->status.eliminated);
+        if (synchronize_chrono()<0 ) {
+            debug(DBG_ERROR,"module_write::synchronize_chrono(eliminated) failed");
+            return -1;
+        }
     }
     // { 11, "data",    "Set course fault/ref/disq info", "<faults>:<refulsals>:<disq>"},
     else if (strcasecmp("data",cmd)==0) {
-        int ft=config->status.faults+config->status.touchs;
-        snprintf(page,sizeof(page),"canometro_accion");
-        snprintf(tipo,sizeof(tipo),"F");
-        snprintf(valor,sizeof(valor),"%d",ft);
-        sendrec(page,tipo,valor,0);
-        snprintf(tipo,sizeof(tipo),"R");
-        snprintf(valor,sizeof(valor),"%d",config->status.refusals);
-        sendrec(page,tipo,valor,0);
-        // PENDING: revise eliminated behavior.
-        // if needed, just compare internal and xmldata to handle
-        snprintf(tipo,sizeof(tipo),"E");
-        snprintf(valor,sizeof(valor),"%d",config->status.eliminated);
+        if (synchronize_chrono()<0 ) {
+            debug(DBG_ERROR,"module_write::synchronize_chrono(data) failed");
+            return -1;
+        }
     }
     // { 12, "reset",  "Reset chronometer and countdown", "" },
     else if (strcasecmp("reset",cmd)==0) {
