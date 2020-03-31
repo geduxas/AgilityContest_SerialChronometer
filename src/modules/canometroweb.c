@@ -26,6 +26,7 @@
 #include <curl/curl.h>
 #include "modules.h"
 #include "sc_config.h"
+#include "sc_tools.h"
 #include "debug.h"
 #include "libcsoap/soap-client.h"
 
@@ -38,10 +39,43 @@
 
 #define delta(x,y) ((x) > (y)) ? 1 : (((x) < (y)) ? -1 : 0)
 
+// funciones hash precalculadas para cada uno de los posibles campos del XML
+/* entries for configuration xml data */
+#define SC_Brightness 47090558	// Brightness
+#define SC_Precision 1983694643	// Precision
+#define SC_Guardtime 563329470	// Guardtime
+#define SC_Walktime 3258535140	// Walktime
+#define SC_Walkstyle 781678146	// Walkstyle
+#define SC_Ring 3239119231	// Ring
+/* data entries for version run.37 */
+#define SC_millistime 2684650499	// millistime
+#define SC_tiempoactual 745070122	// tiempoactual
+#define SC_cronocorriendo 596062245	// cronocorriendo
+#define SC_faltas 1669014770	// faltas
+#define SC_rehuses 3483516292	// rehuses
+#define SC_eliminado 1848729312	// eliminado
+#define SC_cuentaresultados 2909132481	// cuentaresultados
+#define SC_versionresultados 452169101	// versionresultados
+/* data entries for version run.56 */
+#define SC_uptime 1460523255	// uptime
+#define SC_systemip 1384135232	// systemip
+#define SC_ethip 3513656618	// ethip
+#define SC_wlanip 879605700	// wlanip
+#define SC_time 453318486	// time
+#define SC_running 1729232476	// running
+#define SC_countdown 2869542252	// countdown
+#define SC_faults 2573711985	// faults
+#define SC_refusals 1027329196	// refusals
+#define SC_elimination 3898589209	// elimination
+#define SC_nresults 1236622162	// nresults
+#define SC_resultversion 1062725413	// resultversion
+// extra option used in simulator
+#define SC_info 2175182841	// info
+
 /*
 
  Datos de cronometro
-
+ // version run.34
 <?xml version='1.0'?>
 <xml>
   <millistime> %u </millistime>
@@ -53,11 +87,31 @@
   <cuentaresultados> 0 </cuentaresultados>
   <versionresultados> 0 </versionresultados>
 </xml>
+
+ // version run.56
+<?xml version='1.0'?>
+<xml>
+  <uptime> 411791 </uptime>
+  <systemip> 192.168.3.105 </systemip>
+  <ethip> 192.168.3.105 </ethip>
+  <wlanip> 192.168.2.1 </wlanip>
+  <time> 0 </time>
+  <running> 0 </running>
+  <countdown> 0 </countdown>
+  <faults> 2 </faults>
+  <refusals> 0 </refusals>
+  <elimination> 0 </elimination>
+  <nresults> 0 </nresults>
+  <resultversion> 0 </resultversion>
+  <!-- optional -->
+  <info> this is an informational message </info>
+</xml>
 */
 typedef struct canometroweb_data {
-    unsigned int millistime;
-    unsigned long tiempoactual;
-    int cronocorriendo;
+    unsigned int uptime;
+    unsigned long tiempo;
+    int running;
+    int countdown;
     int faltas;
     int rehuses;
     int eliminado;
@@ -120,12 +174,15 @@ static canometroweb_config_t *parse_config_xml(canometroweb_config_t *pt,char *x
         if(cur_node->type != XML_ELEMENT_NODE ) continue;
         attr=xmlNodeListGetString(doc,cur_node->xmlChildrenNode,1);
         // debug(DBG_TRACE,"node name:%s value:%s",cur_node->name,attr);
-        if (!strcmp(cur_node->name,"Brighness")) { xmlFree(pt->brightness); pt->brightness=(char*)attr; }
-        else if (!strcmp(cur_node->name,"Precision")) { xmlFree(pt->precision); pt->precision=(char*)attr; }
-        else if (!strcmp(cur_node->name,"Guardtime")) { pt->ring=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"Walktime")) { pt->ring=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"Walkstyle")) { xmlFree(pt->walkstyle); pt->walkstyle=(char*)attr; }
-        else if (!strcmp(cur_node->name,"Ring")) { pt->ring=atoi((char*)attr); xmlFree(attr); }
+        switch(strhash(cur_node->name)) {
+            case SC_Brightness:  xmlFree(pt->brightness); pt->brightness=(char*)attr; break;
+            case SC_Precision: xmlFree(pt->precision); pt->precision=(char*)attr; break;
+            case SC_Guardtime: pt->guardtime=atoi((char*)attr); xmlFree(attr); break;
+            case SC_Walktime: pt->walktime=atoi((char*)attr); xmlFree(attr); break;
+            case SC_Walkstyle: xmlFree(pt->walkstyle); pt->walkstyle=(char*)attr; break;
+            case SC_Ring: pt->ring=atoi((char*)attr); xmlFree(attr); break;
+            default: debug(DBG_ERROR,"parse_config(): unknown entity %s",cur_node->name); xmlFree(attr); break;
+        }
     }
     xmlFreeDoc(doc);
     return pt;
@@ -143,7 +200,7 @@ static canometroweb_data_t *parse_status_xml(canometroweb_data_t *pt,char *xml) 
     xmlDoc *doc=NULL;
     if (!pt) pt=calloc(1,sizeof(canometroweb_data_t));
     if (!pt)  { debug(DBG_ERROR,"parse_data::calloc()"); return NULL; };
-    debug(DBG_TRACE,"before: %lu",pt->millistime);
+    debug(DBG_TRACE,"before: %lu",pt->uptime);
     doc=xmlReadMemory(xml, strlen(xml), "data.xml", NULL, 0);
     if (!doc) { debug(DBG_ERROR,"XML Parser: cannot compose tree"); return NULL; }
     root = xmlDocGetRootElement(doc);
@@ -154,17 +211,34 @@ static canometroweb_data_t *parse_status_xml(canometroweb_data_t *pt,char *xml) 
         if(cur_node->type != XML_ELEMENT_NODE ) continue;
         attr=xmlNodeListGetString(doc,cur_node->xmlChildrenNode,1);
         // debug(DBG_TRACE,"node name:%s value:%s",cur_node->name,attr);
-        if (!strcmp(cur_node->name,"millistime")) { pt->millistime=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"tiempoactual")) { pt->tiempoactual=atol((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"cronocorriendo")) { pt->cronocorriendo=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"faltas")) { pt->faltas=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"rehuses")) { pt->rehuses=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"eliminado")) { pt->eliminado=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"cuentaresultados")) { pt->cuentaresultados=atoi((char*)attr); xmlFree(attr); }
-        else if (!strcmp(cur_node->name,"versionresultados")) { pt->versionresultados=atoi((char*)attr); xmlFree(attr); }
+        switch(strhash(cur_node->name)) {
+            case SC_systemip:
+            case SC_ethip:
+            case SC_wlanip: break; // not used here. perhaps in near future...
+            case SC_millistime:
+            case SC_uptime:     pt->uptime=atoi((char*)attr); break;
+            case SC_tiempoactual:
+            case SC_time:       pt->tiempo=atol((char*)attr); break;
+            case SC_cronocorriendo:
+            case SC_running:    pt->running=atoi((char*)attr); break;
+            case SC_countdown:  pt->countdown=atoi((char*)attr); break;
+            case SC_faltas:
+            case SC_faults:     pt->faltas=atoi((char*)attr); break;
+            case SC_refusals:
+            case SC_rehuses:    pt->rehuses=atoi((char*)attr); break;
+            case SC_eliminado:
+            case SC_elimination: pt->eliminado=atoi((char*)attr); break;
+            case SC_cuentaresultados:
+            case SC_nresults:    pt->cuentaresultados=atoi((char*)attr); break;
+            case SC_versionresultados:
+            case SC_resultversion:  pt->versionresultados=atoi((char*)attr); break;
+            case SC_info:       debug(DBG_INFO,"%s",cur_node->name,attr); break;
+            default: debug(DBG_ERROR,"parse_xml(): unknown entity %s -> %s",cur_node->name,attr); break;
+        }
+        xmlFree(attr);
     }
     xmlFreeDoc(doc);
-    debug(DBG_TRACE,"after: %lu",pt->millistime);
+    debug(DBG_TRACE,"after: %lu",pt->uptime);
     return pt;
 }
 
@@ -200,13 +274,14 @@ static size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s) 
  *
  * POSTDATA: tipo=<tipo>&valor=<valor>
  * tipo: any of configutacion_accion or
- * F (Fault)
- * R (Eefusal)
+ * F (Fault incremental)
+ * TF (Total Faults)
+ * R (Refusal incremental)
+ * TR (Total Refusals)
  * E (Eliminate )
  * 0 (Reset)
  * W (coursewalk)
  * C (Countdown)
- *
  */
 static char *sendrec(char *page,char *tipo,char *valor,int wantresponse) {
     // connection related vars
@@ -265,6 +340,7 @@ static int synchronize_chrono() {
             debug(DBG_ERROR,"synchronize_chrono() failed: sendrec");
             return  -1;
         }
+        char *newer=strstr("uptime",data); // check for keyword present in newer canometer versions
         canometroweb_data_t *status=parse_status_xml(NULL,data);
         if (!status) {
             debug(DBG_ERROR,"synchronize_chrono() failed: parse_xml");
@@ -281,15 +357,22 @@ static int synchronize_chrono() {
                 status->rehuses,
                 status->eliminado);
         */
-        // check faults
+        // check faults and refusals
+        char buff[16];
         int ft=config->status.faults+config->status.touchs;
-        for (int cur=status->faltas; delta(ft,cur)!=0; cur+=delta(ft,cur)) {
-            sendrec("canometro_accion","F",(delta(ft,cur)>0)?"1":"-1",0);
-        }
-        // check refusals
         int r=config->status.refusals;
-        for (int cur=status->rehuses; delta(r,cur)!=0; cur+=delta(r,cur)) {
-            sendrec("canometro_accion","R",(delta(r,cur)>0)?"1":"-1",0);
+        if (newer) { // synchronize faults and refusals new canometer style
+            snprintf(buff,16,"%d",ft);
+            sendrec("canometro_accion","TF",buff,0);
+            snprintf(buff,16,"%d",r);
+            sendrec("canometro_accion","TR",buff,0);
+        } else { // synchronize faults and refusals old style canometers
+            for (int cur=status->faltas; delta(ft,cur)!=0; cur+=delta(ft,cur)) {
+                sendrec("canometro_accion","F",(delta(ft,cur)>0)?"1":"-1",0);
+            }
+            for (int cur=status->rehuses; delta(r,cur)!=0; cur+=delta(r,cur)) {
+                sendrec("canometro_accion","R",(delta(r,cur)>0)?"1":"-1",0);
+            }
         }
         // check eliminated
         if (config->status.eliminated!=status->eliminado) {
@@ -397,11 +480,11 @@ int ADDCALL module_read(char *buffer,size_t length){
     mask=0;
     //        stored            received
     //lcorriento lactual ccorriendo cactual
-    mask |= (cw_data.cronocorriendo==0)?0:8;
-    mask |= (cw_data.tiempoactual==0)?0:4;
-    mask |= (data->cronocorriendo==0)?0:2;
-    mask |= (data->tiempoactual==0)?0:1;
-    debug(DBG_ERROR,"evaluated mask %02X",mask);
+    mask |= (cw_data.running==0)?0:8;
+    mask |= (cw_data.tiempo==0)?0:4;
+    mask |= (data->running==0)?0:2;
+    mask |= (data->tiempo==0)?0:1;
+    debug(DBG_TRACE,"evaluated mask %02X",mask);
     switch(mask) {
         case 0x00:
         case 0x01:
@@ -444,7 +527,7 @@ int ADDCALL module_read(char *buffer,size_t length){
             break;
         case 0x0d:
             //     1        x        0         y   => parada crono                      STOP Y
-            snprintf(buffer,length,"STOP %lu\n",data->tiempoactual);
+            snprintf(buffer,length,"STOP %lu\n",data->tiempo);
             break;
         case 0x0e:
             //     1        x        1         0   => restart crono                     START 0
@@ -453,15 +536,15 @@ int ADDCALL module_read(char *buffer,size_t length){
         case 0x0f:
             //     1        x        1         y   => si x!=y crono corriendo           ignore
             //                                     => si x==y marca tiempo intermedio   INT Y
-            if (cw_data.tiempoactual==data->tiempoactual)
-                snprintf(buffer,length,"INT %lu\n",data->tiempoactual);
+            if (cw_data.tiempo==data->tiempo)
+                snprintf(buffer,length,"INT %lu\n",data->tiempo);
             break;
         default:
             debug(DBG_ERROR,"invalid state mask %d",mask);
     }
     // store data into local variables
-    cw_data.tiempoactual=data->tiempoactual;
-    cw_data.cronocorriendo=data->cronocorriendo;
+    cw_data.tiempo=data->tiempo;
+    cw_data.running=data->running;
     // if need to generate command, just do it and return
     if (strlen(buffer)!=0) {
         debug(DBG_TRACE,"module_read(cronoweb) returns action %s",buffer);
@@ -511,7 +594,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     if (strcasecmp("start",cmd)==0)  {
         // si el cronometro esta corriendo no hacer nada
         // else mandamos la orden de startstop para indicar arranque manual
-        if (cw_data.cronocorriendo==0) {
+        if (cw_data.running==0) {
             snprintf(page,sizeof(page),"startstop");
         }
     }
@@ -521,7 +604,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 2, "stop",    "End of course run",               "<miliseconds>"},
     else if (strcasecmp("stop",cmd)==0) {
         // si crono parado no hacer nada; else mandamos orden de parada manual
-        if (cw_data.cronocorriendo==1) {
+        if (cw_data.running==1) {
             snprintf(page,sizeof(page),"startstop");
         }
     }

@@ -13,6 +13,16 @@
 #include "../include/sc_config.h"
 #include "sc_tools.h"
 
+unsigned int strhash(const char *key) {
+    unsigned int h=3323198485ul;
+    for (;*key;++key) {
+        h ^= *key;
+        h *= 0x5bd1e995;
+        h ^= h >> 15;
+    }
+    return h;
+}
+
 int stripos(char *haystack, char *needle) {
     char *ptr1, *ptr2, *ptr3;
     if( haystack == NULL || needle == NULL)  return -1;

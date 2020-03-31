@@ -27,6 +27,7 @@ typedef struct queue_st {
 #else
 #define EXTERN
 #endif
+EXTERN unsigned int strhash(const char *key);
 EXTERN int stripos(char* haystack, char* needle );
 EXTERN char **explode(char* line, char separator,int *nelem );
 EXTERN long long current_timestamp();

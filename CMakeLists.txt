@@ -16,6 +16,11 @@ file(GLOB SOURCES "src/*.c")
 file(GLOB INCLUDES "include/*.h")
 include_directories( libserialport/include/ libcsoap-1.1.0/include/ ${LIBXML2_INCLUDE_DIR})
 
+#executable declaration
+add_executable(SerialChronometer ${SOURCES} ${INCLUDES})
+# target_compile_options(SerialChronometer PRIVATE -static)
+# target_link_options(SerialChronometer PRIVATE -static)
+
 # module libraries definition for "generic" module
 add_library(generic SHARED src/modules/generic.c src/debug.c)
 target_compile_options(generic PRIVATE -DADD_EXPORTS)
@@ -27,14 +32,9 @@ target_compile_options(digican PRIVATE -DADD_EXPORTS)
 set_target_properties(digican PROPERTIES PREFIX "")
 
 # module libraries definition for Galican's canometer web interface module
-add_library(canometroweb SHARED src/modules/canometroweb.c src/debug.c)
+add_library(canometroweb SHARED src/modules/canometroweb.c src/debug.c src/sc_tools.c)
 target_compile_options(canometroweb PRIVATE -DADD_EXPORTS)
 set_target_properties(canometroweb PROPERTIES PREFIX "")
-
-#executable declaration
-add_executable(SerialChronometer ${SOURCES} ${INCLUDES})
-# target_compile_options(SerialChronometer PRIVATE -static)
-# target_link_options(SerialChronometer PRIVATE -static)
 
 # add libcsoap library
 if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
