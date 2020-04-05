@@ -176,9 +176,10 @@ static char * base64DecodeFile(char* fname,size_t *datalen) {
     bio = BIO_new_fp(stream, BIO_NOCLOSE);
     bio = BIO_push(b64, bio);
     BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL); //Do not use newlines to flush buffer
-    size_t len = BIO_read(b64, buffer, size);
-    //Can test here if len == decodeLen - if not, then return an error
-    *datalen=len;
+    size_t index=0;
+    size_t len=0;
+    while ((len=BIO_read(b64, buffer+index, 1024))>0) index+=len;
+    *datalen=index;
     BIO_free_all(b64);
     fclose(stream);
     return (buffer); //success
@@ -191,7 +192,7 @@ static char * base64DecodeFile(char* fname,size_t *datalen) {
  * @param maxlen maximun data to extract
  * @return extracted data
  */
-static char *base64DecodeString (const void *input){
+static char *base64DecodeString (const void *input, size_t *datalen){
     //Declares two OpenSSL BIOs: a base64 filter and a memory BIO.
     BIO *b64,*bio;
     size_t size=1+(3*strlen(input))/4;
@@ -200,7 +201,10 @@ static char *base64DecodeString (const void *input){
     bio = BIO_new_mem_buf(input, -1);  // Initialize our memory source BIO.
     BIO_push(b64, bio);                     // Link the BIOs by creating a filter-source BIO chain.
     BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL); // Don't require trailing newlines.
-    BIO_read(b64, buffer, size);
+    size_t index=0;
+    size_t len=0;
+    while ((len=BIO_read(b64, buffer+index, 1024))>0) index+=len;
+    *datalen=index;
     BIO_free_all(b64);               // Destroys all BIOs in chain, starting with b64 (i.e. the 1st one).
     return buffer;                   // Returns base-64 decoded data with trailing null terminator.
 }
@@ -228,8 +232,9 @@ static char *retrieveUniqueID(char *fname) {
         return DEFAULT_UniqueID;
     }
     // stored data is base64 encoded, so decode and return
-    debug(DBG_TRACE,"UniqueID from '%s' is '%s'",fname,result);
-    char *ret=base64DecodeString(result);
+    size_t result_len=0;
+    char *ret=base64DecodeString(result,&result_len);
+    if (ret) *(ret+result_len)='\0';
     debug(DBG_TRACE,"UniqueID from '%s' is '%s' --> '%s'",fname,result,ret);
     free(result);
     return ret;
@@ -237,7 +242,7 @@ static char *retrieveUniqueID(char *fname) {
 
 int readLicenseFromFile(configuration *config) {
     size_t len=0;
-    // try to locate license file where config says
+    // try to locate license file where config says ( may be null, no need to check )
     // also locate unique id to check hash
     char *data=base64DecodeFile(config->license_file,&len);
     char *uniqueid=retrieveUniqueID(config->license_file); // internal str_replace to system.ini
