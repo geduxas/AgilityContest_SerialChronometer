@@ -8,6 +8,8 @@
 #include <openssl/err.h>
 #include <openssl/md5.h>
 #include <openssl/bio.h>
+#include <openssl/aes.h>
+#include <openssl/hmac.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -141,13 +143,58 @@ static char *base64Encode(const char* fname) {
     return bufferPtr->data;
 }
 
-static char *decryptLicense(char *data,size_t datalen, char *uniqueID, RSA *puk) {
+static char *decryptLicense(const unsigned char *data,size_t datalen, const unsigned char *uniqueID, RSA *puk) {
+
+    // procedemos al descifrado simétrico a partir de la uniqueid
+    /* extract hash_hmac to get hash and enc/dec key*/
+    const char *e="ENCRYPTION";
+    const char *a="AUTHENTICATION";
+    unsigned char enc[32] = {0};
+    unsigned int enc_len = (int)sizeof(enc);
+    unsigned char auth[32] = {0};
+    unsigned int auth_len = (int)sizeof(auth);
+    HMAC_CTX *ctx=HMAC_CTX_new();
+    HMAC_Init_ex(ctx, uniqueID, (int)sizeof(uniqueID),  EVP_sha256(),NULL );
+    HMAC_Update(ctx, e, strlen(e));
+    HMAC_Final(ctx, enc, &enc_len);
+    HMAC_CTX_reset(ctx);
+    HMAC_Init_ex(ctx, uniqueID, (int)sizeof(uniqueID),  EVP_sha256(),NULL );
+    HMAC_Update(ctx, a, strlen(a));
+    HMAC_Final(ctx, auth, &auth_len);
+    HMAC_CTX_free(ctx);
+
+    // remember dat message has the format $hash.$iv.$message
+
+    // PENDING: verify hash
+    // skip hash from encoded data
+    data += 32; // sha256 hash size is 256 bits (32 bytes)
+    datalen -= 32;
+    data += AES_BLOCK_SIZE; // 16 bytes for aes_256_cbc
+    datalen -= AES_BLOCK_SIZE;
+    unsigned char *dec_out=calloc(datalen, sizeof(char));
+
+    /* symmetric decrypt buffer with extracted encryption/decryption key */
+    unsigned char iv[AES_BLOCK_SIZE]; // init vector
+    memcpy(iv, data, AES_BLOCK_SIZE);
+
+    /* prepare cipher */
+    EVP_CIPHER_CTX *cctx =EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(cctx, EVP_aes_256_cbc(), NULL, enc, iv);
+    int len,ptlen;
+
+    EVP_DecryptUpdate(cctx, dec_out, &len, data, datalen);
+    ptlen=len;
+    EVP_DecryptFinal_ex(cctx, dec_out + len, &len);
+    ptlen+=len;
+    EVP_CIPHER_CTX_free(cctx);
+
+    // now perform RSA decryption of resulted data
     char *result=calloc(RSA_size(puk),sizeof(char));
     int resultlen=0;
     // data is encrypted in 1024 bytes blocks ( as for 8192bit key )
     // so divide incomming data in 1K chunks and decrypt then
     char buff[RSA_size(puk)-11]; // to store chunk decrypts
-    for (char *pt=data;pt<data+datalen;pt+=1024) {
+    for (unsigned char *pt=dec_out;pt<data+datalen;pt+=1024) {
         int nbytes = RSA_public_decrypt(1024,(unsigned char *)pt,(unsigned char *) buff,puk,RSA_PKCS1_PADDING);
         if (nbytes<0) {
             debug(DBG_ERROR,"decryptLicense() failed");
@@ -158,6 +205,7 @@ static char *decryptLicense(char *data,size_t datalen, char *uniqueID, RSA *puk)
         resultlen+=nbytes;
     }
     result[resultlen]='\0';
+    debug(DBG_INFO,"Decrypted license is: %s\n",result);
     return result;
 }
 
