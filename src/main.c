@@ -33,6 +33,7 @@
 #include "sc_config.h"
 #include "main.h"
 #include "parser.h"
+#include "license.h"
 
 
 int sc_thread_create(int index,char *name,configuration *config,void *(*handler)(void *config)) {
@@ -164,6 +165,12 @@ int main (int argc, char *argv[]) {
     if (config->opmode & OPMODE_FIND) {
         serial_print_ports(config);
         return 0;
+    }
+
+    // retrieve license file and data
+    if (readLicenseFromFile(config)<0) {
+        debug(DBG_ERROR,"Error in handle of license file");
+        return 1;
     }
 
     // start requested threads

@@ -23,6 +23,48 @@ unsigned int strhash(const char *key) {
     return h;
 }
 
+// fork from https://github.com/irl/la-cucina/blob/master/str_replace.c
+/**
+ * implementation of str_replace from github
+ * @param string original string
+ * @param substr string to search
+ * @param replacement string to replace with
+ * @return replaced string or null on fail
+ */
+char *str_replace(const char* string, const char* substr, const char* replacement) {
+    char* tok = NULL;
+    char* newstr = NULL;
+    char* oldstr = NULL;
+    size_t   oldstr_len = 0;
+    size_t   substr_len = 0;
+    size_t   replacement_len = 0;
+
+    newstr = strdup(string);
+    substr_len = strlen(substr);
+    replacement_len = strlen(replacement);
+
+    if (substr == NULL || replacement == NULL) { return newstr; } // no search nor replace
+
+    // iterative replace all instances of search string with replacement
+    while ((tok = strstr(newstr, substr))) {
+        oldstr = newstr;
+        oldstr_len = strlen(oldstr);
+        newstr = (char*)malloc(sizeof(char) * (oldstr_len - substr_len + replacement_len + 1));
+        if (newstr == NULL) { free(oldstr); return NULL;  } // malloc failed
+        // compose new string
+        memcpy(newstr, oldstr, tok - oldstr);
+        memcpy(newstr + (tok - oldstr), replacement, replacement_len);
+        memcpy(newstr + (tok - oldstr) + replacement_len, tok + substr_len, oldstr_len - substr_len - (tok - oldstr));
+        memset(newstr + oldstr_len - substr_len + replacement_len, 0, 1);
+        // and repeat loop for next search
+        free(oldstr);
+    }
+
+    // original code free()s provided source. don't do that, as may be used outside these code
+    // free(string);
+    return newstr;
+}
+
 int stripos(char *haystack, char *needle) {
     char *ptr1, *ptr2, *ptr3;
     if( haystack == NULL || needle == NULL)  return -1;

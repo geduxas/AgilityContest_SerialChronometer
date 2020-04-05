@@ -14,8 +14,10 @@
 #define SERIALCHRONOMETER_LICENSE_C
 
 #include "sc_config.h"
+#include "sc_tools.h"
 #include "debug.h"
 #include "license.h"
+#include "ini.h"
 
 static char *license_data=NULL;
 
@@ -159,12 +161,6 @@ static char *decryptLicense(char *data,size_t datalen, char *uniqueID, RSA *puk)
     return result;
 }
 
-// extract unique id from system.ini file if found
-// when fname is null asume uniqueid=00000000000000000000000000000000 ( 128 bits )
-static char *retrieveUniqueID(const char *fname) {
-    if (!fname) return "00000000000000000000000000000000";
-}
-
 //Decodes a base64 encoded file
 static char * base64DecodeFile(char* fname,size_t *datalen) {
     BIO *bio, *b64;
@@ -179,27 +175,76 @@ static char * base64DecodeFile(char* fname,size_t *datalen) {
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new_fp(stream, BIO_NOCLOSE);
     bio = BIO_push(b64, bio);
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Do not use newlines to flush buffer
-    size_t len = BIO_read(bio, buffer, size);
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL); //Do not use newlines to flush buffer
+    size_t len = BIO_read(b64, buffer, size);
     //Can test here if len == decodeLen - if not, then return an error
-    *(buffer+len) = '\0'; // not really needed, but...
     *datalen=len;
-    BIO_free_all(bio);
+    BIO_free_all(b64);
     fclose(stream);
     return (buffer); //success
 }
 
+// from https://stackoverflow.com/questions/342409/how-do-i-base64-encode-decode-in-c
+/**
+ * decode a base64 encoded string extracting up to maxlen bytes
+ * @param from base64 encoded string
+ * @param maxlen maximun data to extract
+ * @return extracted data
+ */
+static char *base64DecodeString (const void *input){
+    //Declares two OpenSSL BIOs: a base64 filter and a memory BIO.
+    BIO *b64,*bio;
+    size_t size=1+(3*strlen(input))/4;
+    char *buffer = calloc( size, sizeof(char) );
+    b64 = BIO_new(BIO_f_base64());          // Initialize our base64 filter BIO.
+    bio = BIO_new_mem_buf(input, -1);  // Initialize our memory source BIO.
+    BIO_push(b64, bio);                     // Link the BIOs by creating a filter-source BIO chain.
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL); // Don't require trailing newlines.
+    BIO_read(b64, buffer, size);
+    BIO_free_all(b64);               // Destroys all BIOs in chain, starting with b64 (i.e. the 1st one).
+    return buffer;                   // Returns base-64 decoded data with trailing null terminator.
+}
+
+/**
+ * ini_parse() handler to extract unique ID from system.ini AgilityContest file
+ */
+static int sysini_handler(void * data, const char* section, const char* name, const char* value) {
+    char **result=data;
+    if (strcmp("uniqueID",name)==0) *result=str_replace(value,"\"","");
+    return 1;
+}
+
+/**
+ * extract unique id from AgilityContest's system.ini <fname>
+ * @param fname file name. may be null
+ * @return evaluated UniqueID or DEFAULT_UniqueID on error ( no file, or no tag found)
+ */
+static char *retrieveUniqueID(char *fname) {
+    if (!fname) return DEFAULT_UniqueID;
+    fname=str_replace(fname,"registration.info","system.ini");
+    char *result=NULL;
+    if (ini_parse(fname, sysini_handler, &result) < 0) {
+        debug(DBG_ERROR,"Can't retrieve UniqueID from system.ini file '%s'",fname);
+        return DEFAULT_UniqueID;
+    }
+    // stored data is base64 encoded, so decode and return
+    debug(DBG_TRACE,"UniqueID from '%s' is '%s'",fname,result);
+    char *ret=base64DecodeString(result);
+    debug(DBG_TRACE,"UniqueID from '%s' is '%s' --> '%s'",fname,result,ret);
+    free(result);
+    return ret;
+}
 
 int readLicenseFromFile(configuration *config) {
     size_t len=0;
     // try to locate license file where config says
     // also locate unique id to check hash
     char *data=base64DecodeFile(config->license_file,&len);
-    char *uniqueid=retrieveUniqueID(config->license_file);
+    char *uniqueid=retrieveUniqueID(config->license_file); // internal str_replace to system.ini
     // else look in AgilityContest std location
     if (!data) {
         data=base64DecodeFile(LICENSE_FILE,&len);
-        uniqueid=retrieveUniqueID(LICENSE_FILE);
+        uniqueid=retrieveUniqueID(LICENSE_FILE); // internal str_replace to system.ini
     }
     // finally try in current directory
     if (!data) {
@@ -239,19 +284,20 @@ char *getLicenseLogo(size_t *size) {
     // PENDING: should be base64decode'd ?
     char *data= getLicenseItem("image");
     if (data && strlen(data)>0) return data;
+
+    // not found in license: use the one existing in html tree
     debug(DBG_ERROR,"License file has empty logo data");
     char *fname="html/AgilityContest.png";
     struct stat st;
     // check file
-    if (!fname) return error_null("filename is null","");
-    if (stat(fname, &st) == -1)  return error_null("%s does not exists",fname);
-    if ( ! S_ISREG(st.st_mode) ) return error_null("%s is not a regular file",fname);
+    if (stat(fname, &st) == -1)  return error_null("Logo file '%s' does not exists",fname);
+    if ( ! S_ISREG(st.st_mode) ) return error_null("Logo file '%s' is not a regular file",fname);
 
     // load file into memory
     data=calloc(st.st_size,sizeof(char));
-    if (!data) return error_null("Cannot allocate space for file %s",fname);
+    if (!data) return error_null("Cannot allocate space for Logo file '%s'",fname);
     FILE *from=fopen(fname,"rb");
-    if (!from) return error_null("Error opening file %s",fname);
+    if (!from) return error_null("Error opening Logo file '%s'",fname);
     fread(data,st.st_size,sizeof(char),from);
     fclose(from);
     *size=st.st_size;

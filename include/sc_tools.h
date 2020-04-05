@@ -29,6 +29,7 @@ typedef struct queue_st {
 #endif
 EXTERN unsigned int strhash(const char *key);
 EXTERN int stripos(char* haystack, char* needle );
+EXTERN char *str_replace(const char* string, const char* substr, const char* replacement);
 EXTERN char **explode(char* line, char separator,int *nelem );
 EXTERN long long current_timestamp();
 EXTERN char *getSessionName(configuration *config);

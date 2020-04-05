@@ -125,7 +125,8 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Debug",  "loglevel"))     config->loglevel = atoi(value) % 9; /* 0..8 */
     else if (MATCH("Debug",  "opmode"))       config->opmode = atoi(value) %  0x1F; /* bitmask */
     else if (MATCH("Debug",  "verbose"))      config->verbose = ((atoi(value)!=0)?1:0);
-    else if (MATCH("Global", "license_file")) config->license_file = strdup(value);    else if (MATCH("Global", "local_port"))   config->local_port =atoi(value);
+    else if (MATCH("Global", "license_file")) config->license_file = strdup(value);
+    else if (MATCH("Global", "local_port"))   config->local_port =atoi(value);
     else if (MATCH("Global", "console"))      config->opmode |= ((atoi(value)!=0)?OPMODE_CONSOLE:0);
     else if (MATCH("Global", "ring"))         config->ring = atoi(value); /* default 1 */
     else if (MATCH("Server", "ajax_server"))  config->ajax_server = strdup(value); /* def "localhost" */
