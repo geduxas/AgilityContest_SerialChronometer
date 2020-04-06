@@ -336,12 +336,7 @@ char *getLicenseItem(char *item) {
  */
 char *getLicenseLogo(size_t *size) {
     char *data= getLicenseItem("image");
-    if (data && strlen(data)>0) {
-        // base64 decode data from license
-        char *res=base64DecodeString(data,size);
-        free(data);
-        return res;
-    }
+    if (data && strlen(data)>0) { *size=0; return data;  } // image from license is base64 encoded
     // not found in license: use the one existing in html tree
     debug(DBG_ERROR,"License file has empty logo data");
     char *fname="html/AgilityContest.png";
