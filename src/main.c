@@ -176,6 +176,11 @@ int main (int argc, char *argv[]) {
     char *club=getLicenseItem("club");
     char *options=getLicenseItem("options");
     debug(DBG_INFO,"License number:'%s' Registerd to:'%s' permissions:'%s'",serial,club,options);
+    long lic_options=strtol(options,NULL,2);
+    if ( (lic_options & 0x00000840L) == 0) {
+        debug(DBG_ERROR,"Current license does not support Chronometer operations");
+        return 1;
+    }
     if(serial) free(serial);
     if(club) free(club);
     if(options) free(options);
@@ -213,6 +218,10 @@ int main (int argc, char *argv[]) {
     }
     // thread 3: comunicaciones ajax con servidor AgilityContest
     if (strcasecmp("none",config->ajax_server)==0) config->ajax_server=NULL;
+    if ( (lic_options & 0x00000040L) == 0) {
+        debug(DBG_NOTICE,"Current license does not support AgilityContest event API connection");
+        config->ajax_server=NULL;
+    }
     if (config->ajax_server!= (char*)NULL) {
         config->opmode |= OPMODE_SERVER;
         debug(DBG_TRACE,"Starting AgilityContest event listener thread");
