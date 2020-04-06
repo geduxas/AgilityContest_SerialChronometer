@@ -172,6 +172,13 @@ int main (int argc, char *argv[]) {
         debug(DBG_ERROR,"Error in handle of license file");
         return 1;
     }
+    char *serial=getLicenseItem("serial");
+    char *club=getLicenseItem("club");
+    char *options=getLicenseItem("options");
+    debug(DBG_INFO,"License number:'%s' Registerd to:'%s' permissions:'%s'",serial,club,options);
+    if(serial) free(serial);
+    if(club) free(club);
+    if(options) free(options);
 
     // start requested threads
     // we need 4+1 threads (console,serial,ajax,web) managers plus webserver

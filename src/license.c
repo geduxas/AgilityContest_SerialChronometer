@@ -206,7 +206,7 @@ static char *decryptLicense(const unsigned char *data,size_t datalen, const unsi
         resultlen+=nbytes;
     }
     result[resultlen]='\0';
-    debug(DBG_INFO,"Decrypted license is: %s len:%d",result,resultlen);
+    // debug(DBG_INFO,"Decrypted license is: %s len:%d",result,resultlen);
     return result;
 }
 
@@ -318,10 +318,10 @@ int readLicenseFromFile(configuration *config) {
 char *getLicenseItem(char *item) {
     char searchkey[64];
     if (!license_data) return NULL;
-    snprintf(searchkey,64,"\"%s\" : \"",item);
+    snprintf(searchkey,64,"\"%s\":\"",item);
     char *pt1=strstr(license_data,searchkey);
     if (!pt1) return NULL; // no "key" : " found
-    pt1+=strlen(item)+6;
+    pt1+=strlen(item)+4;
     char *pt2=strchr(pt1,'"');
     if (!pt2) return NULL; // no closing quotes
     char *result=calloc(1+pt2-pt1,sizeof(char));
@@ -335,10 +335,13 @@ char *getLicenseItem(char *item) {
  * if license has no logo use default and mark it unencoded
  */
 char *getLicenseLogo(size_t *size) {
-    // PENDING: should be base64decode'd ?
     char *data= getLicenseItem("image");
-    if (data && strlen(data)>0) return data;
-
+    if (data && strlen(data)>0) {
+        // base64 decode data from license
+        char *res=base64DecodeString(data,size);
+        free(data);
+        return res;
+    }
     // not found in license: use the one existing in html tree
     debug(DBG_ERROR,"License file has empty logo data");
     char *fname="html/AgilityContest.png";
