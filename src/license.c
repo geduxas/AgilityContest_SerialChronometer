@@ -5,7 +5,6 @@
 #include <sys/stat.h>
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
-#include <openssl/err.h>
 #include <openssl/md5.h>
 #include <openssl/bio.h>
 #include <openssl/aes.h>
@@ -149,33 +148,31 @@ static char *decryptLicense(const unsigned char *data,size_t datalen, const unsi
     /* extract hash_hmac to get hash and enc/dec key*/
     const char *e="ENCRYPTION";
     const char *a="AUTHENTICATION";
-    unsigned char enc[32] = {0};
-    unsigned int enc_len = (int)sizeof(enc);
-    unsigned char auth[32] = {0};
-    unsigned int auth_len = (int)sizeof(auth);
-    HMAC_CTX *ctx=HMAC_CTX_new();
-    HMAC_Init_ex(ctx, uniqueID, (int)sizeof(uniqueID),  EVP_sha256(),NULL );
-    HMAC_Update(ctx, e, strlen(e));
-    HMAC_Final(ctx, enc, &enc_len);
-    HMAC_CTX_reset(ctx);
-    HMAC_Init_ex(ctx, uniqueID, (int)sizeof(uniqueID),  EVP_sha256(),NULL );
-    HMAC_Update(ctx, a, strlen(a));
-    HMAC_Final(ctx, auth, &auth_len);
-    HMAC_CTX_free(ctx);
+    unsigned char enc[32];
+    unsigned int enc_len;
+    unsigned char auth[32];
+    unsigned int auth_len;
+    HMAC(EVP_sha256(), uniqueID, strlen((char *)uniqueID), e, strlen((char *)e), enc, &enc_len);
+    HMAC(EVP_sha256(), uniqueID, strlen((char *)uniqueID), a, strlen((char *)a), auth, &auth_len);
 
     // remember dat message has the format $hash.$iv.$message
 
+    // debug(DBG_TRACE,"enc: '%s' len:%d",hexdump(enc,enc_len),enc_len);
+    // debug(DBG_TRACE,"auth: '%s' len:%d",hexdump(auth,auth_len),auth_len);
+
     // PENDING: verify hash
     // skip hash from encoded data
-    data += 32; // sha256 hash size is 256 bits (32 bytes)
-    datalen -= 32;
-    data += AES_BLOCK_SIZE; // 16 bytes for aes_256_cbc
-    datalen -= AES_BLOCK_SIZE;
-    unsigned char *dec_out=calloc(datalen, sizeof(char));
+    data += auth_len; // sha256 hmac size is 256 bits (32 bytes)
+    datalen -= auth_len;
 
     /* symmetric decrypt buffer with extracted encryption/decryption key */
     unsigned char iv[AES_BLOCK_SIZE]; // init vector
     memcpy(iv, data, AES_BLOCK_SIZE);
+    // debug(DBG_TRACE,"iv: '%s' len:%d",hexdump(iv,AES_BLOCK_SIZE),AES_BLOCK_SIZE);
+
+    data += AES_BLOCK_SIZE; // 16 bytes for aes_256_cbc
+    datalen -= AES_BLOCK_SIZE;
+    unsigned char *dec_out=calloc(datalen, sizeof(char));
 
     /* prepare cipher */
     EVP_CIPHER_CTX *cctx =EVP_CIPHER_CTX_new();
@@ -187,25 +184,29 @@ static char *decryptLicense(const unsigned char *data,size_t datalen, const unsi
     EVP_DecryptFinal_ex(cctx, dec_out + len, &len);
     ptlen+=len;
     EVP_CIPHER_CTX_free(cctx);
+    // debug(DBG_TRACE,"symm_dec: '%s' len:%d",hexdump(dec_out,32),len);
 
     // now perform RSA decryption of resulted data
     char *result=calloc(RSA_size(puk),sizeof(char));
     int resultlen=0;
+
     // data is encrypted in 1024 bytes blocks ( as for 8192bit key )
     // so divide incomming data in 1K chunks and decrypt then
     char buff[RSA_size(puk)-11]; // to store chunk decrypts
-    for (unsigned char *pt=dec_out;pt<data+datalen;pt+=1024) {
+    // debug(DBG_INFO,"chunk buffer size is:%d",RSA_size(puk)-11);
+    for (unsigned char *pt=dec_out;pt<dec_out+ptlen;pt+=1024) {
         int nbytes = RSA_public_decrypt(1024,(unsigned char *)pt,(unsigned char *) buff,puk,RSA_PKCS1_PADDING);
         if (nbytes<0) {
             debug(DBG_ERROR,"decryptLicense() failed");
             return NULL;
         }
         result=realloc(result,datalen+nbytes);
+        // debug(DBG_TRACE,"decrypted %d bytes: %s",nbytes,hexdump(buff,nbytes));
         memcpy(result+resultlen,buff,1+nbytes);
         resultlen+=nbytes;
     }
     result[resultlen]='\0';
-    debug(DBG_INFO,"Decrypted license is: %s\n",result);
+    debug(DBG_INFO,"Decrypted license is: %s len:%d",result,resultlen);
     return result;
 }
 
@@ -283,7 +284,7 @@ static char *retrieveUniqueID(char *fname) {
     size_t result_len=0;
     char *ret=base64DecodeString(result,&result_len);
     if (ret) *(ret+result_len)='\0';
-    debug(DBG_TRACE,"UniqueID from '%s' is '%s' --> '%s'",fname,result,ret);
+    // debug(DBG_TRACE,"UniqueID from '%s' is '%s' --> '%s'",fname,result,ret);
     free(result);
     return ret;
 }

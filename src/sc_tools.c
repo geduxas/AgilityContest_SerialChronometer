@@ -78,6 +78,19 @@ int stripos(char *haystack, char *needle) {
     return -1;
 }
 
+/**
+ * dump data array in hexadecimal string format
+ * @param data data array
+ * @param len array length
+ * @return resulting string or null on error
+ */
+char *hexdump(char *data, size_t len) {
+    char *result=calloc(1+2*len,sizeof(char));
+    if (!result) return NULL;
+    for (int n=0;n<len;n++) sprintf(result+2*n,"%02X",*(data+n));
+    return result;
+}
+
 char **explode(char *line, char separator,int *nelem) {
     char *buff = calloc(1+strlen(line), sizeof(char));
     strncpy(buff,line,strlen(line)); // copy string into working space
