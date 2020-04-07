@@ -13,6 +13,14 @@
     <script src="sprintf.js" type="text/javascript" charset="utf-8"></script>
     <script src="crono.js" type="text/javascript" charset="utf-8"></script>
     <style type="text/css">
+        .btn_left {
+            background: #a0a0a0 url(left.png) no-repeat center;
+            background-size: contain;
+        }
+        .btn_right {
+            background: #a0a0a0 url(right.png) no-repeat center;
+            background-size: contain;
+        }
         .input_number {
             width:50px;
             display:inline-block;
@@ -250,38 +258,38 @@
 
     <!-- ventana de faltas y rehuses -->
     <span class="chrono_fondo " id="fondo_datos" style="background: #87CEEB">&nbsp;</span>
-    <label id="FaltasLbl" for="Faltas" class="data">Faltas:</label>
-    <input id="Faltas"  class="data" type="text" readonly="readonly" name="F" value="Faltas">
-    <input id="FaltasUp" class="data" type="button" name="FaltasUp" value="Flt+" onclick="falta(1)"/>
-    <input id="FaltasDown"  class="data" type="button" name="FaltasDown" value="Flt-" onclick="falta(-1)">
-    <label id="RehusesLbl" for="Rehuses" class="data">Rehuses:</label>
-    <input id="Rehuses"  class="data" type="text" readonly="readonly" name="R" value="Rehuses">
-    <input id="RehusesUp" class="data" type="button" name="RehusesUp" value="Reh+" onclick="rehuse(1);"/>
-    <input id="RehusesDown"  class="data" type="button" name="RehusesDown" value="Reh-" onclick="rehuse(-1);">
-    <label id="EliminadoLbl" for="Eliminado" class="data">Eliminado:</label>
-    <input id="Eliminado"  class="data" type="text" readonly="readonly" name="E" value="Eliminado">
-    <input id="EliminadoUp" class="data" type="button" name="EliminadoUp" value="El+" onclick="eliminado(1);"/>
-    <input id="EliminadoDown"  class="data" type="button" name="EliminadoDown" value="El-" onclick="eliminado(-1);">
+    <label id="FaltasLbl" for="Faltas" >Faltas:</label>
+    <input id="Faltas" type="text" readonly="readonly" name="F" value="Faltas">
+    <button id="FaltasUp" class="btn_left" type="button" name="FaltasUp" value="Flt-" onclick="falta(-1)"></button>
+    <button id="FaltasDown" class="btn_right" type="button" name="FaltasDown" value="Flt+" onclick="falta(1)"></button>
+    <label id="RehusesLbl" for="Rehuses" >Rehuses:</label>
+    <input id="Rehuses" type="text" readonly="readonly" name="R" value="Rehuses">
+    <button id="RehusesUp" class="btn_left" type="button" name="RehusesUp" value="Reh-" onclick="rehuse(-1);"></button>
+    <button id="RehusesDown" class="btn_right" type="button" name="RehusesDown" value="Reh-" onclick="rehuse(1);"></button>
+    <label id="EliminadoLbl" for="Eliminado" >Eliminado:</label>
+    <input id="Eliminado" type="text" readonly="readonly" name="E" value="Eliminado">
+    <button id="EliminadoUp" class="btn_left" type="button" name="EliminadoUp" value="El-" onclick="eliminado(-1);"></button>
+    <button id="EliminadoDown" class="btn_right" type="button" name="EliminadoDown" value="El+" onclick="eliminado(1);"></button>
 
     <!-- ventana de turno y ring -->
         <span class="chrono_fondo " id="fondo_info" style="background: #87CEEB">&nbsp;</span>
-    <label id="TurnoLbl" for="Turno" class="data">En pista:</label>
-    <input id="Turno"  class="data" type="text" readonly="readonly" name="Turno" value="Turno">
-    <label id="RingLbl" for="Ring" class="data">Ring:</label>
-    <input id="Ring"  class="data" type="text" readonly="readonly" name="Ring" value="Ring">
+    <label id="TurnoLbl" for="Turno" >En pista:</label>
+    <input id="Turno"   type="text" readonly="readonly" name="Turno" value="Turno">
+    <label id="RingLbl" for="Ring" >Ring:</label>
+    <input id="Ring"   type="text" readonly="readonly" name="Ring" value="Ring">
 
     <!-- botonera de abajo -->
         <span class="chrono_fondo" id="fondo_buttons" style="background:#a6ff7c">&nbsp;</span>
-    <input id="ResetBtn" class="data" type="button" name="Reset" value="Reset" onclick="c_reset(true);"/>
-    <input id="StartBtn" class="data" type="button" name="Start" value="Start" onclick="start_run(0,true);"/>
-    <input id="IntBtn" class="data" type="button" name="Intermediate" value="T. Int." onclick="int_run(0,true);"/>
-    <input id="StopBtn" class="data" type="button" name="Stop" value="Stop" onclick="stop_run(0,true);"/>
-    <input id="SalidaBtn" class="data" type="button" name="Salida" value="15 Secs." onclick="llamada(15,true);"/>
-        <input id="ReconocimientoBtn" class="data" type="button" name="CourseWalk" value="CourseWalk" onclick="reconocimiento(420,true);"/>
-        <input id="WalkTime" class="data" type="number" name="WalkTime" value="7" min="6" max="10" step="1"/>
+    <input id="ResetBtn"  type="button" name="Reset" value="Reset" onclick="c_reset(true);"/>
+    <input id="StartBtn"  type="button" name="Start" value="Start" onclick="start_run(0,true);"/>
+    <input id="IntBtn"  type="button" name="Intermediate" value="T. Int." onclick="int_run(0,true);"/>
+    <input id="StopBtn"  type="button" name="Stop" value="Stop" onclick="stop_run(0,true);"/>
+    <input id="SalidaBtn"  type="button" name="Salida" value="15 Secs." onclick="llamada(15,true);"/>
+        <input id="ReconocimientoBtn"  type="button" name="CourseWalk" value="CourseWalk" onclick="reconocimiento(420,true);"/>
+        <input id="WalkTime"  type="number" name="WalkTime" value="7" min="6" max="10" step="1"/>
 
     </form>
 </div>
-<span id="Copyright" style="color:white;width:100%;display:block;text-align:right;font-style:italic;font-size:10px"><br/>Copyright &copy; 2019 by JAMC para AgilityContest 3.9.1</span>
+<span id="Copyright" style="color:white;width:100%;display:block;text-align:right;font-style:italic;font-size:10px"><br/>Copyright &copy; 2019-2020 by JAMC</span>
 </body>
 </html>
