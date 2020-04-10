@@ -86,6 +86,43 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             ws2_32
             setupapi
     )
+elseif(APPLE)
+    find_package (Threads REQUIRED)
+    target_compile_options(SerialChronometer PRIVATE -I/usr/local/opt/openssl@1.1/include)
+    target_link_options(SerialChronometer PRIVATE -L/usr/local/opt/openssl@1.1/lib)
+    target_link_libraries(
+            SerialChronometer
+            "-framework IOKit"
+            "-framework CoreFoundation"
+            ${CMAKE_SOURCE_DIR}/libserialport/lib/osx/libserialport.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/osx/libnanohttp.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/osx/libcsoap.a
+            pthread
+            crypto
+            ssl
+            curl
+            dl
+    )
+    target_link_libraries(
+            generic
+            ${CMAKE_SOURCE_DIR}/libserialport/lib/osx/libserialport.a
+            "-framework IOKit"
+            "-framework CoreFoundation"
+    )
+    target_link_libraries(
+            digican
+            ${CMAKE_SOURCE_DIR}/libserialport/lib/osx/libserialport.a
+            "-framework IOKit"
+            "-framework CoreFoundation"
+    )
+    target_link_libraries(
+            # libnanohttp and csoap needs to be compiled with -fpic option to be included in DLL's
+            canometroweb
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/osx/libcsoap.a
+            ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/osx/libnanohttp.a
+            curl
+            xml2
+    )
 else()
     find_package (Threads REQUIRED)
     target_link_libraries(

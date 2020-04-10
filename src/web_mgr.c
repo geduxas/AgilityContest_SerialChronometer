@@ -104,6 +104,9 @@ void *web_manager_thread(void *arg){
     int res=0;
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
+#ifdef __APPLE__
+    pthread_setname_np(slot->tname);
+#endif
     configuration *config=slot->config;
     slot->entries=entries;
 

@@ -51,8 +51,12 @@ int sc_thread_create(int index,char *name,configuration *config,void *(*handler)
         slot->index=-1;
         return -1;
     }
+#ifndef __APPLE__
     res=pthread_setname_np(slot->thread,slot->tname);
     if (res!=0) debug(DBG_NOTICE,"Cannot set thread name: %s",slot->tname);
+#else
+    sleep(1); // let thread set itself their name
+#endif
     res=pthread_getname_np(slot->thread,buff,32);
     debug(DBG_TRACE,"getname returns %d thread name:%s",res,buff);
     return 0;

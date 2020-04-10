@@ -11,6 +11,7 @@
 #endif
 
 #include <stdlib.h>
+#include <time.h>
 #include "libserialport.h"
 
 #define OPMODE_NORMAL 1

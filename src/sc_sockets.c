@@ -39,7 +39,7 @@ int connectsock(const char *host, const char *service, const char *transport ) {
     sin.sin_family = AF_INET;
 
     /* Map service name to port number */
-    if ( pse = getservbyname(service, transport) )
+    if ( (pse = getservbyname(service, transport)) )
         sin.sin_port = pse->s_port;
     else if ((sin.sin_port=htons((unsigned short)atoi(service))) == 0){
         debug(DBG_ERROR,"can't get \"%s\" service entry\n", service);
@@ -47,7 +47,7 @@ int connectsock(const char *host, const char *service, const char *transport ) {
     }
 
     /* Map host name to IP address, allowing for dotted decimal */
-    if ( phe = gethostbyname(host) )
+    if ( (phe = gethostbyname(host)) )
         memcpy(&sin.sin_addr, phe->h_addr, phe->h_length);
     else if ( (sin.sin_addr.s_addr = inet_addr(host)) == INADDR_NONE ) {
         debug(DBG_ERROR,"can't get \"%s\" host entry", host);
@@ -119,7 +119,7 @@ int passivesock(const char *service, const char *transport, int qlen) {
     sin.sin_addr.s_addr = INADDR_ANY;
 
     /* Map service name to port number */
-    if ( pse = getservbyname(service, transport) )
+    if ( (pse = getservbyname(service, transport)) )
         sin.sin_port = htons(ntohs((unsigned short)pse->s_port));
     else if ((sin.sin_port=htons((unsigned short)atoi(service))) == 0) {
         debug(DBG_ERROR,"can't get \"%s\" service entry", service);
