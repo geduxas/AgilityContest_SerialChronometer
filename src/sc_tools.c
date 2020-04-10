@@ -128,6 +128,10 @@ char * getSessionName(configuration *config) {
     return name;
 }
 
+int file_exists(char *fname) {
+    return (access(fname,R_OK)>=0)?1:0;
+}
+
 /*************************************** fifo queue management */
 queue_t *queue_create(char *name) {
     queue_t *q=calloc(1,sizeof(queue_t));

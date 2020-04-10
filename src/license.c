@@ -3,6 +3,7 @@
 //
 
 #include <sys/stat.h>
+#include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/md5.h>
@@ -142,6 +143,14 @@ static char *base64Encode(const char* fname) {
     return bufferPtr->data;
 }
 
+/**
+ * decrypt "registration.info" file
+ * @param data file raw (base64 decoded) data
+ * @param datalen length of decoded data
+ * @param uniqueID 128bits raw (base64 decoded)
+ * @param puk RSA keypair ( just only public key )
+ * @return decoded json string or null on error
+ */
 static char *decryptLicense(const unsigned char *data,size_t datalen, const unsigned char *uniqueID, RSA *puk) {
 
     // procedemos al descifrado simétrico a partir de la uniqueid
@@ -187,25 +196,22 @@ static char *decryptLicense(const unsigned char *data,size_t datalen, const unsi
     // debug(DBG_TRACE,"symm_dec: '%s' len:%d",hexdump(dec_out,32),len);
 
     // now perform RSA decryption of resulted data
-    char *result=calloc(RSA_size(puk),sizeof(char));
-    int resultlen=0;
-
-    // data is encrypted in 1024 bytes blocks ( as for 8192bit key )
-    // so divide incomming data in 1K chunks and decrypt then
-    char buff[RSA_size(puk)-11]; // to store chunk decrypts
-    // debug(DBG_INFO,"chunk buffer size is:%d",RSA_size(puk)-11);
-    for (unsigned char *pt=dec_out;pt<dec_out+ptlen;pt+=1024) {
-        int nbytes = RSA_public_decrypt(1024,(unsigned char *)pt,(unsigned char *) buff,puk,RSA_PKCS1_PADDING);
-        if (nbytes<0) {
-            debug(DBG_ERROR,"decryptLicense() failed");
+    int rsa_size=RSA_size(puk);
+    int nchunks=ptlen/rsa_size;
+    char *result=calloc(nchunks,rsa_size);
+    debug(DBG_INFO,"datalen:%d chunk size is:%d",ptlen,rsa_size);
+    int nbytes=0;
+    for (int n=0; n<nchunks; n++) {
+        int res=RSA_public_decrypt(rsa_size,dec_out+(n*rsa_size),result+nbytes,puk,RSA_PKCS1_PADDING);
+        if (res<0) {
+            debug(DBG_ERROR,"decryptLicense() failed at chunk: %d with error %s",
+                    nbytes,ERR_error_string(ERR_get_error(),NULL));
             return NULL;
         }
-        result=realloc(result,datalen+nbytes);
-        // debug(DBG_TRACE,"decrypted %d bytes: %s",nbytes,hexdump(buff,nbytes));
-        memcpy(result+resultlen,buff,1+nbytes);
-        resultlen+=nbytes;
+        nbytes+=res;
     }
-    result[resultlen]='\0';
+    // add eol at the end
+    *(result+nbytes)='\0';
     // debug(DBG_INFO,"Decrypted license is: %s len:%d",result,resultlen);
     return result;
 }
@@ -273,8 +279,15 @@ static int sysini_handler(void * data, const char* section, const char* name, co
  * @return evaluated UniqueID or DEFAULT_UniqueID on error ( no file, or no tag found)
  */
 static char *retrieveUniqueID(char *fname) {
-    if (!fname) return DEFAULT_UniqueID;
+    if (!fname || (strcmp(fname,"")==0 ) ) {
+        debug(DBG_ERROR,"No system.ini file specified");
+        return DEFAULT_UniqueID;
+    }
     fname=str_replace(fname,"registration.info","system.ini");
+    if (!file_exists(fname)) {
+        debug(DBG_ERROR,"File system.ini file does not exist '%s'",fname);
+        return DEFAULT_UniqueID;
+    }
     char *result=NULL;
     if (ini_parse(fname, sysini_handler, &result) < 0) {
         debug(DBG_ERROR,"Can't retrieve UniqueID from system.ini file '%s'",fname);
@@ -284,7 +297,6 @@ static char *retrieveUniqueID(char *fname) {
     size_t result_len=0;
     char *ret=base64DecodeString(result,&result_len);
     if (ret) *(ret+result_len)='\0';
-    // debug(DBG_TRACE,"UniqueID from '%s' is '%s' --> '%s'",fname,result,ret);
     free(result);
     return ret;
 }
@@ -298,14 +310,17 @@ int readLicenseFromFile(configuration *config) {
     data=base64DecodeFile(config->license_file,&len);
     if (data) {
         uniqueid=retrieveUniqueID(config->license_file); // internal str_replace to system.ini
+        debug(DBG_TRACE,"UniqueID from configuration is '%s'",uniqueid);
     } else { // else look in AgilityContest std location
         data=base64DecodeFile(LICENSE_FILE,&len);
         if (data) {
             uniqueid=retrieveUniqueID(LICENSE_FILE); // internal str_replace to system.ini
+            debug(DBG_TRACE,"UniqueID from agilitycontest is '%s'",uniqueid);
         } else {
             // finally try in current directory
             data=base64DecodeFile("registration.info",&len);
             uniqueid=retrieveUniqueID(NULL);
+            debug(DBG_TRACE,"UniqueID from current directory is '%s'",uniqueid);
         }
     }
     if (!data) { debug(DBG_ERROR,"Cannot read license file"); return -1; }

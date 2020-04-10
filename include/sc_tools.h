@@ -34,6 +34,7 @@ EXTERN char *str_replace(const char* string, const char* substr, const char* rep
 EXTERN char **explode(char* line, char separator,int *nelem );
 EXTERN long long current_timestamp();
 EXTERN char *getSessionName(configuration *config);
+EXTERN int file_exists(char *fname);
 
 /* fifo queue management */
 EXTERN queue_t *queue_create(char *name);
