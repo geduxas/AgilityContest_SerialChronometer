@@ -163,6 +163,8 @@ void *serial_manager_thread(void *arg){
     // load serial module
 #ifdef _WIN32
     snprintf(tmpstr,1024,"%s.dll",config->module);
+#elif __APPLE__
+    snprintf(tmpstr,1024,"%s/%s.dylib",getcwd(NULL,1024),config->module);
 #else
     snprintf(tmpstr,1024,"%s/%s.so",getcwd(NULL,1024),config->module);
 #endif
