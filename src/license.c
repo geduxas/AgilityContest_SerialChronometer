@@ -214,7 +214,7 @@ static char *decryptLicense(const unsigned char *data,size_t datalen, const unsi
 static char * base64DecodeFile(char* fname,size_t *datalen) {
     BIO *bio, *b64;
     struct stat st;
-    if (!fname) return NULL;
+    if (!fname || (strcmp(fname,"")==0 )) return NULL;
     if (stat(fname, &st) == -1)  return NULL; // not valid fname
     if ( ! S_ISREG(st.st_mode) ) return NULL; // not regular file
     size_t size=1+0.75*st.st_size;
@@ -293,17 +293,20 @@ int readLicenseFromFile(configuration *config) {
     size_t len=0;
     // try to locate license file where config says ( may be null, no need to check )
     // also locate unique id to check hash
-    char *data=base64DecodeFile(config->license_file,&len);
-    char *uniqueid=retrieveUniqueID(config->license_file); // internal str_replace to system.ini
-    // else look in AgilityContest std location
-    if (!data) {
+    char *data=NULL;
+    char *uniqueid=DEFAULT_UniqueID;
+    data=base64DecodeFile(config->license_file,&len);
+    if (data) {
+        uniqueid=retrieveUniqueID(config->license_file); // internal str_replace to system.ini
+    } else { // else look in AgilityContest std location
         data=base64DecodeFile(LICENSE_FILE,&len);
-        uniqueid=retrieveUniqueID(LICENSE_FILE); // internal str_replace to system.ini
-    }
-    // finally try in current directory
-    if (!data) {
-        data=base64DecodeFile("registration.info",&len);
-        uniqueid=retrieveUniqueID(NULL);
+        if (data) {
+            uniqueid=retrieveUniqueID(LICENSE_FILE); // internal str_replace to system.ini
+        } else {
+            // finally try in current directory
+            data=base64DecodeFile("registration.info",&len);
+            uniqueid=retrieveUniqueID(NULL);
+        }
     }
     if (!data) { debug(DBG_ERROR,"Cannot read license file"); return -1; }
     if (!uniqueid) { debug(DBG_ERROR,"Cannot retrieve uniqueID"); return -1; }

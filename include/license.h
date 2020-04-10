@@ -18,7 +18,7 @@
 #ifndef SERIALCHRONOMETER_LICENSE_C
 #define EXTERN extern
 #else
-#define DEFAULT_UniqueID "0000000000000000" /* 128bits */
+#define DEFAULT_UniqueID "0000000000000000" /* "MDAwMDAwMDAwMDAwMDAwMAo=" base64 encoded  - 128bits */
 #define EXTERN
 #endif
 EXTERN int readLicenseFromFile(configuration *config);
