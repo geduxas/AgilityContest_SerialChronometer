@@ -279,19 +279,18 @@ static int sysini_handler(void * data, const char* section, const char* name, co
  * @return evaluated UniqueID or DEFAULT_UniqueID on error ( no file, or no tag found)
  */
 static char *retrieveUniqueID(char *fname) {
+    char *result=strdup(DEFAULT_UniqueID);
     if (!fname || (strcmp(fname,"")==0 ) ) {
         debug(DBG_ERROR,"No system.ini file specified");
-        return DEFAULT_UniqueID;
-    }
-    fname=str_replace(fname,"registration.info","system.ini");
-    if (!file_exists(fname)) {
-        debug(DBG_ERROR,"File system.ini file does not exist '%s'",fname);
-        return DEFAULT_UniqueID;
-    }
-    char *result=NULL;
-    if (ini_parse(fname, sysini_handler, &result) < 0) {
-        debug(DBG_ERROR,"Can't retrieve UniqueID from system.ini file '%s'",fname);
-        return DEFAULT_UniqueID;
+    } else {
+        fname=str_replace(fname,"registration.info","system.ini");
+        if (!file_exists(fname)) {
+            debug(DBG_ERROR,"File system.ini file does not exist '%s'",fname);
+        } else {
+            if (ini_parse(fname, sysini_handler, &result) < 0) {
+                debug(DBG_ERROR,"Can't retrieve UniqueID from system.ini file '%s'",fname);
+            }
+        }
     }
     // stored data is base64 encoded, so decode and return
     size_t result_len=0;
