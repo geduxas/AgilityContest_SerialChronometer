@@ -1,4 +1,4 @@
-﻿#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 ; #Warn  ; Enable warnings to assist with detecting common errors.
 SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
@@ -6,7 +6,7 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 ; Creamos array de claves a modificar en archivo ini
 
 ClaveArray := [ring,console,loglevel,verbose,ajax_server,module,comm_ipaddr,comm_port,baud_rate,fire_browser]
-ValorArray := ["1","1","5","0","none","generic","192.168.2.1","COM3","57600","1"]
+ValorArray := ["1","1","5","0","none","generic","none","COM1","57600","1"]
 
 ; Creamos array para leer linea a linea el archivo ini
 Entrada := [] 
@@ -71,36 +71,42 @@ Loop, HKLM, HARDWARE\DEVICEMAP\SERIALCOMM\
 
  Gui, Add, Picture, x5 y5, agilitycontest_64x64.png
 
- Gui, Add, Text,     w180 x75 y30 , Parámetros de Usuario
- Gui, Add, Text,     w130 x75 y60 , Puertos:
- Gui, Add, Text,     w130 x75 y90 , Velocidad:
- Gui, Add, Text,     w130 x75 y120, Modelo de cronómetro:
- Gui, Add, Text,     w130 x75 y150, Conectar con Ag Contest:
- Gui, Add, Text,     w130 x75 y180, Ag Contest IP Addr:
- Gui, Add, Text,     w130 x75 y210, Ring:
-;Gui, Add, Text,     w130 x75 y240
- Gui, Add, Text,     w180 x75 y270, Parámetros de Depuración
- Gui, Add, Checkbox, w130 x75 y300 vConsola, Activar consola
- Gui, Add, Text,     w130 x75 y330, Nivel de depuración:
- Gui, Add, Checkbox, w130 x75 y360 vVerbo, Depuración en consola
- Gui, Add, Checkbox, w130 x75 y390 vExplorador , Iniciar consola web
- Gui, Add, Checkbox, w130 x75 y420 vGuardar , Guardar configuración
+ Gui, Add, Text,     w180 x75 y30, Parámetros de Usuario
+ Gui, Add, Text,     w130 x75 y60, Modelo de cronómetro:
+ Gui, Add, Text,     w130 x75 y90, Dirección IP del crono:
+ Gui, Add, Text,     w130 x75 y120, Puerto Serie del crono:
+ Gui, Add, Text,     w130 x75 y150, Velocidad:
+ Gui, Add, Text,     w130 x75 y180, Ring:
+ Gui, Add, Text,     w130 x75 y210, Conectar con Ag Contest:
+ Gui, Add, Text,     w130 x75 y240, Ag Contest IP Addr:
+ Gui, Add, Text,     w130 x75 y270,
+ Gui, Add, Text,     w180 x75 y300, Parámetros de Depuración
+ Gui, Add, Checkbox, w130 x75 y330 vConsola, Activar consola
+ Gui, Add, Text,     w130 x75 y360, Nivel de depuración:
+ Gui, Add, Checkbox, w130 x75 y390 vVerbo, Depuración en consola
+ Gui, Add, Checkbox, w130 x75 y420 vExplorador, Iniciar consola web
+ Gui, Add, Text,     w130 x75 y450,
+ Gui, Add, Checkbox, w130 x75 y480 vGuardar, Guardar configuración
 
-;Gui, Add, Text,         w120 x200 y25                              
- Gui, Add, DropDownList, w120 x200 y55  vPuerto,    %PuertoString%                                         
- Gui, Add, DropDownList, w120 x200 y85  vVelocidad, 9600|19200|38400|57600|74880|115200
- Gui, Add, DropDownList, w120 x200 y115 vTipo,      generic|digican                                    
- Gui, Add, DropDownList, w120 x200 y145 vServidor gServidor,  No|Local|Manual|Automático                                      
- Gui, Add, Edit,         w120 x200 y175 vdirIP                                                  
- Gui, Add, DropDownList, w120 x200 y205 vRing ,     1|2|3|4|5|6|7|8                                                             
-;Gui, Add, Text,         w120 x200 y235 
+;Gui, Add, Text,         w120 x200 y25
+ Gui, Add, DropDownList, w120 x200 y55 vTipo,      generic|digican|canometroweb                                     
+ Gui, Add, Edit,         w120 x200 y85 vcommIP                                                                                 
+ Gui, Add, DropDownList, w120 x200 y115  vPuerto,    %PuertoString%                                         
+ Gui, Add, DropDownList, w120 x200 y145  vVelocidad, 9600|19200|38400|57600|74880|115200                            
+ Gui, Add, DropDownList, w120 x200 y175 vRing ,     1|2|3|4                     
+ Gui, Add, DropDownList, w120 x200 y205 vServidor gServidor,  No|Local|Manual|Automático                                      
+ Gui, Add, Edit,         w120 x200 y235 vdirIP                                                                                  
 ;Gui, Add, Text,         w120 x200 y265 
-;Gui, Add, DropDownList, w120 x200 y295 , No|Si
- Gui, Add, DropDownList, w120 x200 y325 vLevel ,    0: none|1: panic|2: alert|3: error|4: notice|5: info|6: debug|7: trace|8: all
-;Gui, Add, DropDownList, w120 x200 y355 , No|Si
+;Gui, Add, Text,         w120 x200 y295 
+;Gui, Add, DropDownList, w120 x200 y325 , No|Si
+ Gui, Add, DropDownList, w120 x200 y355 vLevel ,    0: none|1: panic|2: alert|3: error|4: notice|5: info|6: debug|7: trace|8: all
+;Gui, Add, DropDownList, w120 x200 y385
+;Gui, Add, DropDownList, w120 x200 y415
+;Gui, Add, Text,         w120 x200 y445 
+;Gui, Add, DropDownList, w120 x200 y475 , No|Si
 
- Gui, Add, Button, w80 x150 y450        , Cancel ; Se ejecutara la etiqueta ButtonCancel (si existe) al presionar este boton.
- Gui, Add, Button, w80 x+12 y450 default, OK     ; Se ejecutara la etiqueta ButtonOK (si existe) al presionar este boton.
+ Gui, Add, Button, w80 x150 y510        , Cancel ; Se ejecutara la etiqueta ButtonCancel (si existe) al presionar este boton.
+ Gui, Add, Button, w80 x+12 y510 default, OK     ; Se ejecutara la etiqueta ButtonOK (si existe) al presionar este boton.
 
 ;asignamos valores a las variables del interfaz de usuario según lo leido del archivo ini
 Ring      := ValorArray[1]
@@ -109,9 +115,10 @@ Level     := ValorArray[3] + 1      ;sumamos uno a level ya que las opciones de 
 Verbo     := ValorArray[4]
 dirIP     := ValorArray[5] 
 Tipo      := ValorArray[6]         
-Puerto    := ValorArray[7] 
-Velocidad := ValorArray[8] 
-Explorador:= ValorArray[9] 
+commIP    := ValorArray[7]        
+Puerto    := ValorArray[8] 
+Velocidad := ValorArray[9] 
+Explorador:= ValorArray[10] 
 
 ;hacemos que se muestre en cada control el valor asignado
 GuiControl, Choose, Ring, %Ring%
@@ -123,6 +130,7 @@ GuiControl, ChooseString, Puerto, %Puerto%
 GuiControl, ChooseString, Velocidad, %Velocidad%
 GuiControl, , Explorador, %Explorador%
 GuiControl, , dirIP, %dirIP%
+GuiControl, , commIP, %commIP%
 GuiControl, Disable, dirIP
 
 ;en funcion de la direccion IP leida, mostramos el valor correspondiente en la casilla de seleccion del servidor
@@ -219,8 +227,14 @@ if (dirIP = "0.0.0.0")
 {
     dirIP := "find"
 }
-    
+
+
 ;Ejecutamos el programa con los parametros indicados
-Run % "SerialChronometer.exe -m " Tipo " -b " Velocidad " -d " Puerto " -s " dirIP " -r " Ring " -D " Level Consola Verbo  
+if (commIP != "none" )
+{
+    Run % "SerialChronometer.exe -m " Tipo " -b " Velocidad " -i " commIP " -s " dirIP " -r " Ring " -D " Level Consola Verbo  
+} else {
+    Run % "SerialChronometer.exe -m " Tipo " -b " Velocidad " -d " Puerto " -s " dirIP " -r " Ring " -D " Level Consola Verbo  
+}
 
 ExitApp
