@@ -88,10 +88,10 @@ res=`yad \
 	--separator="," \
 	--field=" :LBL" "space"\
 	--field="Parametros de Usuario:LBL" "user"\
+	--field="Modelo de cronometro::CB" "$module" \
 	--field="IPAddr (Canometro):" "$comm_ipaddr" \
 	--field="Puertos::CB" "$comm_port" \
 	--field="Velocidad::CB" "$baud_rate" \
-	--field="Modelo de cronometro::CB" "$module" \
 	--field="Conectar con Ag Contest::CB" "$use_server" \
 	--field="Ag Contest Server IPAddr:" "$ajax_server" \
 	--field="Ring::CB" "$ring" \
@@ -106,7 +106,7 @@ res=`yad \
 [ $? -ne 0 ] && die "Operacion cancelada por el usuario"
 
 # leemos el resultado de la ventana de dialogo
-IFS=, read spare1 spare2 ipaddr port baud mod server addr ring spare3 spare4 cons loglvl clog spare5 save <<< $res
+IFS=, read spare1 spare2 mod ipaddr port baud server addr ring spare3 spare4 cons loglvl clog spare5 save <<< $res
 
 #componemos la linea de comandos
 IPADDR="$addr"

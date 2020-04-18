@@ -103,7 +103,7 @@ static int usage() {
  */
 static int parse_cmdline(configuration *config, int argc,  char * const argv[]) {
     int option=0;
-    while ((option = getopt(argc, argv,"l:m:n:d:w:s:L:D:b:r:vBqhcf")) != -1) {
+    while ((option = getopt(argc, argv,"i:m:n:d:w:s:L:D:b:r:vBqhcf")) != -1) {
         switch (option) {
             case 'm' : config->module = strdup(optarg);     break;
             case 'n' : config->client_name = strdup(optarg);break;
