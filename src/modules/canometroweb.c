@@ -254,13 +254,19 @@ static void init_string(struct string *s) {
     s->ptr[0] = '\0';
 }
 
-static size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s) {
-    size_t new_len = s->len + size*nmemb;
-    s->ptr = realloc(s->ptr, new_len+1); // notice: assume won't fail. should be checked
-    memcpy(s->ptr+s->len, ptr, size*nmemb);
-    s->ptr[new_len] = '\0';
-    s->len = new_len;
-    return size*nmemb;
+static size_t writefunc(void *contents, size_t size, size_t nmemb, struct string *s) {
+    size_t realsize = size * nmemb;
+    char *ptr = realloc(s->ptr, s->len + realsize + 1);
+    if(ptr == NULL) {
+        /* out of memory! */
+        debug(DBG_ALERT,"cur_exec::writefunc(): calloc failed");
+        return 0;
+    }
+    s->ptr = ptr;
+    memcpy(&(s->ptr[s->len]), contents, realsize);
+    s->len += realsize;
+    s->ptr[s->len] = 0;
+    return realsize;
 }
 
 /**

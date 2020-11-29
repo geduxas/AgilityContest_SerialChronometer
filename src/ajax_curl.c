@@ -216,7 +216,7 @@ char ** ajax_wait_for_events(configuration *config, int *evtid, time_t *timestam
         curl_easy_cleanup(curl);
         return NULL;
     }
-    // debug(DBG_TRACE,"getEvents() returns: \n%s",s.ptr);
+    debug(DBG_TRACE,"getEvents() returns: \n%s len:%d",s.ptr,s.len);
 
     // retrieve number of events
     char ** cmds = parse_events(config,s.ptr,s.len,evtid,timestamp);

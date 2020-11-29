@@ -63,6 +63,7 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             setupapi
             ws2_32
             pthread
+            ssp
     )
     target_link_libraries(
             generic

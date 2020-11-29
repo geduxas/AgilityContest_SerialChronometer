@@ -17,6 +17,8 @@
 #include <sys/socket.h>
 #endif
 
+#define AGILITYCONTEST_SERIALCHRONOMETER_MAIN_C
+
 #include "sc_tools.h"
 #include "sc_sockets.h"
 #include "getopt.h"

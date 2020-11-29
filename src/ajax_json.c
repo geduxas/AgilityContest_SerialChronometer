@@ -314,12 +314,12 @@ int parse_connect(configuration *config, char *json_str,size_t json_len) {
 char **parse_events(configuration *config, char *json_str,size_t json_len, int *evtid, time_t *timestamp) {
     // dirty way to count tokens:
     size_t count=0;
-    for (char *pt=json_str;*pt;pt++) if (*pt==':') count++;
+    for (char *pt=json_str;*pt;pt++) if ( (*pt==':') || (*pt=='[') || (*pt=='{') ) count++;
     json_t mem[count];
     // get root token
     json_t const* root = json_create( json_str, mem, sizeof mem / sizeof *mem );
     if ( !root ) {
-        debug(DBG_ERROR,"Error parse_events::json_create()");
+        debug(DBG_ERROR,"Error parse_events::json_create() string: %s",json_str);
         return NULL;
     }
 

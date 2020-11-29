@@ -7,7 +7,7 @@
 
 #include "sc_config.h"
 
-#ifdef SERIALCHRONOMETER_PARSER_C
+#ifndef SERIALCHRONOMETER_PARSER_C
 #define EXTERN extern
 #else
 #define EXTERN

@@ -35,7 +35,7 @@ typedef struct {
     int sock; // socket to write data into
 } sc_thread_slot;
 
-#ifdef AGILITYCONTEST_SERIALCHRONOMETER_MAIN_C
+#ifndef AGILITYCONTEST_SERIALCHRONOMETER_MAIN_C
 #define EXTERN extern
 #else
 #define EXTERN

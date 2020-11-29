@@ -4,8 +4,6 @@
 #define SERIALCHRONOMETER_PARSER_C
 
 #include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "debug.h"
