@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "modules.h"
 #include "sc_config.h"
@@ -94,7 +95,20 @@ int ADDCALL module_read(char *buffer,size_t length){
         snprintf(buffer,length,"start 0\n");
     }
     else if (strncmp(inbuff,"PARAR",5)==0) {
-        int elapsed= 10* atoi(inbuff+7);
+        int elapsed= 10* atoi(inbuff+5);
+        snprintf(buffer,length,"stop %d\n",elapsed);
+    }
+    else if (strncmp(inbuff,"RESET",5)==0) {
+        snprintf(buffer,length,"reset\n");
+    }
+    else if (strncmp(inbuff,"INICI",5)==0) {
+        snprintf(buffer,length,"down\n");
+    }
+    else if (strncmp(inbuff,"ELIMI",5)==0) {
+        snprintf(buffer,length,"elim\n");
+    }
+    else if (isdigit(*inbuff)){
+        int elapsed= 10* atoi(inbuff);
         snprintf(buffer,length,"stop %d\n",elapsed);
     }
     // PENDING: parse and handle additional comands sent from digican chrono ( ask oitoinnova )
