@@ -14,9 +14,11 @@
 #include "qrcode_mgr.h"
 #include "sc_config.h"
 #include "sc_sockets.h"
+#include "libserialport.h"
 
 static int qrcode_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"QRCode Manager Thread exit requested");
+    if (config->serial_port) { sp_close(config->serial_port); }
     return -1;
 }
 
@@ -63,12 +65,33 @@ void *qrcode_manager_thread(void *arg){
     snprintf(portstr,16,"%d",config->local_port+config->ring);
     slot->sock=connectUDP("localhost",portstr);
     if (slot->sock <0) {
-        debug(DBG_ERROR,"Console: Cannot create local socket");
+        debug(DBG_ERROR,"QRCode: Cannot create local socket");
         return NULL;
     }
 
     // open serial port. if "none" or fail, just exit thread
-    // PENDING
+    if (!config->qrcomm_port ||  strcasecmp(config->qrcomm_port,"none")==0) {
+        debug(DBG_INFO,"QRCode: No QRCode reader set. exit thread");
+        return NULL;
+    }
+    enum sp_return ret=sp_get_port_by_name(config->qrcomm_port,&config->qrcode_port);
+    if (ret!= SP_OK) {
+        debug(DBG_ERROR,"Cannot locate qrcode serial port '%s'",config->qrcomm_port);
+        return NULL;
+    }
+    if (config->qrcode_port) {
+        ret = sp_open(config->qrcode_port,SP_MODE_READ);
+        if (ret != SP_OK) {
+            debug(DBG_ERROR,"Cannot open qrcode serial port %s",config->qrcomm_port);
+            return NULL;
+        }
+    }
+    sp_set_baudrate(config->qrcode_port, 115200); // fixed speed at 115200 bauds
+    sp_set_bits(config->qrcode_port, 8);
+    sp_set_flowcontrol(config->qrcode_port, SP_FLOWCONTROL_NONE);
+    sp_set_parity(config->qrcode_port, SP_PARITY_NONE);
+    sp_set_stopbits(config->qrcode_port, 1);
+    sp_set_rts(config->qrcode_port,SP_RTS_ON);
 
     // create input buffer
     char *request=calloc(1024,sizeof(char)); // to receive data from QRCode reader
@@ -87,7 +110,7 @@ void *qrcode_manager_thread(void *arg){
     int offset=strlen(request);
 
     while(res>=0) {
-        snprintf(request,)
+        char *p="";
         /*
         fprintf(stdout,"cmd> ");
         char *p=fgets(&request[offset],1024-offset,stdin);

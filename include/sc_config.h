@@ -87,6 +87,7 @@ typedef struct {
     int bright;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
     struct sp_port *serial_port; // serial port to be openend
+    struct sp_port *qrcode_port; // qrcode reader serial port to be openend
 
     char *license_file;
 

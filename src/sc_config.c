@@ -41,6 +41,7 @@ configuration * default_options(configuration * config) {
     config->module="generic";
     config->client_name="generic";
     config->serial_port = NULL;
+    config->qrcode_port = NULL;
     config->opmode = 0; //bitmask 1:serial 2:console 4:html 8:agilitycontest
     config->local_port = 8880;
     config->license_file = NULL;
