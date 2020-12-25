@@ -5,8 +5,8 @@
 #define AGILITYCONTEST_SERIALCHRONOMETER_QRCODE_MGR_C
 #include <stdio.h>
 #include <unistd.h>
-#include <curl/curl.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "main.h"
 #include "debug.h"
@@ -18,8 +18,24 @@
 
 static int qrcode_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"QRCode Manager Thread exit requested");
-    if (config->serial_port) { sp_close(config->serial_port); }
+    if (config->serial_port) {
+        sp_close(config->serial_port);
+        config->serial_port=NULL;
+    }
     return -1;
+}
+
+/*
+ * extract "dor":number or "dorsal":number from json received QRCode request
+ */
+static int qrcode_parse_dorsal(char *request) {
+    char *p=request;
+    int offset=0;
+    for(;*p;p++) *p=tolower(*p);
+    p=strstr(request,"dor\":"); offset=4;
+    if (!p) {p=strstr(request,"dorsal\":");offset=7;}
+    if (!p) return -1;
+    return atoi(p+offset);
 }
 
 static func entries[32]= {
@@ -97,7 +113,7 @@ void *qrcode_manager_thread(void *arg){
     char *request=calloc(1024,sizeof(char)); // to receive data from QRCode reader
     char *response=calloc(1024,sizeof(char)); // to get comands from main loop
     if (!request || !response) {
-        debug(DBG_ERROR,"Console: Cannot enter interactive mode:calloc()");
+        debug(DBG_ERROR,"QRCode:calloc() Cannot create i/o buffers");
         return NULL;
     }
 
@@ -105,37 +121,46 @@ void *qrcode_manager_thread(void *arg){
     slot->index=slotIndex;
 
     // loop until end requested
-    int res=0;
-    sprintf(request,"%s ",SC_QRCODE);
-    int offset=strlen(request);
 
+    int res=0;
     while(res>=0) {
-        char *p="";
-        /*
-        fprintf(stdout,"cmd> ");
-        char *p=fgets(&request[offset],1024-offset,stdin);
-        if (p==NULL) {
-            debug(DBG_TRACE,"Console: received EOF from user input");
-            snprintf(request,1024-offset,"exit");  // received eof from stdin -> quit command
-            res=strlen(request);
-        }
-        */
-        if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
-        if (strlen(&request[offset])==0) continue; // empty string received
-        debug(DBG_TRACE,"qrcode: sending to local socket: '%s'",request);
-        res=send(slot->sock,request,strlen(request),0);
-        if (res<0){
-            debug(DBG_ERROR,"qrcode send(): error sending request: %s",strerror(errno));
-            continue;
-        }
-        res=recv(slot->sock,response,1024,0);
-        if (res<0) {
-            debug(DBG_ERROR,"qrcode recv(): error waiting response: %s",strerror(errno));
-            continue;
+        memset(request,0,1024);
+        sprintf(request,"%s ",SC_QRCODE);
+        size_t offset=strlen(request);
+        do {
+            ret = sp_blocking_read(config->serial_port,&request[offset],1024-offset,500); // timeout 0.5 seconds
+            if (ret>=0)request[ret]='\0';
+        } while( (ret==0) || (slot->index>=0));
+        if (ret >0 ) {
+            debug(DBG_TRACE,"qrcode_read() received '%s'",request);
+            char *p="";
+            if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
+            if (strlen(&request[offset])==0) continue; // empty string received
+            // extract dorsal number from QRCode info
+            int dorsal=qrcode_parse_dorsal(request);
+            if (dorsal<1) {
+                debug(DBG_ERROR,"qrcode parse_dorsal(): cannot get dorsal from qr code: %s",request);
+                continue;
+            }
+            snprintf(request,1024,"%s dorsal %d",SC_QRCODE,dorsal);
+            debug(DBG_TRACE,"qrcode: sending to local socket: '%s'",request);
+            res=send(slot->sock,request,strlen(request),0);
+            if (res<0){
+                debug(DBG_ERROR,"qrcode send(): error sending request: %s",strerror(errno));
+                continue;
+            }
+            res=recv(slot->sock,response,1024,0);
+            if (res<0) {
+                debug(DBG_ERROR,"qrcode recv(): error waiting response: %s",strerror(errno));
+                continue;
+            } else {
+                response[res] = '\0'; // put eol at end of recvd string
+                debug(DBG_NOTICE, "%s main loop command response: %s\n", SC_CONSOLE, response);
+            }
         } else {
-            response[res] = '\0'; // put eol at end of recvd string
-            debug(DBG_NOTICE, "%s main loop command response: %s\n", SC_CONSOLE, response);
-        }
+            debug(DBG_ERROR,"libserial_read() error %s",sp_last_error_message());
+            res=-1;
+        };
         // check for end requested
         if (slot->index<0) {
             debug(DBG_TRACE,"qrcode: 'exit' command invoked");
@@ -144,7 +169,8 @@ void *qrcode_manager_thread(void *arg){
     }
     free(request);
     free(response);
-    debug(DBG_TRACE,"Exiting qrcode thread");
     slot->index=-1;
+    qrcode_mgr_exit(config,slotIndex,NULL,0);
+    debug(DBG_TRACE,"Exiting qrcode thread");
     return &slot->index;
 }
