@@ -26,14 +26,15 @@ static int qrcode_mgr_exit(configuration * config, int slot, char **tokens, int 
 }
 
 /*
- * extract "dor":number or "dorsal":number from json received QRCode request
+ * extract "dor":number or drs":number or "dorsal":number from json received QRCode request
  */
 static int qrcode_parse_dorsal(char *request) {
     char *p=request;
     int offset=0;
     for(;*p;p++) *p=tolower(*p);
-    p=strstr(request,"dor\":"); offset=4;
-    if (!p) {p=strstr(request,"dorsal\":");offset=7;}
+    p=strstr(request,"dor\":"); offset=5;
+    if (!p) {p=strstr(request,"drs\":");offset=5;}
+    if (!p) {p=strstr(request,"dorsal\":");offset=8;}
     if (!p) return -1;
     return atoi(p+offset);
 }
