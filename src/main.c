@@ -71,19 +71,20 @@ int sc_thread_create(int index,char *name,configuration *config,void *(*handler)
 static int usage() {
     fprintf(stderr,"%s command line options:\n",program_name);
     fprintf(stderr,"Serial parameters:\n");
-    fprintf(stderr,"\t -m module  || --module=module_name Serial comm module to be used. Default \"generic\"\n");
-    fprintf(stderr,"\t -i ipaddr ||  --ipaddr=com_ipaddr  IP address for networked chronometers (required on net chrono)\n");
-    fprintf(stderr,"\t -d comport || --device=com_port    Communication port to attach to (required on serial chrono) \n");
-    fprintf(stderr,"\t -b baud    || --baud=baudrate      Set baudrate for comm port. Defaults 9600\n");
+    fprintf(stderr,"\t -m module   || --module=module_name Chronometer module to be used. Default \"generic\"\n");
+    fprintf(stderr,"\t -i ipaddr   || --ipaddr=com_ipaddr IP address for networked chronometers (required on net chrono)\n");
+    fprintf(stderr,"\t -d commport || --commport=com_port Communication port to attach to (required on serial chrono) \n");
+    fprintf(stderr,"\t -b baudrate || --baudrate=baudrate Set baudrate for comm port. Defaults 9600\n");
+    fprintf(stderr,"\t -Q qrport   || --qrport=baudrate   Port to read QRCode dorsal entry info. Default: none\n");
     fprintf(stderr,"Web interface:\n");
-    fprintf(stderr,"\t -w webport || --port=web_port      Where to listen for html interface. 0:disable . Default 8080\n");
+    fprintf(stderr,"\t -w webport || --webport=web_port   Where to listen for html interface. 0:disable . Default 8080\n");
     fprintf(stderr,"AgilityContest  interface:\n");
-    fprintf(stderr,"\t -s ipaddr  || --server=ip_address  Location (IP) of AgilityContest server.\n");
+    fprintf(stderr,"\t -s ipaddr  || --ac_server=ipaddr   Location (IP) of AgilityContest server.\n");
     fprintf(stderr,"                                      Values: \"none\":disable - \"find\":search - Default: \"localhost\"\n");
-    fprintf(stderr,"\t -n name    || --client_name=name   chrono name sent to AgilityContest. Defaults to 'module_name@ring'\n");
+    fprintf(stderr,"\t -n name    || --ac_name=name       Chrono name sent to AgilityContest. Defaults to 'module_name@ring'\n");
     fprintf(stderr,"\t -r ring    || --ring=ring_number   Tell server which ring to attach chrono. Default \"1\"\n");
     fprintf(stderr,"Debug options:\n");
-    fprintf(stderr,"\t -D level   || --debuglog=level     Set debug/logging level 0:none thru 8:all. Defaults to 3:error\n");
+    fprintf(stderr,"\t -D level   || --loglevel=level     Set debug/logging level 0:none thru 8:all. Defaults to 3:error\n");
     fprintf(stderr,"\t -L file    || --logfile=filename   Set log file. Defaults to \"stderr\"\n");
     fprintf(stderr,"\t -c         || --console            open cmdline console and enter in interactive (no-daemon) mode\n");
     fprintf(stderr,"\t -v         || --verbose            Send debug to stderr console\n");
@@ -105,18 +106,39 @@ static int usage() {
  */
 static int parse_cmdline(configuration *config, int argc,  char * const argv[]) {
     int option=0;
-    while ((option = getopt(argc, argv,"i:m:n:d:w:s:L:D:b:r:vBqhcf")) != -1) {
+    int opt_index=0;
+    static struct option long_options[] =
+    {
+            {"module", required_argument, NULL, 'm'},
+            {"ipaddr", required_argument, NULL, 'i'},
+            {"commport", required_argument, NULL, 'd'},
+            {"qrport", required_argument, NULL, 'Q'},
+            {"baudrate", required_argument, NULL, 'b'},
+            {"webport", required_argument, NULL, 'w'},
+            {"ac_server", required_argument, NULL, 's'},
+            {"ac_name", required_argument, NULL, 'n'},
+            {"ring", required_argument, NULL, 'r'},
+            {"loglevel", required_argument, NULL, 'D'},
+            {"logfile", required_argument, NULL, 'L'},
+            {"verbose", no_argument, NULL, 'v'},
+            {"quiet", no_argument, NULL, 'q'},
+            {"find_ports", no_argument, NULL, 'f'},
+            {"help", no_argument, NULL, 'h'},
+            {NULL, 0, NULL, 0}
+    };
+    while ((option = getopt_long(argc, argv,"i:m:n:d:Q:w:s:L:D:b:r:vqhcf",long_options,&opt_index)) != -1) {
         switch (option) {
             case 'm' : config->module = strdup(optarg);     break;
-            case 'n' : config->client_name = strdup(optarg);break;
             case 'i' : config->comm_ipaddr = strdup(optarg);  break;
             case 'd' : config->comm_port = strdup(optarg);  break;
-            case 'r' : config->ring = atoi(optarg);         break;
+            case 'Q' : config->qrcomm_port = strdup(optarg);  break;
+            case 'b' : config->baud_rate = atoi(optarg);    break; // pending: check valid baudrate
             case 'w' : config->web_port = atoi(optarg);     break; // port used will be web_port+ring
             case 's' : config->ajax_server = strdup(optarg);break;
-            case 'L' : config->logfile = strdup(optarg);    break;
+            case 'n' : config->client_name = strdup(optarg);break;
+            case 'r' : config->ring = atoi(optarg);         break;
             case 'D' : config->loglevel = atoi(optarg)%9;   break;
-            case 'b' : config->baud_rate = atoi(optarg);    break; // pending: check valid baudrate
+            case 'L' : config->logfile = strdup(optarg);    break;
             case 'v' : config->verbose = 1; break;
             case 'q' : config->verbose = 0; break; // no console output
             case 'c' : config->opmode |= OPMODE_CONSOLE;    break; // test serial port

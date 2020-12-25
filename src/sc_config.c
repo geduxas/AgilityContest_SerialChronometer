@@ -37,6 +37,7 @@ configuration * default_options(configuration * config) {
     config->comm_port = NULL; // must be declared on program invocation or ini file
     config->baud_rate = 9600;
     config->ring = 1;
+    config->qrcomm_port = "none",
     config->module="generic";
     config->client_name="generic";
     config->serial_port = NULL;
@@ -85,6 +86,7 @@ void print_configuration(configuration *config) {
     debug(DBG_DEBUG,"comm_ipaddr %s",  config->comm_ipaddr);
     debug(DBG_DEBUG,"comm_port %s",  config->comm_port);
     debug(DBG_DEBUG,"baud_rate %d",  config->baud_rate);
+    debug(DBG_DEBUG,"QR comm_port %s",  config->qrcomm_port);
     debug(DBG_DEBUG,"ring %d",  config->ring);
     debug(DBG_DEBUG,"html port %d",  config->web_port);
     debug(DBG_DEBUG,"fire browser %d",  config->fire_browser);
@@ -103,6 +105,7 @@ void print_configuration(configuration *config) {
         fprintf(stderr,"comm_ipaddr %s\n",  config->comm_ipaddr);
         fprintf(stderr,"comm_port %s\n",  config->comm_port);
         fprintf(stderr,"baud_rate %d\n",  config->baud_rate);
+        fprintf(stderr,"QR comm_port %s\n",  config->qrcomm_port);
         fprintf(stderr,"ring %d\n",  config->ring);
         fprintf(stderr,"html port %d\n",  config->web_port);
         fprintf(stderr,"fire browser %d\n",  config->fire_browser);
@@ -135,6 +138,7 @@ static int handler(void * data, const char* section, const char* name, const cha
     else if (MATCH("Serial", "comm_ipaddr"))  config->comm_ipaddr = strdup(value);
     else if (MATCH("Serial", "comm_port"))    config->comm_port = strdup(value);
     else if (MATCH("Serial", "baud_rate"))    config->baud_rate = atoi(value); /* def 9600 */
+    else if (MATCH("Serial", "qrcomm_port"))  config->qrcomm_port = strdup(value);
     else if (MATCH("Web",    "web_port"))     config->web_port = atoi(value); /* def 8080 */
     else if (MATCH("Web",    "fire_browser")) config->fire_browser = ((atoi(value)!=0)?1:0);
     else return 0; /* unknown section/name, error */

@@ -81,6 +81,7 @@ typedef struct {
     char *comm_ipaddr; // used in network connected modules (galican)
     char *comm_port;
     int baud_rate;
+    char *qrcomm_port; // used to attach QRCode reader dorsal info
     int bright;
     int opmode; // OPMODE_ENUM,OPMODE_TEST,OPMODE_NORMAL
     struct sp_port *serial_port; // serial port to be openend
