@@ -97,6 +97,7 @@ static func entries[32]= {
         web_mgr_sendBright,// { 21, "bright", "Set display bright level (0..9) [+-#]","[ + | - | num ] {+}"},
         NULL,            // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,            // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        NULL,            // { 24, "dorsal",  "get dorsal from qrcode reader",  "[ dorsal # ]"},
         NULL             // { -1, NULL,     "",                                "" }
 };
 

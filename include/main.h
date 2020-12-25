@@ -22,6 +22,7 @@
 #define SC_AJAXSRV "ac_server"
 #define SC_SERIAL "comm_server"
 #define SC_NETWORK "net_server"
+#define SC_QRCODE "qrcode_server"
 
 typedef int (*func)(configuration *config,int slot,char *tokens[],int ntokens);
 typedef struct {

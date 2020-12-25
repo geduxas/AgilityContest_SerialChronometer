@@ -31,6 +31,7 @@
 #include "serial_mgr.h"
 #include "net_mgr.h"
 #include "console_mgr.h"
+#include "qrcode_mgr.h"
 #include "debug.h"
 #include "sc_config.h"
 #include "main.h"
@@ -214,13 +215,14 @@ int main (int argc, char *argv[]) {
     if(options) free(options);
 
     // start requested threads
-    // we need 4+1 threads (console,serial,ajax,web) managers plus webserver
-    sc_threads = calloc(5,sizeof(sc_thread_slot));
+    // we need 5+1 threads (console,serial,ajax,web) managers plus webserver
+    sc_threads = calloc(6,sizeof(sc_thread_slot));
     if (!sc_threads) {
         debug(DBG_ERROR,"Error allocating thread data space");
         return 1;
     }
-    for (int n=0;n<5;n++) sc_threads[n].index=-1;
+    for (int n=0;n<6;n++) sc_threads[n].index=-1;
+
     // Thread 0: interactive console
     if (config->opmode & OPMODE_CONSOLE) {
         debug(DBG_TRACE,"Starting interactive console thread");
@@ -255,7 +257,12 @@ int main (int argc, char *argv[]) {
         debug(DBG_TRACE,"Starting AgilityContest event listener thread");
         sc_thread_create(3,SC_AJAXSRV,config,ajax_manager_thread);
     }
-
+    // thread 4 QRCode Dorsal reader
+    if ( strcasecmp(config->qrcomm_port,"none")!=0 )  {
+        config->opmode |= OPMODE_QRCODE;
+        debug(DBG_TRACE,"Starting qrcode reader receiver thread");
+        sc_thread_create(4,SC_QRCODE,config,qrcode_manager_thread);
+    }
     // ok. start socket server on port "base"+"ring" // to allow multiple instances
 
     // create sock

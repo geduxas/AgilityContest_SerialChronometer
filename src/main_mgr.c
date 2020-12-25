@@ -206,7 +206,10 @@ static int main_mgr_clock(configuration * config, int slot, char **tokens, int n
     debug(DBG_INFO,"%s -> Command: CLOCK",tokens[0]);
     return 0;
 }
-
+static int main_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+    debug(DBG_INFO,"%s -> Command: DORSAL %s",tokens[0],tokens[2]);
+    return 0;
+}
 static int main_mgr_debug(configuration * config, int slot, char **tokens, int ntokens) {
     if (ntokens==3) { set_debug_level(atoi(tokens[2])); }
     debug(DBG_INFO,"%s -> Command: DEBUG %d",tokens[0],config->status.numero);
@@ -238,5 +241,6 @@ func main_mgr_entries[32]= {
         main_mgr_bright, // { 21, "bright", "Set display bright level (0..9) [+-#]","[ + | - | num ] {+}"},
         main_mgr_clock,  // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         main_mgr_debug,  // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
-        NULL                // { -1, NULL,     "",                                "" }
+        main_mgr_dorsal, // { 24, "dorsal",  "get dorsal from qrcode reader",  "[ dorsal # ]"},
+        NULL             // { -1, NULL,     "",                                "" }
 };

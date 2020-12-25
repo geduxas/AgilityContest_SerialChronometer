@@ -145,6 +145,7 @@ static func entries[32]= {
         net_mgr_bright, // { 21, "bright", "Set display bright level (0..9) [+-#]","[ + | - | num ] {+}"},
         net_mgr_clock,  // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,           // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        NULL,           // { 24, "dorsal",  "get dorsal from qrcode reader",  "[ dorsal # ]"},
         NULL            // { -1, NULL,     "",                                "" }
 };
 

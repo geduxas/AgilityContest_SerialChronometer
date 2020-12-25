@@ -116,6 +116,10 @@ static int console_mgr_clock(configuration * config, int slot, char **tokens, in
     return 0;
 }
 
+static int console_mgr_dorsal(configuration * config, int slot, char **tokens, int ntokens) {
+    fprintf(stderr,"Entering dorsal %s",tokens[2]);
+    return 0;
+}
 static int console_mgr_debug(configuration * config, int slot, char **tokens, int ntokens) {
     fprintf(stderr,"New debug level is: %d\n",get_debug_level());
     return 0;
@@ -146,6 +150,7 @@ static func entries[32]= {
         console_mgr_bright, // { 21, "bright", "Set display bright level [+-#]",  "[ + | - | num ] {+}"},
         console_mgr_clock,  // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         console_mgr_debug,  // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
+        console_mgr_dorsal, // { 24, "dorsal",  "get dorsal from qrcode reader",  "[ dorsal # ]"},
         NULL                // { -1, NULL,     "",                                "" }
 };
 

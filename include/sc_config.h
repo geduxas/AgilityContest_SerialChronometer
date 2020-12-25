@@ -18,7 +18,9 @@
 #define OPMODE_CONSOLE 2
 #define OPMODE_WEB 4
 #define OPMODE_SERVER 8
-#define OPMODE_FIND 16 /* find serial ports and exit */
+#define OPMODE_QRCODE 16
+#define OPMODE_FIND 32 /* find serial ports and exit */
+
 
 typedef struct {
     // valores de estado utlizados en las operaciones del crono
