@@ -196,9 +196,15 @@ int main (int argc, char *argv[]) {
         return 0;
     }
 
-    // retrieve license file and data
+    // retrieve license file and data. try user defined, else default, else local
+    if (!file_exists(config->license_file)) { config->license_file=LICENSE_FILE; }
+    if (!file_exists(config->license_file)) { config->license_file="registration.info"; }
+    if (!file_exists(config->license_file)) {
+        debug(DBG_ERROR,"Cannot locate license file. Abort");
+        return -1;
+    }
     if (readLicenseFromFile(config)<0) {
-        debug(DBG_ERROR,"Error in handle of license file");
+        debug(DBG_ERROR,"Error in handle of license file '%s'",config->license_file);
         return 1;
     }
     char *serial=getLicenseItem("serial");

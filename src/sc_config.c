@@ -10,6 +10,7 @@
 #include "sc_tools.h"
 #include "debug.h"
 #include "ini.h"
+#include "license.h"
 
 /**
  * set default options
@@ -44,7 +45,7 @@ configuration * default_options(configuration * config) {
     config->qrcode_port = NULL;
     config->opmode = 0; //bitmask 1:serial 2:console 4:html 8:agilitycontest
     config->local_port = 8880;
-    config->license_file = NULL;
+    config->license_file = LICENSE_FILE;
     // internal status tracking
     config->status.eliminated=0;
     config->status.faults=0;

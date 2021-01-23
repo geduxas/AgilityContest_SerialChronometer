@@ -281,7 +281,7 @@ static int sysini_handler(void * data, const char* section, const char* name, co
 static char *retrieveUniqueID(char *fname) {
     char *result=strdup(DEFAULT_UniqueID);
     if (!fname || (strcmp(fname,"")==0 ) ) {
-        debug(DBG_ERROR,"No system.ini file specified");
+        debug(DBG_ERROR,"No system.ini file specified: '%s'",fname);
     } else {
         fname=str_replace(fname,"registration.info","system.ini");
         if (!file_exists(fname)) {
@@ -306,24 +306,19 @@ int readLicenseFromFile(configuration *config) {
     // also locate unique id to check hash
     char *data=NULL;
     char *uniqueid=DEFAULT_UniqueID;
+    debug(DBG_TRACE,"Extracting license data '%s'",config->license_file);
     data=base64DecodeFile(config->license_file,&len);
     if (data) {
+        debug(DBG_TRACE,"Trying to read unique id from file '%s'",config->license_file);
         uniqueid=retrieveUniqueID(config->license_file); // internal str_replace to system.ini
         debug(DBG_TRACE,"UniqueID from configuration is '%s'",uniqueid);
-    } else { // else look in AgilityContest std location
-        data=base64DecodeFile(LICENSE_FILE,&len);
-        if (data) {
-            uniqueid=retrieveUniqueID(LICENSE_FILE); // internal str_replace to system.ini
-            debug(DBG_TRACE,"UniqueID from agilitycontest is '%s'",uniqueid);
-        } else {
-            // finally try in current directory
-            data=base64DecodeFile("registration.info",&len);
-            uniqueid=retrieveUniqueID(NULL);
-            debug(DBG_TRACE,"UniqueID from current directory is '%s'",uniqueid);
-        }
+    } else {
+        debug(DBG_ERROR,"Cannot read license file '%s'",config->license_file);
+        return -1;
     }
-    if (!data) { debug(DBG_ERROR,"Cannot read license file"); return -1; }
-    if (!uniqueid) { debug(DBG_ERROR,"Cannot retrieve uniqueID"); return -1; }
+    if (!uniqueid) {
+        debug(DBG_ERROR,"Cannot retrieve uniqueID from file '%s'",config->license_file); return -1;
+    }
     // retrieve public key
     RSA *puk=getPublicKey();
     // decrypt license
