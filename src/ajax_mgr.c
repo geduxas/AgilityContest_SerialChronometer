@@ -47,6 +47,7 @@
 // as SerialAPI states zero as default, we need a dirty trick: add "1" to every sent start/int/and stop values
 // no problem as back event will be rejected due to being originated here
 
+// remember that tokens are source,command,[ argument [,argument...]
 static int ajax_mgr_start(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
     char buffer[32];
@@ -110,6 +111,12 @@ static int ajax_mgr_down(configuration * config, int slot, char **tokens, int nt
     int res=ajax_put_event(config,"salida",&data,1);
     return res;
 }
+static int ajax_mgr_turn(configuration * config, int slot, char **tokens, int ntokens) {
+    if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
+    config->status.dorsal=atoi(tokens[2]);
+    int res=ajax_put_event(config,"llamada",NULL,1);
+    return res;
+}
 // faults/refusals/eliminated and so are already prcessed in main loop, so just send
 // stored values. No extra data required
 static int ajax_mgr_data(configuration * config, int slot, char **tokens, int ntokens) {
@@ -148,7 +155,7 @@ static func entries[32]= {
         NULL,            // { 17, "ports",  "Show available serial ports",     "" },
         NULL,            // { 18, "config", "List configuration parameters",   "" },
         NULL,            // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
-        NULL,            // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
+        ajax_mgr_turn,   // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
         NULL,            // { 21, "bright", "Set display bright level [+-#]",  "[ + | - | num ] {+}"},
         NULL,            // { 22, "clock",  "Enter clock mode",                "[ hh:mm:ss ] {current time}"},
         NULL,            // { 23, "debug",  "Get/Set debug level",             "[ new_level ]"},
