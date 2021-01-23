@@ -186,6 +186,8 @@ void *ajax_manager_thread(void *arg){
         return NULL;
     }
     config->status.sessionID=ses;
+
+    debug(DBG_TRACE,"AgilityContest link thread initialized. Entering loop connecting to '%s'",config->ajax_server);
     // mark thread alive before start working
     slot->index=slotIndex;
 

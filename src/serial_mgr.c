@@ -217,6 +217,7 @@ void *serial_manager_thread(void *arg){
         return NULL;
     }
 
+    debug(DBG_TRACE,"Serial port thread initialized. Entering loop reading '%s'",config->comm_port);
     // mark thread alive before entering loop
     slot->index=slotIndex;
     int res=0;

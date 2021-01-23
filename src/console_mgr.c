@@ -181,6 +181,7 @@ void *console_manager_thread(void *arg){
         return NULL;
     }
 
+    debug(DBG_TRACE,"Console thread initialized. Entering loop reading 'console'");
     // mark thread alive before entering loop
     slot->index=slotIndex;
     // loop until end requested

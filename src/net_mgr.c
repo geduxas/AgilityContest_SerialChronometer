@@ -226,6 +226,7 @@ void *network_manager_thread(void *arg){
         return NULL;
     }
 
+    debug(DBG_TRACE,"Canometer link thread initialized. Entering loop reading '%s'",config->comm_ipaddr);
     // mark thread alive before entering loop
     slot->index=slotIndex;
     int res=0;

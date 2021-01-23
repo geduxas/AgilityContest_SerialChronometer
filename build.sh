@@ -17,7 +17,8 @@ libreoffice \
 # copy required files
 cp ${BASE}/INSTALL.txt .
 cp ${BASE}/LICENSE .
-cp ${BASE}/serial_chrono.{exe,ini,sh} .
+cp ${BASE}/serial_chrono.ini .
+cp ${BASE}/sc_dialog.{sh,exe} .
 cp ${BASE}/agilitycontest_64x64.png .
 cp ${BASE}/cmake-build-debug/digican.so .
 cp ${BASE}/cmake-build-debug/generic.so .

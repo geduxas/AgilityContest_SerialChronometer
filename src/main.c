@@ -280,7 +280,7 @@ int main (int argc, char *argv[]) {
         return -1;
     }
 
-
+    debug(DBG_TRACE,"Entering main loop listening on port '%s'",portstr);
     // run until exit command received
     int loop=1;
     while (loop) {

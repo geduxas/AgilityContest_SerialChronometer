@@ -18,25 +18,24 @@
 
 static int qrcode_mgr_exit(configuration * config, int slot, char **tokens, int ntokens) {
     debug(DBG_INFO,"QRCode Manager Thread exit requested");
-    if (config->serial_port) {
-        sp_close(config->serial_port);
-        config->serial_port=NULL;
+    if (config->qrcode_port) {
+        sp_close(config->qrcode_port);
+        config->qrcode_port=NULL;
     }
     return -1;
 }
 
 /*
- * extract "dor":number or drs":number or "dorsal":number from json received QRCode request
+ * QRCode has the format format ["Dorsal","DogID"]
  */
-static int qrcode_parse_dorsal(char *request) {
+static int qrcode_parse_dorsal(char *request,int *dorsal, int *dogid) {
     char *p=request;
-    int offset=0;
     for(;*p;p++) *p=tolower(*p);
-    p=strstr(request,"dor\":"); offset=5;
-    if (!p) {p=strstr(request,"drs\":");offset=5;}
-    if (!p) {p=strstr(request,"dorsal\":");offset=8;}
-    if (!p) return -1;
-    return atoi(p+offset);
+    if (sscanf(request,"[\"%d\",\"%d\"]",dorsal,dogid)!=2) {
+        return -1;
+    } else {
+        return *dorsal;
+    }
 }
 
 static func entries[32]= {
@@ -69,6 +68,11 @@ static func entries[32]= {
 };
 
 void *qrcode_manager_thread(void *arg){
+
+    // set static to allow compare with last value
+    static int dorsal=0;
+    static int dogid=0;
+    // initialize thread info
     int slotIndex= * ((int *)arg);
     sc_thread_slot *slot=&sc_threads[slotIndex];
 #ifdef __APPLE__
@@ -122,28 +126,33 @@ void *qrcode_manager_thread(void *arg){
     slot->index=slotIndex;
 
     // loop until end requested
-
+    debug(DBG_TRACE,"QRCode Reader thread initialized. Entering loop reading '%s'",config->qrcomm_port);
     int res=0;
     while(res>=0) {
         memset(request,0,1024);
-        sprintf(request,"%s ",SC_QRCODE);
-        size_t offset=strlen(request);
         do {
-            ret = sp_blocking_read(config->serial_port,&request[offset],1024-offset,500); // timeout 0.5 seconds
-            if (ret>=0)request[ret]='\0';
-        } while( (ret==0) || (slot->index>=0));
+            ret = sp_blocking_read(config->qrcode_port,request,1024,1000); // timeout 2 second
+            if (ret>0) request[ret]='\0';
+        } while( ret==0 );
         if (ret >0 ) {
+            int ndorsal=0;
+            int ndogid=0;
             debug(DBG_TRACE,"qrcode_read() received '%s'",request);
-            char *p="";
+            char *p=NULL;
             if ((p=strchr(request, '\n')) != NULL) *p='\0'; //strip newline
-            if (strlen(&request[offset])==0) continue; // empty string received
+            if (strlen(request)==0) continue; // empty string received
             // extract dorsal number from QRCode info
-            int dorsal=qrcode_parse_dorsal(request);
-            if (dorsal<1) {
+            res=qrcode_parse_dorsal(request,&ndorsal,&ndogid);
+            if (res<0) {
                 debug(DBG_ERROR,"qrcode parse_dorsal(): cannot get dorsal from qr code: %s",request);
                 continue;
             }
-            snprintf(request,1024,"%s dorsal %d",SC_QRCODE,dorsal);
+            // check for duplicate read
+            if ( (ndorsal==dorsal) && (ndogid==dogid) ) continue;
+            dorsal=ndorsal; dogid=ndogid;
+            snprintf(request,1024,"Received:'%s' dorsal:%d dogID:%d",SC_QRCODE,dorsal,dogid);
+            // and send to main thread via socket
+            sprintf(request,"%s TURN %d\n",SC_QRCODE,dorsal);
             debug(DBG_TRACE,"qrcode: sending to local socket: '%s'",request);
             res=send(slot->sock,request,strlen(request),0);
             if (res<0){
@@ -167,7 +176,7 @@ void *qrcode_manager_thread(void *arg){
             debug(DBG_TRACE,"qrcode: 'exit' command invoked");
             res=-1;
         }
-    }
+    } // while loop
     free(request);
     free(response);
     slot->index=-1;
