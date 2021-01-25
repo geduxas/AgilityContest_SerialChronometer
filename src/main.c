@@ -91,7 +91,8 @@ static int usage() {
     fprintf(stderr,"\t -v         || --verbose            Send debug to stderr console\n");
     fprintf(stderr,"\t -q         || --quiet              Do not send debug log to console\n");
     fprintf(stderr,"Additional options:\n");
-    fprintf(stderr,"\t -f         || --find-ports         Show available , non-busy comm ports and exit\n");
+    fprintf(stderr,"\t -l         || --license_file       Location of license file. Default: %s\n",LICENSE_FILE);
+    fprintf(stderr,"\t -f         || --find_ports         Show available , non-busy comm ports and exit\n");
     fprintf(stderr,"\t -h  || -?  || --help               Display this help and exit\n");
     return 0;
 }
@@ -124,10 +125,11 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
             {"verbose", no_argument, NULL, 'v'},
             {"quiet", no_argument, NULL, 'q'},
             {"find_ports", no_argument, NULL, 'f'},
+            {"license_file", required_argument, NULL, 'l'},
             {"help", no_argument, NULL, 'h'},
             {NULL, 0, NULL, 0}
     };
-    while ((option = getopt_long(argc, argv,"i:m:n:d:Q:w:s:L:D:b:r:vqhcf",long_options,&opt_index)) != -1) {
+    while ((option = getopt_long(argc, argv,"i:m:n:d:Q:w:s:L:l:D:b:r:vqhcf",long_options,&opt_index)) != -1) {
         switch (option) {
             case 'm' : config->module = strdup(optarg);     break;
             case 'i' : config->comm_ipaddr = strdup(optarg);  break;
@@ -140,6 +142,7 @@ static int parse_cmdline(configuration *config, int argc,  char * const argv[]) 
             case 'r' : config->ring = atoi(optarg);         break;
             case 'D' : config->loglevel = atoi(optarg)%9;   break;
             case 'L' : config->logfile = strdup(optarg);    break;
+            case 'l' : config->license_file = strdup(optarg);    break;
             case 'v' : config->verbose = 1; break;
             case 'q' : config->verbose = 0; break; // no console output
             case 'c' : config->opmode |= OPMODE_CONSOLE;    break; // test serial port
