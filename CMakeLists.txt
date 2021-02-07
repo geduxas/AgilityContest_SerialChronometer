@@ -31,6 +31,11 @@ add_library(digican SHARED src/modules/digican.c src/debug.c)
 target_compile_options(digican PRIVATE -DADD_EXPORTS)
 set_target_properties(digican PROPERTIES PREFIX "")
 
+# module libraries definition for "null" (dummy )serial module
+add_library(dummy SHARED src/modules/dummy.c src/debug.c)
+target_compile_options(dummy PRIVATE -DADD_EXPORTS)
+set_target_properties(dummy PROPERTIES PREFIX "")
+
 # module libraries definition for Galican's canometer web interface module
 add_library(canometroweb SHARED src/modules/canometroweb.c src/debug.c src/sc_tools.c)
 target_compile_options(canometroweb PRIVATE -DADD_EXPORTS)
@@ -78,6 +83,11 @@ if (${CMAKE_MAKE_PROGRAM} STREQUAL "/usr/bin/mingw32-make")
             setupapi
     )
     target_link_libraries(
+            dummy
+            dlfcn-win32::dl
+            setupapi
+    )
+    target_link_libraries(
             canometroweb
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libcsoap.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/mingw32/libnanohttp.a
@@ -117,8 +127,15 @@ elseif(APPLE)
             "-framework CoreFoundation"
     )
     target_link_libraries(
+            dummy
+            "-framework IOKit"
+            "-framework CoreFoundation"
+    )
+    target_link_libraries(
             # libnanohttp and csoap needs to be compiled with -fpic option to be included in DLL's
             canometroweb
+            "-framework IOKit"
+            "-framework CoreFoundation"
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/osx/libcsoap.a
             ${CMAKE_SOURCE_DIR}/libcsoap-1.1.0/lib/osx/libnanohttp.a
             curl

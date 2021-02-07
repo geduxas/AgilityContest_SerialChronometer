@@ -14,20 +14,26 @@ libreoffice \
   --outdir . \
   ${BASE}/ac_SerialProtocol.odt
 
-# copy required files
+# copy config docs and startup files
 cp ${BASE}/INSTALL.txt .
 cp ${BASE}/LICENSE .
 cp ${BASE}/serial_chrono.ini .
 cp ${BASE}/sc_dialog.{sh,exe} .
 cp ${BASE}/agilitycontest_64x64.png .
+# Linux files
 cp ${BASE}/cmake-build-debug/digican.so .
 cp ${BASE}/cmake-build-debug/generic.so .
 cp ${BASE}/cmake-build-debug/canometroweb.so .
+cp ${BASE}/cmake-build-debug/dummy.so .
 cp ${BASE}/cmake-build-debug/SerialChronometer .
+# Windows files
 cp ${BASE}/cmake-build-debug-mingw/digican.so digican.dll
 cp ${BASE}/cmake-build-debug-mingw/generic.so generic.dll
 cp ${BASE}/cmake-build-debug-mingw/canometroweb.so canometroweb.dll
+cp ${BASE}/cmake-build-debug-mingw/dummy.so dummy.dll
 cp ${BASE}/cmake-build-debug-mingw/SerialChronometer.exe .
+# (pending) MacOSX files
+# Web pages
 cp -r ${BASE}/html .
 
 # and compose zip file with contents
