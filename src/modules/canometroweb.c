@@ -22,7 +22,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore.h>
+#endif
 #include <curl/curl.h>
 #include "modules.h"
 #include "sc_config.h"
@@ -150,7 +154,11 @@ static canometroweb_data_t cw_data;
 static canometroweb_config_t cw_config;
  // semaphore used to block sendrec while data is being sent or receive,
  // to make sure that any operation from/to chrono is atomic
+#ifdef __APPLE__
+static dispatch_semaphore_t sem;
+#else
 static sem_t sem;
+#endif
 
 /**
  * Parses an xml response string with canometer configuration
@@ -396,7 +404,11 @@ static int synchronize_chrono() {
 int ADDCALL module_init(configuration *cfg) {
     config = cfg;
     /* initialize semaphores */
+#ifdef __APPLE__
+    sem=dispatch_semaphore_create(1);
+#else
     sem_init(&sem,0,1);
+#endif
     /* In windows, this will init the winsock stuff */
     CURLcode res = curl_global_init(CURL_GLOBAL_DEFAULT);
     /* Check for errors */
@@ -422,7 +434,9 @@ int ADDCALL module_init(configuration *cfg) {
 
 int ADDCALL module_end() {
     curl_global_cleanup();
-    sem_destroy(&sem);
+#ifndef __APPLE__
+    sem_destroy(&sem); // no equivalent in osx
+#endif
     return 0;
 }
 
@@ -456,11 +470,19 @@ int ADDCALL module_read(char *buffer,size_t length){
     unsigned int mask=0;
 
     debug(DBG_TRACE,"module_read() enter");
+#ifdef __APPLE__
+    dispatch_semaphore_wait(sem,DISPATCH_TIME_FOREVER);
+#else
     sem_wait(&sem);
+#endif
     received=sendrec("xml",NULL,NULL,1);
     if (!received) {
         debug(DBG_ERROR,"network_read() error %s",error_str);
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem);
+#endif
         return 0; /* strlen(buffer); */
     }
     debug(DBG_TRACE,"canometroweb module_read() received '%s'",received);
@@ -468,7 +490,11 @@ int ADDCALL module_read(char *buffer,size_t length){
     canometroweb_data_t *data=parse_status_xml(NULL,received);
     if (!data) {
         debug(DBG_ERROR,"canometroweb module_read() parsexml failed '%s'",received);
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem);
+#endif
         debug(DBG_TRACE,"module_read(data) exit");
         return -1;
     }
@@ -554,7 +580,11 @@ int ADDCALL module_read(char *buffer,size_t length){
     // if need to generate command, just do it and return
     if (strlen(buffer)!=0) {
         debug(DBG_TRACE,"module_read(cronoweb) returns action %s",buffer);
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem); // release lock
+#endif
         return strlen(buffer);
     }
 
@@ -570,13 +600,21 @@ int ADDCALL module_read(char *buffer,size_t length){
         free(data);
         // and compose message
         snprintf(buffer,length,"DATA %d:%d:%d",cw_data.faltas,cw_data.rehuses,cw_data.eliminado);
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem);
+#endif
         return strlen(buffer);
     }
     usleep(500000); // wait 0.5segs
     // to report crono count state, evaluate and send proper start/stop comand
     // pending: recognize and parse intermediate time and sensor fail/failbak
+#ifdef __APPLE__
+    dispatch_semaphore_signal(sem);
+#else
     sem_post(&sem);
+#endif
     debug(DBG_TRACE,"module_read(crono) returns no action");
     return 0;
 }
@@ -592,8 +630,11 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     memset(page,0,64);
     memset(tipo,0,16);
     memset(valor,0,16);
-
+#ifdef __APPLE__
+    dispatch_semaphore_wait(sem,DISPATCH_TIME_FOREVER);
+#else
     sem_wait(&sem); // make sure that do not conflict with receiver
+#endif
 
     debug(DBG_TRACE,"module_write() enter");
     // { 0, "start",   "Start of course run",             "[miliseconds] {0}"},
@@ -707,13 +748,21 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         result=sendrec("config_xml",NULL,NULL,1);
         if (!result) {
             debug(DBG_ERROR,"cannot retrieve canometroweb configuration");
+#ifdef __APPLE__
+            dispatch_semaphore_signal(sem);
+#else
             sem_post(&sem); // release lock
+#endif
             return -1;
         }
         parse_config_xml(&cw_config,result);
         free(result);
         debug(DBG_TRACE,"module_write(config) exit");
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem); // release lock
+#endif
         return 0;
     }
     // { 19, "status", "Show Fault/Refusal/Elim state",   "" },
@@ -722,13 +771,21 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
         result=sendrec("xml",NULL,NULL,1);
         if (!result) {
             debug(DBG_ERROR,"cannot retrieve canometroweb status");
+#ifdef __APPLE__
+            dispatch_semaphore_signal(sem);
+#else
             sem_post(&sem); // release lock
+#endif
             return -1;
         }
         parse_status_xml(&cw_data,result);
         free(result);
         debug(DBG_TRACE,"module_write(status) exit");
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem); // release lock
+#endif
         return 0;
     }
     // { 20, "turn",   "Set current dog order number [+-#]", "[ + | - | num ] {+}"},
@@ -743,7 +800,11 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     else {
         // arriving here means unrecognized or not supported command.
         debug(DBG_NOTICE,"Unrecognized command '%s'",tokens[1]);
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem); // release lock
+#endif
         return 0;
     }
 
@@ -754,12 +815,20 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     else result=sendrec(page,tipo,valor,0);
     if (!result) {
         debug(DBG_ERROR,"call to sendrec() failed, command:'%s' page:'%s' tipo:'%s' valor:'%s'",tokens[1],page,tipo,valor);
+#ifdef __APPLE__
+        dispatch_semaphore_signal(sem);
+#else
         sem_post(&sem); // release lock
+#endif
         return -1;
     }
     debug(DBG_TRACE,"module_write(%s) exit",tokens[1]);
     free(result);
+#ifdef __APPLE__
+    dispatch_semaphore_signal(sem);
+#else
     sem_post(&sem); // release lock
+#endif
     return 0;
 }
 
