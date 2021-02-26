@@ -162,6 +162,7 @@ int main (int argc, char *argv[]) {
     WSAStartup(versionWanted, &wsaData);
 #endif
     program_name=argv[0];
+    license_options=0;
 
     configuration *config;
     // early init debug with default values
@@ -199,29 +200,34 @@ int main (int argc, char *argv[]) {
         return 0;
     }
 
-    // retrieve license file and data. try user defined, else default, else local
-    if (!file_exists(config->license_file)) { config->license_file=LICENSE_FILE; }
-    if (!file_exists(config->license_file)) { config->license_file="registration.info"; }
-    if (!file_exists(config->license_file)) {
-        debug(DBG_ERROR,"Cannot locate license file. Abort");
-        return -1;
+    // si NO conectamos con agilitycontest, buscamos la licencia en local
+    if (strcmp(config->ajax_server,"none")==0) {
+        // retrieve license file and data. try user defined, else default, else local
+        if (!file_exists(config->license_file)) { config->license_file=LICENSE_FILE; }
+        if (!file_exists(config->license_file)) { config->license_file="registration.info"; }
+        if (!file_exists(config->license_file)) {
+            debug(DBG_ERROR,"Cannot locate license file. Abort");
+            return -1;
+        }
+        if (readLicenseFromFile(config)<0) {
+            debug(DBG_ERROR,"Error in handle of license file '%s'",config->license_file);
+            return 1;
+        }
+        char *serial=getLicenseItem("serial");
+        char *club=getLicenseItem("club");
+        char *options=getLicenseItem("options");
+        debug(DBG_INFO,"License number:'%s' Registerd to:'%s' permissions:'%s'",serial,club,options);
+        license_options=strtol(options,NULL,2);
+        if ( (license_options & 0x00000840L) == 0) {
+            debug(DBG_ERROR,"Current license does not support Chronometer operations");
+            return 1;
+        }
+        if(serial) free(serial);
+        if(club) free(club);
+        if(options) free(options);
     }
-    if (readLicenseFromFile(config)<0) {
-        debug(DBG_ERROR,"Error in handle of license file '%s'",config->license_file);
-        return 1;
-    }
-    char *serial=getLicenseItem("serial");
-    char *club=getLicenseItem("club");
-    char *options=getLicenseItem("options");
-    debug(DBG_INFO,"License number:'%s' Registerd to:'%s' permissions:'%s'",serial,club,options);
-    long lic_options=strtol(options,NULL,2);
-    if ( (lic_options & 0x00000840L) == 0) {
-        debug(DBG_ERROR,"Current license does not support Chronometer operations");
-        return 1;
-    }
-    if(serial) free(serial);
-    if(club) free(club);
-    if(options) free(options);
+    // si se conecta con agilitycontest, se le pregunta por la licencia al servidor
+    // una vez realizada la conexión
 
     // start requested threads
     // we need 5+1 threads (console,serial,ajax,web) managers plus webserver
@@ -257,10 +263,6 @@ int main (int argc, char *argv[]) {
     }
     // thread 3: comunicaciones ajax con servidor AgilityContest
     if (strcasecmp("none",config->ajax_server)==0) config->ajax_server=NULL;
-    if ( (lic_options & 0x00000040L) == 0) {
-        debug(DBG_NOTICE,"Current license does not support AgilityContest event API connection");
-        config->ajax_server=NULL;
-    }
     if (config->ajax_server!= (char*)NULL) {
         config->opmode |= OPMODE_SERVER;
         debug(DBG_TRACE,"Starting AgilityContest event listener thread");

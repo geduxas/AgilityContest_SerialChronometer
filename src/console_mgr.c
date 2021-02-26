@@ -131,7 +131,7 @@ static func entries[32]= {
         console_mgr_stop,   // { 2, "stop",    "End of course run",               "<miliseconds>"},
         console_mgr_fail,   // { 3, "fail",    "Sensor faillure detected",        ""},
         console_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
-        console_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<seconds>:<message>"},
+        console_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<seconds> <message>"},
         console_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
         console_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
         console_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},

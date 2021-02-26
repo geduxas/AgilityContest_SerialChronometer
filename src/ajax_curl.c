@@ -80,11 +80,62 @@ static size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
 
 /******************************** llamadas al servidor ********************/
 
+// common settins gor curl calls
+static void set_curl_opts(CURL *curl,char *url, struct string *data) {
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    /* tell libcurl to follow redirection */
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
+}
+
 void ajax_find_server(configuration *config) {
     // obtenemos las interfaces "localhost" y de red con dirección IPv4
     // en cada interfaz iteramos
     // si es localhost, solo se itera la 127.0.0.1
     // PENDING. esta funcion implica implementar "ifconfig", lo cual es demasiado lio para una primera version
+}
+
+/**
+ * config->ajax_server contains url
+// https://{ajax_server}/{baseurl}/ajax/adminFunctions.php
+//      ?Operation=capabilities
+// {"success":true,"perms":0}
+ * @return
+ */
+int ajax_get_permissions (configuration *config) {
+    CURL *curl=curl_easy_init();
+    struct string s;
+    init_string(&s);
+
+    snprintf(sc_selecturl,URL_BUFFSIZE,
+             "https://%s/%s/ajax/adminFunctions.php?Operation=capabilities",
+             config->ajax_server,BASE_URL);
+    debug(DBG_TRACE,"Asking server capabilities '%s'",config->ajax_server);
+    set_curl_opts(curl, sc_selecturl,&s);
+    /* Perform the request, res will get the return code */
+    int res = curl_easy_perform(curl);
+    /* Check for errors */
+    if(res != CURLE_OK) {
+        debug(DBG_ERROR, "curl_easy_perform(getPerms) failed: %s", curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        return -1;
+    }
+    debug(DBG_DEBUG,"getCapabilities() returns: \n%s",s.ptr);
+
+    // now, get sessionID for current ring from json response
+    int perms= parse_permissions(config,s.ptr,s.len);
+    if (perms<0) {
+        debug(DBG_ERROR, "json_get_permissions() failed in parse perms response");
+    }
+    /* always cleanup */
+    end_string(&s);
+    curl_easy_cleanup(curl);
+    return perms;
 }
 
 /**
@@ -101,16 +152,7 @@ int ajax_connect_server (configuration *config) {
 
     snprintf(sc_selecturl,URL_BUFFSIZE,"https://%s/%s/ajax/database/sessionFunctions.php?Operation=selectring",config->ajax_server,BASE_URL);
     debug(DBG_TRACE,"Connecting server at '%s'",config->ajax_server);
-    curl_easy_setopt(curl, CURLOPT_URL, sc_selecturl);
-    /* example.com is redirected, so we tell libcurl to follow redirection */
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
-
+    set_curl_opts(curl, sc_selecturl,&s);
     /* Perform the request, res will get the return code */
     int res = curl_easy_perform(curl);
     /* Check for errors */
@@ -147,15 +189,7 @@ int ajax_open_session(configuration *config) {
              "https://%s/%s/ajax/database/eventFunctions.php?Operation=connect&Session=%d&SessionName=%s",
              config->ajax_server,BASE_URL,config->status.sessionID,getSessionName(config));
     debug(DBG_TRACE,"ConnectSession: %s",sc_connecturl);
-    curl_easy_setopt(curl, CURLOPT_URL, sc_connecturl);
-    /* example.com is redirected, so we tell libcurl to follow redirection */
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+    set_curl_opts(curl,sc_connecturl,&s);
 
     /* Perform the request, res will get the return code */
     int res = curl_easy_perform(curl);
@@ -198,15 +232,7 @@ char ** ajax_wait_for_events(configuration *config, int *evtid, time_t *timestam
              "https://%s/%s/ajax/database/eventFunctions.php?Operation=getEvents&Session=%d&ID=%d&TimeStamp=%lu&Source=chrono&Name=%s&SessionName=%s",
              config->ajax_server,BASE_URL,config->status.sessionID,*evtid,*timestamp,config->client_name,getSessionName(config));
     // debug(DBG_TRACE,"getEvents: %s",sc_geteventurl);
-    curl_easy_setopt(curl, CURLOPT_URL, sc_geteventurl);
-    /* example.com is redirected, so we tell libcurl to follow redirection */
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+    set_curl_opts(curl,sc_geteventurl,&s);
 
     /* Perform the request, res will get the return code */
     int res = curl_easy_perform(curl);
@@ -284,15 +310,7 @@ int ajax_put_event(configuration *config, char *type, sc_extra_data_t *data,int 
         return -1;
     }
     debug(DBG_TRACE,"putEvent: %s",sc_puteventurl);
-    curl_easy_setopt(curl, CURLOPT_URL, sc_puteventurl);
-    /* example.com is redirected, so we tell libcurl to follow redirection */
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+    set_curl_opts(curl,sc_puteventurl,&s);
 
     /* Perform the request, res will get the return code */
     int res = curl_easy_perform(curl);

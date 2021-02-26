@@ -222,7 +222,7 @@ func main_mgr_entries[32]= {
         main_mgr_stop,   // { 2, "stop",    "End of course run",               "<miliseconds>"},
         main_mgr_fail,   // { 3, "fail",    "Sensor faillure detected",        ""},
         main_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
-        main_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<seconds>:<message>"},
+        main_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<seconds> <message>"},
         main_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
         main_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
         main_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},

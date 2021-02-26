@@ -17,7 +17,7 @@ command_t command_list[32]= {
         { 2, "stop",    "End of course run",               "<miliseconds>"},
         { 3, "fail",    "Sensor faillure detected",        ""},
         { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
-        { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+        { 5, "msg",     "Show message on chrono display",  "<seconds> <message> [seconds]"},
         { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
         { 7, "down",    "Start 15 seconds countdown",      ""},
         { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num {+}>"},

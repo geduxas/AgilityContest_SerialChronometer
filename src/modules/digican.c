@@ -148,7 +148,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
     // unsupported in digican chrono
     else if (strcasecmp("ok",cmd)==0) {  unsuported("digican","ok"); }
-    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+    // { 5, "msg",     "Show message on chrono display",  "<seconds> <message>"},
         // unsupported in digican chrono
     else if (strcasecmp("msg",cmd)==0) {  unsuported("digican","msg"); }
     // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},

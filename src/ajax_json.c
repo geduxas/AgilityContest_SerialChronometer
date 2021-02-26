@@ -212,6 +212,28 @@ static char * process_eventData(configuration *config,char const * datastr, int 
 }
 
 /**
+ * parse a getCapabilities request and extract AgilityContest server license perms
+ * Notice that getCapabilities response is simple {"success":true,"perms":0} ,
+ * so just use strstr and atoi instead of deploying json parser
+ *
+ * @param config configuration parameters
+ * @param json_str string to parse
+ * @param json_len string length
+ * @return permissions
+ */
+int parse_permissions(configuration *config, char *json_str,size_t json_len) {
+    int res=-1;
+    char *resp="{\"success\":true,\"perms\":";
+    // make sure that json_str is null terminated
+    char *str=calloc(json_len+1,sizeof(char));
+    if (!str) return -1; // calloc error
+    strncpy(str,json_str,json_len);
+    if (strstr(str,resp)) res= atoi(str+strlen(resp));
+    free(str);
+    return res;
+}
+
+/**
  * parse a selectring request and extract session for choosen ring
  * @param config configuration parameters
  * @param json_str string to parse from selectring ajax response

@@ -126,7 +126,7 @@ static func entries[32]= {
         net_mgr_stop,   // { 2, "stop",    "End of course run",               "<miliseconds>"},
         net_mgr_fail,   // { 3, "fail",    "Sensor faillure detected",        ""},
         net_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
-        net_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+        net_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<seconds> <message> {2}"},
         net_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
         net_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
         net_mgr_fault,  // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},

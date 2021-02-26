@@ -54,17 +54,16 @@ Where options are:<br/>
 
     Chronometer is ready. Sensor error is over
 
-**Messages from Computer to Chronometer:**
-
-* MSG message [ seconds ] < newline > ( optional )
-
-    Show message on chronometer display . "seconds" is optional and indicates seconds that message is to be shown
-
 **Bi-Directional messages:**
 
 Can be sent either for the chronometer or the Computer
 Chronometer can ignore these commands, but honoring RESET is recommended
 
+
+* MSG seconds message < newline >
+
+  Show message on chronometer display . "seconds" is number of seconds that message must be shown
+  
 * DOWN [seconds] < newline >
 
     Start CountDown when competitor receives ack to run. defaults to 15 seconds

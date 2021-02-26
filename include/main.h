@@ -48,6 +48,7 @@ EXTERN void waitForThreads(int numthreads);
 
 EXTERN sc_thread_slot *sc_threads;
 EXTERN char *program_name;
+EXTERN long license_options;
 
 #undef EXTERN
 

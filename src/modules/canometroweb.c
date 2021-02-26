@@ -620,7 +620,7 @@ int ADDCALL module_write(char **tokens, size_t ntokens){
     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
     // unsupported in canometroweb chrono but supported in event api protocol :-(
     else if (strcasecmp("ok",cmd)==0) {  unsuported("canometroweb","ok"); }
-    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+    // { 5, "msg",     "Show message on chrono display",  "<seconds> <message>"},
         // unsupported in canometroweb chrono but supported in event api protocol :-(
     else if (strcasecmp("msg",cmd)==0) {  unsuported("canometroweb","msg"); }
     // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},

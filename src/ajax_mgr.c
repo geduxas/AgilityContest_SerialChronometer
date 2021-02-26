@@ -86,7 +86,7 @@ static int ajax_mgr_ok(configuration * config, int slot, char **tokens, int ntok
 }
 static int ajax_mgr_msg(configuration * config, int slot, char **tokens, int ntokens) {
     if (strcmp(SC_AJAXSRV,tokens[0])==0) return 0; // to avoid get/put loop
-    // compose message
+    // compose message source msg duration message ....
     char buff[512];
     int len=sprintf(buff,"%s:%s",tokens[2],tokens[3]);
     for (int n=4;n<ntokens;n++) len+=sprintf(buff+len,"%%20%s",tokens[n]);
@@ -140,7 +140,7 @@ static func entries[32]= {
         ajax_mgr_stop,   // { 2, "stop",    "End of course run",               "<miliseconds>"},
         ajax_mgr_fail,   // { 3, "fail",    "Sensor faillure detected",        ""},
         ajax_mgr_ok,     // { 4, "ok",      "Sensor recovery. Chrono ready",   ""},
-        ajax_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<message> [seconds] {2}"},
+        ajax_mgr_msg,    // { 5, "msg",     "Show message on chrono display",  "<seconds> <message>"},
         ajax_mgr_walk,   // { 6, "walk",    "Course walk (0:stop)",            "<seconds> {420}"},
         ajax_mgr_down,   // { 7, "down",    "Start 15 seconds countdown",      ""},
         ajax_mgr_data,   // { 8, "fault",   "Mark fault (+/-/#)",              "< + | - | num >"},
@@ -194,6 +194,13 @@ void *ajax_manager_thread(void *arg){
     }
     config->status.sessionID=ses;
 
+    // comprobamos si el servidor de AgilityContest incluye una licencia que soporte cronometro
+    int permissions=ajax_get_permissions(config);
+    if ( (permissions & 0x00000040L) == 0) {
+        debug(DBG_ERROR,"%s AgilityContest server license does not allow chrono operations",SC_AJAXSRV);
+        license_options=-1; // tell ajax_mgr to send exit command to main loop
+    }
+
     debug(DBG_TRACE,"AgilityContest link thread initialized. Entering loop connecting to '%s'",config->ajax_server);
     // mark thread alive before start working
     slot->index=slotIndex;
@@ -224,8 +231,27 @@ void *ajax_manager_thread(void *arg){
     // loop until end requested
     while(slot->index>=0) {
         int res=0;
-        char **cmds=ajax_wait_for_events(config,&evtid,&timestamp);
-        if (!cmds) {
+        char **cmds=NULL;
+        if (license_options < 0) {
+            sleep(5); // wait a bit to make sure all other threads are up and running
+            // on server license not supporting chronometer
+            debug(DBG_ERROR, "Agilitycontest server has no chronometer license support. EXIT forced");
+            // compose a fake EXIT command and send via socket to main loop
+            char **exitcmd = calloc(2, sizeof(char *));
+            exitcmd[0] = calloc(64, sizeof(char));
+            exitcmd[1] = NULL;
+            if (license_options==-1) {
+                snprintf(exitcmd[0], 64, "MSG 10 Chrono is not supported in server license");
+                license_options=-2;
+            } else {
+                snprintf(exitcmd[0], 64, "EXIT");
+            }
+            cmds = exitcmd;
+        } else {
+            // server supports chronometer: ask for events
+            cmds=ajax_wait_for_events(config,&evtid,&timestamp);
+        }
+        if (!cmds) { // error on receive/parsing events
             // debug(DBG_NOTICE,"%s WaitForEvent() failed. retrying",SC_AJAXSRV);
             sleep(1);
             continue;

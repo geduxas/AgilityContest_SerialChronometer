@@ -30,6 +30,13 @@ EXTERN int parse_select(configuration *config, char *json_str,size_t json_len);
  */
 EXTERN int parse_connect(configuration *config, char *json_str,size_t json_len);
 
+/**
+ * parse a getCapabilities request and extract AgilityContest server license perms
+ * @param config configuration parameters
+ * @param json_str string to parse
+ * @param json_len string length
+ */
+EXTERN int parse_permissions(configuration *config, char *json_str,size_t json_len);
 
 /**
  * parse getEvents request
