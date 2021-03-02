@@ -74,9 +74,12 @@ function readData() {
             if (data.Command) {
                 setTimeout(function(){ parseCommand(data.Command);},0);
             }
+            // and relaunch request
+            setTimeout(readData,500);
         },
         error: function(){
             console.log('Error in readData');
+            setTimeout(readData,2000);
         }
     });
     return false;
@@ -138,6 +141,7 @@ function handle_buttons(button) {
             console.log("handle_buttons() invalid button: "+button);
     }
 }
+
 function falta(inc) {
     var f= inc+parseInt( $('#Faltas').val() ) ;
     if (f<0) f=0;
