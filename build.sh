@@ -20,19 +20,44 @@ cp ${BASE}/LICENSE .
 cp ${BASE}/serial_chrono.ini .
 cp ${BASE}/sc_dialog.{sh,exe} .
 cp ${BASE}/agilitycontest_64x64.png .
+
+linux_dir=${BASE}/cmake-build-debug
+windows_dir=${BASE}/cmake-build-debug-mingw
+osx_dir=${BASE}/cmake-build-debug-xcode
+
 # Linux files
-cp ${BASE}/cmake-build-debug/digican.so .
-cp ${BASE}/cmake-build-debug/generic.so .
-cp ${BASE}/cmake-build-debug/canometroweb.so .
-cp ${BASE}/cmake-build-debug/dummy.so .
-cp ${BASE}/cmake-build-debug/SerialChronometer .
+if [ -d $linux_dir ]; then
+  cp ${linux_dir}/digican.so .
+  cp ${linux_dir}/generic.so .
+  cp ${linux_dir}/canometroweb.so .
+  cp ${linux_dir}/dummy.so .
+  cp ${linux_dir}/SerialChronometer .
+else
+  echo "WARNING: cannot find linux compilation"
+fi
+
 # Windows files
-cp ${BASE}/cmake-build-debug-mingw/digican.so digican.dll
-cp ${BASE}/cmake-build-debug-mingw/generic.so generic.dll
-cp ${BASE}/cmake-build-debug-mingw/canometroweb.so canometroweb.dll
-cp ${BASE}/cmake-build-debug-mingw/dummy.so dummy.dll
-cp ${BASE}/cmake-build-debug-mingw/SerialChronometer.exe .
-# (pending) MacOSX files
+if [ -d ${BASE}/cmake-build-debug-mingw ]; then
+  cp ${windows_dir}/digican.so digican.dll
+  cp ${windows_dir}/generic.so generic.dll
+  cp ${windows_dir}/canometroweb.so canometroweb.dll
+  cp ${windows_dir}/dummy.so dummy.dll
+  cp ${windows_dir}/SerialChronometer.exe .
+else
+  echo "WARNING: Cannot find Windows related files"
+fi
+
+# MacOSX files
+if [ -d ${osx_dir} ]; then
+  cp ${osx_dir}/digican.dylib digican.dylib
+  cp ${osx_dir}/generic.dylib generic.dylib
+  cp ${osx_dir}/canometroweb.dylib canometroweb.dylib
+  cp ${osx_dir}/dummy.dylib dummy.dylib
+  cp ${osx_dir}/SerialChronometer.osx .
+else
+  echo "WARNING: cannot find MacOSX compiled files"
+fi
+
 # Web pages
 cp -r ${BASE}/html .
 
